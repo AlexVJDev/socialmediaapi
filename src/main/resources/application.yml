@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: social-media-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/social_media}
+    username: ${DB_USERNAME:postgresql}
+    password: ${DB_PASSWORD:password}
+  liquibase:
+    change-log: classpath:db/db.changelog-master.yaml
+    default-schema: public
+
