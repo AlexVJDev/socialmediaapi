@@ -5,59 +5,53 @@ Educational project
 
 The database runs in Docker with the following default settings:
 
-- database: `postgres`
+- database: `social_media`
 - schema: `public`
-- user: `postgresql`
+- user: `postgres`
 - password: `password`
 - port: `5432`
 
 Start PostgreSQL:
-
 ```shell
 docker compose up -d
 ```
 
 Check container status:
-
 ```shell
 docker compose ps
 ```
 
-Stop PostgreSQL:
+View PostgreSQL logs (useful for diagnosing startup and connection errors):
+```shell
+docker compose logs postgres
+```
 
+Stop PostgreSQL and remove its container and network while preserving the
+database volume:
 ```shell
 docker compose down
 ```
 
-To stop PostgreSQL and delete all database data:
-
+Stop PostgreSQL and delete its volume with all database data. Use this command
+only when the database needs to be initialized from scratch:
 ```shell
 docker compose down -v
 ```
 
 ## Application
 
-Start:
+Run the tests on Linux or macOS:
+```shell
+./mvnw test
+```
 
+Start the application on Linux or macOS:
 ```shell
 ./mvnw spring-boot:run
 ```
 
-Liquibase runs automatically during application startup and creates the
-application tables in the `public` schema. A successful startup contains
-`Liquibase: Update has been successful` in the log.
-
-List the created tables directly through the container:
-
-```shell
-docker compose exec postgres psql -U postgresql -d postgres -c "\dt public.*"
-```
-
-If a database manager was open before the migration, refresh or reconnect the
-`public` schema to update its object tree.
-
 Stop:
-
 ```text
 Ctrl + C
 ```
+
