@@ -1,7 +1,7 @@
 --liquibase formatted sql
 
 --changeset student:001-create-social-relations
-CREATE TABLE friend_requests (
+CREATE TABLE offer_friendship (
                                  id BIGSERIAL PRIMARY KEY,
                                  requester_id UUID NOT NULL,
                                  recipient_id UUID NOT NULL,
