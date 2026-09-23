@@ -1,0 +1,53 @@
+@startuml
+title Friend request states
+
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #0F172A
+  StartColor #16A34A
+  EndColor #DC2626
+}
+
+[*] --> PENDING : Alice sends a request to Boris
+
+state "PENDING\nRequest is waiting for a decision" as PENDING
+state "ACCEPTED\nRequest is accepted" as ACCEPTED
+state "REJECTED\nRequest is rejected" as REJECTED
+
+note right of PENDING
+  The system creates a friend request.
+  Alice starts following Boris.
+  Friendship is not created yet.
+end note
+
+PENDING --> ACCEPTED : Boris accepts the request
+PENDING --> REJECTED : Boris rejects the request
+
+note right of ACCEPTED
+  The system creates mutual friendship.
+  Boris is added to Alice's friends list.
+  Alice is added to Boris's friends list.
+  Boris starts following Alice.
+end note
+
+note right of REJECTED
+  Friendship is not created.
+  Alice remains a follower of Boris.
+end note
+
+note bottom
+  Process invariants
+  --
+  A user cannot send a friend request to themselves.
+  Two active requests in the same direction cannot exist.
+  Friendship cannot exist only for one side.
+  Accepting a request must create friendship and reverse following atomically.
+  Rejecting a request does not cancel the sender's following relation.
+  Repeating a command must not create duplicate relations.
+end note
+
+ACCEPTED --> [*] : process completed successfully
+REJECTED --> [*] : process completed with rejection
+@enduml
