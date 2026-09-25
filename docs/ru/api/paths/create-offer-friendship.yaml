@@ -1,0 +1,104 @@
+post:
+  summary: Создать предложение дружбы
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - fromUserId
+            - toUserId
+          properties:
+            fromUserId:
+              type: integer
+              format: int64
+              example: 1
+            toUserId:
+              type: integer
+              format: int64
+              example: 2
+  responses:
+    '201':
+      description: Предложение дружбы создано
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - id
+              - fromUserId
+              - toUserId
+              - status
+              - createdAt
+            properties:
+              id:
+                type: integer
+                format: int64
+                example: 10
+              fromUserId:
+                type: integer
+                format: int64
+                example: 1
+              toUserId:
+                type: integer
+                format: int64
+                example: 2
+              status:
+                type: string
+                enum: [PENDING, ACCEPTED, REJECTED]
+                example: PENDING
+              createdAt:
+                type: string
+                format: date-time
+                example: '2026-09-22T10:15:00Z'
+    '204':
+      description: Предложение дружбы уже существует или дружба уже создана
+    '400':
+      description: Некорректные входные данные
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: INVALID_FRIENDSHIP_OFFER_REQUEST
+              message:
+                type: string
+                example: Некорректное тело запроса или отсутствуют обязательные поля
+    '404':
+      description: Пользователь не найден
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: USER_NOT_FOUND
+              message:
+                type: string
+                example: Пользователь-инициатор или пользователь-получатель не найден
+    '409':
+      description: Предложение дружбы уже отклонено
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: OFFER_FRIENDSHIP_ALREADY_REJECTED
+              message:
+                type: string
+                example: Отклонённое предложение дружбы нельзя создать повторно

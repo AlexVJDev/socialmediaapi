@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info:
+  title: API социальной сети
+  version: 1.0.0
+paths:
+  /api/offer-friendships/create:
+    $ref: './paths/create-offer-friendship.yaml'
+  /api/offer-friendships/accept:
+    $ref: './paths/accept-offer-friendship.yaml'
+  /api/offer-friendships/reject:
+    $ref: './paths/reject-offer-friendship.yaml'
+  /api/offer-friendships/incoming:
+    $ref: './paths/get-incoming-offer-friendships.yaml'
+  /api/offer-friendships/outgoing:
+    $ref: './paths/get-outgoing-offer-friendships.yaml'
+  /api/friendships:
+    $ref: './paths/get-friendships.yaml'
+  /api/subscribes/followers:
+    $ref: './paths/get-followers.yaml'
+  /api/subscribes:
+    $ref: './paths/get-subscribes.yaml'

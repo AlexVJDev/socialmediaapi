@@ -1,0 +1,94 @@
+get:
+  summary: Получить исходящие предложения дружбы
+  parameters:
+    - name: userId
+      in: query
+      required: true
+      description: Идентификатор пользователя, для которого нужно получить исходящие предложения дружбы
+      schema:
+        type: integer
+        format: int64
+        example: 1
+  responses:
+    '200':
+      description: Список исходящих предложений дружбы
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              required:
+                - id
+                - fromUserId
+                - toUserId
+                - status
+                - createdAt
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                  example: 10
+                fromUserId:
+                  type: integer
+                  format: int64
+                  example: 1
+                toUserId:
+                  type: integer
+                  format: int64
+                  example: 2
+                status:
+                  type: string
+                  enum: [PENDING, ACCEPTED, REJECTED]
+                  example: PENDING
+                createdAt:
+                  type: string
+                  format: date-time
+                  example: '2026-09-22T10:15:00Z'
+          examples:
+            found:
+              value:
+                - id: 10
+                  fromUserId: 1
+                  toUserId: 2
+                  status: PENDING
+                  createdAt: '2026-09-22T10:15:00Z'
+                - id: 12
+                  fromUserId: 1
+                  toUserId: 4
+                  status: PENDING
+                  createdAt: '2026-09-22T10:30:00Z'
+            empty:
+              value: []
+    '400':
+      description: Некорректный или отсутствующий параметр userId
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: INVALID_USER_ID
+              message:
+                type: string
+                example: Некорректный или отсутствующий параметр userId
+    '404':
+      description: Пользователь не найден
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: USER_NOT_FOUND
+              message:
+                type: string
+                example: Пользователь не найден

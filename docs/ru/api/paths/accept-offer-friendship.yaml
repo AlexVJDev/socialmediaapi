@@ -1,0 +1,107 @@
+post:
+  summary: Принять предложение дружбы
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - fromUserId
+            - toUserId
+          properties:
+            fromUserId:
+              type: integer
+              format: int64
+              example: 1
+            toUserId:
+              type: integer
+              format: int64
+              example: 2
+  responses:
+    '200':
+      description: Предложение дружбы принято
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - id
+              - fromUserId
+              - toUserId
+              - status
+              - createdAt
+              - acceptedAt
+            properties:
+              id:
+                type: integer
+                format: int64
+                example: 10
+              fromUserId:
+                type: integer
+                format: int64
+                example: 1
+              toUserId:
+                type: integer
+                format: int64
+                example: 2
+              status:
+                type: string
+                enum: [PENDING, ACCEPTED, REJECTED]
+                example: ACCEPTED
+              createdAt:
+                type: string
+                format: date-time
+                example: '2026-09-22T10:15:00Z'
+              acceptedAt:
+                type: string
+                format: date-time
+                example: '2026-09-22T10:20:00Z'
+    '400':
+      description: Некорректные входные данные
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: INVALID_FRIENDSHIP_OFFER_REQUEST
+              message:
+                type: string
+                example: Некорректное тело запроса или отсутствуют обязательные поля
+    '404':
+      description: Предложение дружбы не найдено
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: FRIENDSHIP_OFFER_NOT_FOUND
+              message:
+                type: string
+                example: Предложение дружбы не найдено
+    '409':
+      description: Предложение дружбы нельзя принять из-за текущего состояния
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: OFFER_FRIENDSHIP_ALREADY_REJECTED
+              message:
+                type: string
+                example: Отклонённое предложение дружбы нельзя принять
