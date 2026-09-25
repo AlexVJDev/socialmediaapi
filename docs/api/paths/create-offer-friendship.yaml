@@ -1,0 +1,104 @@
+post:
+  summary: Create a friendship offer
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - fromUserId
+            - toUserId
+          properties:
+            fromUserId:
+              type: integer
+              format: int64
+              example: 1
+            toUserId:
+              type: integer
+              format: int64
+              example: 2
+  responses:
+    '201':
+      description: Friendship offer created
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - id
+              - fromUserId
+              - toUserId
+              - status
+              - createdAt
+            properties:
+              id:
+                type: integer
+                format: int64
+                example: 10
+              fromUserId:
+                type: integer
+                format: int64
+                example: 1
+              toUserId:
+                type: integer
+                format: int64
+                example: 2
+              status:
+                type: string
+                enum: [PENDING, ACCEPTED, REJECTED]
+                example: PENDING
+              createdAt:
+                type: string
+                format: date-time
+                example: '2026-09-22T10:15:00Z'
+    '204':
+      description: Friendship offer already exists or friendship already exists
+    '400':
+      description: Invalid input data
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: INVALID_FRIENDSHIP_OFFER_REQUEST
+              message:
+                type: string
+                example: Invalid request body or missing required fields
+    '404':
+      description: User not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: USER_NOT_FOUND
+              message:
+                type: string
+                example: Initiating user or recipient user was not found
+    '409':
+      description: Friendship offer has already been rejected
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: OFFER_FRIENDSHIP_ALREADY_REJECTED
+              message:
+                type: string
+                example: A rejected friendship offer cannot be created again

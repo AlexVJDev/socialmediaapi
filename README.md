@@ -1,6 +1,10 @@
 # socialmediaapi
 Educational project
 
+## API contract
+
+OpenAPI contract: [docs/api/openapi.yaml](docs/api/openapi.yaml)
+
 ## PostgreSQL
 
 The database runs in Docker with the following default settings:
@@ -54,4 +58,3 @@ Stop:
 ```text
 Ctrl + C
 ```
-

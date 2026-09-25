@@ -1,0 +1,94 @@
+get:
+  summary: Get incoming friendship offers
+  parameters:
+    - name: userId
+      in: query
+      required: true
+      description: Identifier of the user whose incoming friendship offers should be returned
+      schema:
+        type: integer
+        format: int64
+        example: 2
+  responses:
+    '200':
+      description: List of incoming friendship offers
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              required:
+                - id
+                - fromUserId
+                - toUserId
+                - status
+                - createdAt
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                  example: 10
+                fromUserId:
+                  type: integer
+                  format: int64
+                  example: 1
+                toUserId:
+                  type: integer
+                  format: int64
+                  example: 2
+                status:
+                  type: string
+                  enum: [PENDING, ACCEPTED, REJECTED]
+                  example: PENDING
+                createdAt:
+                  type: string
+                  format: date-time
+                  example: '2026-09-22T10:15:00Z'
+          examples:
+            found:
+              value:
+                - id: 10
+                  fromUserId: 1
+                  toUserId: 2
+                  status: PENDING
+                  createdAt: '2026-09-22T10:15:00Z'
+                - id: 11
+                  fromUserId: 3
+                  toUserId: 2
+                  status: PENDING
+                  createdAt: '2026-09-22T10:25:00Z'
+            empty:
+              value: []
+    '400':
+      description: Invalid or missing userId parameter
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: INVALID_USER_ID
+              message:
+                type: string
+                example: Invalid or missing userId parameter
+    '404':
+      description: User not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: USER_NOT_FOUND
+              message:
+                type: string
+                example: User was not found

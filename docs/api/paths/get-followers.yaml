@@ -1,0 +1,78 @@
+get:
+  summary: Get user followers
+  parameters:
+    - name: userId
+      in: query
+      required: true
+      description: Identifier of the user whose followers list should be returned
+      schema:
+        type: integer
+        format: int64
+        example: 2
+  responses:
+    '200':
+      description: List of users who follow the current user
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              required:
+                - id
+                - username
+                - displayName
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                  example: 1
+                username:
+                  type: string
+                  example: alice
+                displayName:
+                  type: string
+                  example: Alice
+          examples:
+            found:
+              value:
+                - id: 1
+                  username: alice
+                  displayName: Alice
+                - id: 3
+                  username: maria
+                  displayName: Maria
+            empty:
+              value: []
+    '400':
+      description: Invalid or missing userId parameter
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: INVALID_USER_ID
+              message:
+                type: string
+                example: Invalid or missing userId parameter
+    '404':
+      description: User not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                example: USER_NOT_FOUND
+              message:
+                type: string
+                example: User was not found
