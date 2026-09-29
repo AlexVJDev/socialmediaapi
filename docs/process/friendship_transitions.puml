@@ -1,5 +1,5 @@
 @startuml
-title Friendship request change scenarios
+title Сценарии изменения заявки в друзья
 
 skinparam shadowing false
 skinparam sequence {
@@ -12,119 +12,119 @@ skinparam sequence {
   ParticipantFontColor #0F172A
 }
 
-actor "Alice\nrequest initiator" as Alice
-actor "Boris\nrequest recipient" as Boris
+actor "Алиса\nинициатор заявки" as Alice
+actor "Борис\nполучатель заявки" as Boris
 participant "FriendRequestController" as Controller
 participant "FriendRequestService" as Service
 participant "FriendRequestRepository" as Repository
 database DB
 
-== Create friendship request ==
+== Создание заявки в друзья ==
 
 Alice -> Controller : create(fromUserId = Alice, toUserId = Boris)
 Controller -> Service : createOffer(Alice, Boris)
 Service -> Repository : findByUsers(Alice, Boris)
 Repository -> DB : SELECT friend_request
-DB --> Repository : existing request or empty result
-Repository --> Service : existing request or empty result
+DB --> Repository : существующая заявка или пустой результат
+Repository --> Service : существующая заявка или пустой результат
 
-alt no existing request
+alt заявка не существует
   Service -> Repository : save(status = PENDING)
   Repository -> DB : INSERT friend_request(PENDING)
-  DB --> Repository : created request
+  DB --> Repository : созданная заявка
   Repository --> Service : FriendRequest(PENDING)
-  Service -> Repository : ensure subscription Alice -> Boris
-  Repository -> DB : INSERT subscription if absent
-  DB --> Repository : subscription exists
-  Repository --> Service : subscription result
-  Service --> Controller : created PENDING request
+  Service -> Repository : обеспечить подписку Алиса -> Борис
+  Repository -> DB : INSERT подписки, если она отсутствует
+  DB --> Repository : подписка существует
+  Repository --> Service : результат создания подписки
+  Service --> Controller : созданная заявка PENDING
   Controller --> Alice : 201 Created, status = PENDING
-else existing request status = PENDING
-  Service --> Controller : existing PENDING request
-  Controller --> Alice : 200 OK, status = PENDING, duplicate is not created
-else existing request status = ACCEPTED
-  Service --> Controller : already accepted result
-  Controller --> Alice : 200 OK, status = ACCEPTED, friendship state is unchanged
-else existing request status = REJECTED
-  Service --> Controller : conflict: cannot return to PENDING automatically
+else состояние существующей заявки = PENDING
+  Service --> Controller : существующая заявка PENDING
+  Controller --> Alice : 200 OK, status = PENDING, дубликат не создан
+else состояние существующей заявки = ACCEPTED
+  Service --> Controller : результат уже принятой заявки
+  Controller --> Alice : 200 OK, status = ACCEPTED, состояние дружбы не изменено
+else состояние существующей заявки = REJECTED
+  Service --> Controller : конфликт: автоматический возврат в PENDING невозможен
   Controller --> Alice : 409 Conflict
 end
 
-== Accept friendship request ==
+== Принятие заявки в друзья ==
 
 Boris -> Controller : accept(fromUserId = Alice, toUserId = Boris)
 Controller -> Service : acceptOffer(Alice, Boris)
 Service -> Repository : findByUsers(Alice, Boris)
 Repository -> DB : SELECT friend_request
-DB --> Repository : request or empty result
-Repository --> Service : request or empty result
+DB --> Repository : заявка или пустой результат
+Repository --> Service : заявка или пустой результат
 
-alt request exists and status = PENDING
+alt заявка существует и состояние = PENDING
   Service -> Repository : save(status = ACCEPTED)
   Repository -> DB : UPDATE friend_request SET status = ACCEPTED
-  DB --> Repository : updated request
+  DB --> Repository : обновлённая заявка
   Repository --> Service : FriendRequest(ACCEPTED)
-  Service -> Repository : ensure friendship Alice <-> Boris
-  Repository -> DB : INSERT mutual friendship if absent
-  DB --> Repository : friendship exists
-  Repository --> Service : friendship result
-  Service -> Repository : ensure subscription Boris -> Alice
-  Repository -> DB : INSERT reverse subscription if absent
-  DB --> Repository : subscription exists
-  Repository --> Service : subscription result
-  Service --> Controller : accepted request
+  Service -> Repository : обеспечить дружбу Алиса <-> Борис
+  Repository -> DB : INSERT взаимной дружбы, если она отсутствует
+  DB --> Repository : дружба существует
+  Repository --> Service : результат создания дружбы
+  Service -> Repository : обеспечить подписку Борис -> Алиса
+  Repository -> DB : INSERT обратной подписки, если она отсутствует
+  DB --> Repository : подписка существует
+  Repository --> Service : результат создания подписки
+  Service --> Controller : принятая заявка
   Controller --> Boris : 200 OK, status = ACCEPTED
-else request exists and status = ACCEPTED
-  Service --> Controller : already accepted result
-  Controller --> Boris : 200 OK, status = ACCEPTED, duplicate changes are not created
-else request exists and status = REJECTED
-  Service --> Controller : conflict: rejected request cannot be accepted
+else заявка существует и состояние = ACCEPTED
+  Service --> Controller : результат уже принятой заявки
+  Controller --> Boris : 200 OK, status = ACCEPTED, дубликаты изменений не созданы
+else заявка существует и состояние = REJECTED
+  Service --> Controller : конфликт: отклонённую заявку нельзя принять
   Controller --> Boris : 409 Conflict
-else request not found
-  Service --> Controller : request was not found
+else заявка не найдена
+  Service --> Controller : заявка не найдена
   Controller --> Boris : 404 Not Found
 end
 
-== Reject friendship request ==
+== Отклонение заявки в друзья ==
 
 Boris -> Controller : reject(fromUserId = Alice, toUserId = Boris)
 Controller -> Service : rejectOffer(Alice, Boris)
 Service -> Repository : findByUsers(Alice, Boris)
 Repository -> DB : SELECT friend_request
-DB --> Repository : request or empty result
-Repository --> Service : request or empty result
+DB --> Repository : заявка или пустой результат
+Repository --> Service : заявка или пустой результат
 
-alt request exists and status = PENDING
+alt заявка существует и состояние = PENDING
   Service -> Repository : save(status = REJECTED)
   Repository -> DB : UPDATE friend_request SET status = REJECTED
-  DB --> Repository : updated request
+  DB --> Repository : обновлённая заявка
   Repository --> Service : FriendRequest(REJECTED)
-  Service --> Controller : rejected request
+  Service --> Controller : отклонённая заявка
   Controller --> Boris : 200 OK, status = REJECTED
-else request exists and status = REJECTED
-  Service --> Controller : already rejected result
-  Controller --> Boris : 200 OK, status = REJECTED, duplicate changes are not created
-else request exists and status = ACCEPTED
-  Service --> Controller : conflict: accepted request cannot be rejected
+else заявка существует и состояние = REJECTED
+  Service --> Controller : результат уже отклонённой заявки
+  Controller --> Boris : 200 OK, status = REJECTED, дубликаты изменений не созданы
+else заявка существует и состояние = ACCEPTED
+  Service --> Controller : конфликт: принятую заявку нельзя отклонить
   Controller --> Boris : 409 Conflict
-else request not found
-  Service --> Controller : request was not found
+else заявка не найдена
+  Service --> Controller : заявка не найдена
   Controller --> Boris : 404 Not Found
 end
 
-== Action matrix ==
+== Матрица действий ==
 
 legend bottom
-|= Action |= Initiator |= Precondition |= Result |
-| Create request | Request initiator | There is no request between users | Request is created with PENDING status; initiator subscribes to recipient |
-| Re-create request | Request initiator | Existing request status is PENDING | Existing request is returned; duplicate request and subscription are not created |
-| Re-create request | Request initiator | Existing request status is ACCEPTED | Existing result is returned; friendship and subscriptions are unchanged |
-| Re-create request | Request initiator | Existing request status is REJECTED | Operation ends with conflict; request is not moved back to PENDING |
-| Accept request | Request recipient | Existing request status is PENDING | Request changes to ACCEPTED; friendship and reverse subscription are created if absent |
-| Accept request again | Request recipient | Existing request status is ACCEPTED | Existing result is returned; duplicate friendship and subscription are not created |
-| Accept rejected request | Request recipient | Existing request status is REJECTED | Operation ends with conflict |
-| Reject request | Request recipient | Existing request status is PENDING | Request changes to REJECTED; friendship and reverse subscription are not created |
-| Reject request again | Request recipient | Existing request status is REJECTED | Existing result is returned; data is unchanged |
-| Reject accepted request | Request recipient | Existing request status is ACCEPTED | Operation ends with conflict |
+|= Действие |= Инициатор |= Предварительное условие |= Результат |
+| Создать заявку | Инициатор заявки | Между пользователями нет заявки | Заявка создаётся в состоянии PENDING; инициатор подписывается на получателя |
+| Повторно создать заявку | Инициатор заявки | Состояние существующей заявки — PENDING | Возвращается существующая заявка; дубликаты заявки и подписки не создаются |
+| Повторно создать заявку | Инициатор заявки | Состояние существующей заявки — ACCEPTED | Возвращается существующий результат; дружба и подписки не изменяются |
+| Повторно создать заявку | Инициатор заявки | Состояние существующей заявки — REJECTED | Операция завершается конфликтом; заявка не возвращается в состояние PENDING |
+| Принять заявку | Получатель заявки | Состояние существующей заявки — PENDING | Состояние заявки изменяется на ACCEPTED; отсутствующие дружба и обратная подписка создаются |
+| Повторно принять заявку | Получатель заявки | Состояние существующей заявки — ACCEPTED | Возвращается существующий результат; дубликаты дружбы и подписки не создаются |
+| Принять отклонённую заявку | Получатель заявки | Состояние существующей заявки — REJECTED | Операция завершается конфликтом |
+| Отклонить заявку | Получатель заявки | Состояние существующей заявки — PENDING | Состояние заявки изменяется на REJECTED; дружба и обратная подписка не создаются |
+| Повторно отклонить заявку | Получатель заявки | Состояние существующей заявки — REJECTED | Возвращается существующий результат; данные не изменяются |
+| Отклонить принятую заявку | Получатель заявки | Состояние существующей заявки — ACCEPTED | Операция завершается конфликтом |
 endlegend
 @enduml

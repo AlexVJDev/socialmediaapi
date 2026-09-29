@@ -1,24 +1,24 @@
-# Rejecting a friendship offer
+# Отклонение предложения дружбы
 
-This method rejects an existing friendship offer that is in the `PENDING` state.
+Метод отклоняет существующее предложение дружбы, которое находится в состоянии `PENDING`.
 
-When the offer is rejected successfully:
+При успешном отклонении предложения:
 
-- the request state changes to `REJECTED`;
-- friendship between the users is not created;
-- the reverse subscription from the recipient to the initiator is not created;
-- the existing subscription from the initiator to the recipient is preserved.
+- состояние заявки меняется на `REJECTED`;
+- дружба между пользователями не создаётся;
+- обратная подписка получателя на инициатора не создаётся;
+- существующая подписка инициатора на получателя сохраняется.
 
-## HTTP request
+## HTTP-запрос
 
 ```http
 POST /api/offer-friendships/reject
 Content-Type: application/json
 ```
 
-## Request body
+## Тело запроса
 
-The request body contains identifiers of the initiating user and the recipient user.
+Тело запроса содержит идентификаторы пользователя-инициатора и пользователя-получателя.
 
 ```json
 {
@@ -27,16 +27,16 @@ The request body contains identifiers of the initiating user and the recipient u
 }
 ```
 
-### Request fields
+### Поля запроса
 
-| Field | Type | Required | Description |
+| Поле | Тип | Обязательное | Описание |
 | --- | --- | --- | --- |
-| `fromUserId` | `number` | Yes | Identifier of the user who sent the friendship offer. |
-| `toUserId` | `number` | Yes | Identifier of the user who rejects the friendship offer. |
+| `fromUserId` | `number` | Да | Идентификатор пользователя, который отправил предложение дружбы. |
+| `toUserId` | `number` | Да | Идентификатор пользователя, который отклоняет предложение дружбы. |
 
-## Successful response
+## Успешный ответ
 
-If the offer is rejected successfully, the API returns `200 OK` and the updated request data.
+Если предложение успешно отклонено, API возвращает статус `200 OK` и данные обновлённой заявки.
 
 ```http
 HTTP/1.1 200 OK
@@ -54,41 +54,41 @@ Content-Type: application/json
 }
 ```
 
-### Response fields
+### Поля ответа
 
-| Field | Type | Description |
+| Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Friendship offer identifier. |
-| `fromUserId` | `number` | Identifier of the initiating user. |
-| `toUserId` | `number` | Identifier of the user who rejected the offer. |
-| `status` | `string` | Current offer state. After successful rejection — `REJECTED`. |
-| `createdAt` | `string` | Offer creation date and time in ISO 8601 format. |
-| `rejectedAt` | `string` | Offer rejection date and time in ISO 8601 format. |
+| `id` | `number` | Идентификатор предложения дружбы. |
+| `fromUserId` | `number` | Идентификатор пользователя-инициатора. |
+| `toUserId` | `number` | Идентификатор пользователя, который отклонил предложение. |
+| `status` | `string` | Текущее состояние предложения. После успешного отклонения — `REJECTED`. |
+| `createdAt` | `string` | Дата и время создания предложения в формате ISO 8601. |
+| `rejectedAt` | `string` | Дата и время отклонения предложения в формате ISO 8601. |
 
-## Processing rules
+## Правила обработки
 
-- Only an existing friendship offer can be rejected.
-- The offer must be in the `PENDING` state.
-- After rejection, the offer state changes to `REJECTED`.
-- Rejection does not create a friendship link between the initiator and the recipient.
-- Rejection does not create a reverse subscription from the recipient to the initiator.
-- The initiator's subscription to the recipient, created when the friendship offer was sent, is preserved.
-- Re-rejecting an already rejected offer must not change the request state, subscriptions, or friendship.
-- An already accepted offer cannot be rejected because friendship has already been created.
+- Отклонить можно только существующее предложение дружбы.
+- Предложение должно находиться в состоянии `PENDING`.
+- После отклонения состояние предложения меняется на `REJECTED`.
+- Отклонение не создаёт связь дружбы между инициатором и получателем.
+- Отклонение не создаёт обратную подписку получателя на инициатора.
+- Подписка инициатора на получателя, созданная при отправке предложения дружбы, сохраняется.
+- Повторное отклонение уже отклонённого предложения не должно менять состояние заявки, подписки или дружбу.
+- Уже принятое предложение нельзя отклонить, потому что дружба уже создана.
 
-## Idempotency
+## Идемпотентность
 
-A repeated HTTP request is possible when the client does not receive a response due to a network error.
+Повторный HTTP-запрос возможен, если клиент не получил ответ из-за сетевой ошибки.
 
-- If the offer is already in the `REJECTED` state, the repeated call returns the already reached result and does not change data.
-- Repeated rejection does not remove the initiator's subscription to the recipient.
-- Repeated rejection does not create friendship and does not create a reverse subscription.
-- If the offer is in the `ACCEPTED` state, a repeated attempt to reject it ends with a conflict because friendship has already been created.
+- Если предложение уже находится в состоянии `REJECTED`, повторный вызов возвращает достигнутый результат и не меняет данные.
+- Повторное отклонение не удаляет подписку инициатора на получателя.
+- Повторное отклонение не создаёт дружбу и не создаёт обратную подписку.
+- Если предложение находится в состоянии `ACCEPTED`, повторная попытка отклонить его завершается конфликтом, потому что дружба уже создана.
 
-## Possible errors
+## Возможные ошибки
 
-| HTTP status | Case |
+| HTTP-статус | Ситуация |
 | --- | --- |
-| `400 Bad Request` | Invalid request body or missing required fields. |
-| `404 Not Found` | Friendship offer was not found. |
-| `409 Conflict` | The offer cannot be rejected because of its current state, for example it has already been accepted. |
+| `400 Bad Request` | Некорректное тело запроса или отсутствуют обязательные поля. |
+| `404 Not Found` | Предложение дружбы не найдено. |
+| `409 Conflict` | Предложение невозможно отклонить из-за текущего состояния, например оно уже принято. |

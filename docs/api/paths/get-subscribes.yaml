@@ -1,17 +1,17 @@
 get:
-  summary: Get user subscriptions
+  summary: Получить список подписок пользователя
   parameters:
     - name: userId
       in: query
       required: true
-      description: Identifier of the user whose subscriptions list should be returned
+      description: Идентификатор пользователя, для которого нужно получить список подписок
       schema:
         type: integer
         format: int64
         example: 1
   responses:
     '200':
-      description: List of users whom the current user follows
+      description: Список пользователей, на которых подписан текущий пользователь
       content:
         application/json:
           schema:
@@ -45,7 +45,7 @@ get:
             empty:
               value: []
     '400':
-      description: Invalid or missing userId parameter
+      description: Некорректный или отсутствующий параметр userId
       content:
         application/json:
           schema:
@@ -59,9 +59,9 @@ get:
                 example: INVALID_USER_ID
               message:
                 type: string
-                example: Invalid or missing userId parameter
+                example: Некорректный или отсутствующий параметр userId
     '404':
-      description: User not found
+      description: Пользователь не найден
       content:
         application/json:
           schema:
@@ -75,4 +75,4 @@ get:
                 example: USER_NOT_FOUND
               message:
                 type: string
-                example: User was not found
+                example: Пользователь не найден

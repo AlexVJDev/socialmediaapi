@@ -1,5 +1,5 @@
 post:
-  summary: Accept a friendship offer
+  summary: Принять предложение дружбы
   requestBody:
     required: true
     content:
@@ -20,7 +20,7 @@ post:
               example: 2
   responses:
     '200':
-      description: Friendship offer accepted
+      description: Предложение дружбы принято
       content:
         application/json:
           schema:
@@ -58,7 +58,7 @@ post:
                 format: date-time
                 example: '2026-09-22T10:20:00Z'
     '400':
-      description: Invalid input data
+      description: Некорректные входные данные
       content:
         application/json:
           schema:
@@ -72,9 +72,9 @@ post:
                 example: INVALID_FRIENDSHIP_OFFER_REQUEST
               message:
                 type: string
-                example: Invalid request body or missing required fields
+                example: Некорректное тело запроса или отсутствуют обязательные поля
     '404':
-      description: Friendship offer not found
+      description: Предложение дружбы не найдено
       content:
         application/json:
           schema:
@@ -88,9 +88,9 @@ post:
                 example: FRIENDSHIP_OFFER_NOT_FOUND
               message:
                 type: string
-                example: Friendship offer was not found
+                example: Предложение дружбы не найдено
     '409':
-      description: Friendship offer cannot be accepted because of its current state
+      description: Предложение дружбы нельзя принять из-за текущего состояния
       content:
         application/json:
           schema:
@@ -104,4 +104,4 @@ post:
                 example: OFFER_FRIENDSHIP_ALREADY_REJECTED
               message:
                 type: string
-                example: A rejected friendship offer cannot be accepted
+                example: Отклонённое предложение дружбы нельзя принять

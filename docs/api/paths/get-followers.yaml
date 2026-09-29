@@ -1,17 +1,17 @@
 get:
-  summary: Get user followers
+  summary: Получить список подписчиков пользователя
   parameters:
     - name: userId
       in: query
       required: true
-      description: Identifier of the user whose followers list should be returned
+      description: Идентификатор пользователя, для которого нужно получить список подписчиков
       schema:
         type: integer
         format: int64
         example: 2
   responses:
     '200':
-      description: List of users who follow the current user
+      description: Список пользователей, подписанных на текущего пользователя
       content:
         application/json:
           schema:
@@ -45,7 +45,7 @@ get:
             empty:
               value: []
     '400':
-      description: Invalid or missing userId parameter
+      description: Некорректный или отсутствующий параметр userId
       content:
         application/json:
           schema:
@@ -59,9 +59,9 @@ get:
                 example: INVALID_USER_ID
               message:
                 type: string
-                example: Invalid or missing userId parameter
+                example: Некорректный или отсутствующий параметр userId
     '404':
-      description: User not found
+      description: Пользователь не найден
       content:
         application/json:
           schema:
@@ -75,4 +75,4 @@ get:
                 example: USER_NOT_FOUND
               message:
                 type: string
-                example: User was not found
+                example: Пользователь не найден

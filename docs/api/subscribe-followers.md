@@ -1,25 +1,25 @@
-# Getting user followers
+# Получение подписчиков пользователя
 
-This method returns the list of users who follow the current user.
+Метод возвращает список пользователей, которые подписаны на текущего пользователя.
 
-A follower is a user who follows the current user's updates. A subscription can be created directly or as a side effect of sending a friendship offer.
+Подписчиком считается пользователь, который следит за обновлениями текущего пользователя. Подписка может появиться напрямую или как побочный эффект отправки предложения дружбы.
 
-## HTTP request
+## HTTP-запрос
 
 ```http
 GET /api/subscribes/followers?userId=2
 Accept: application/json
 ```
 
-## Query parameters
+## Query-параметры
 
-| Parameter | Type | Required | Description |
+| Параметр | Тип | Обязательный | Описание |
 | --- | --- | --- | --- |
-| `userId` | `number` | Yes | Identifier of the user whose followers list should be returned. |
+| `userId` | `number` | Да | Идентификатор пользователя, для которого нужно получить список подписчиков. |
 
-## Successful response
+## Успешный ответ
 
-If followers are found, the API returns `200 OK` and the list of users.
+Если подписчики найдены, API возвращает статус `200 OK` и список пользователей.
 
 ```http
 HTTP/1.1 200 OK
@@ -31,48 +31,48 @@ Content-Type: application/json
   {
     "id": 1,
     "username": "alice",
-    "displayName": "Alice"
+    "displayName": "Алиса"
   },
   {
     "id": 3,
     "username": "maria",
-    "displayName": "Maria"
+    "displayName": "Мария"
   }
 ]
 ```
 
-If there are no followers, the API returns an empty list.
+Если подписчиков нет, API возвращает пустой список.
 
 ```json
 []
 ```
 
-### Response fields
+### Поля ответа
 
-| Field | Type | Description |
+| Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Follower user identifier. |
-| `username` | `string` | Unique username. |
-| `displayName` | `string` | User display name. |
+| `id` | `number` | Идентификатор пользователя-подписчика. |
+| `username` | `string` | Уникальное имя пользователя. |
+| `displayName` | `string` | Отображаемое имя пользователя. |
 
-## Processing rules
+## Правила обработки
 
-- The method returns users who are subscribed to the user from the `userId` parameter.
-- If Alice follows Boris, then Alice will be a follower for Boris.
-- Followers are not necessarily the user's friends.
-- If there are no followers, an empty list is returned instead of an error.
+- Метод возвращает пользователей, которые подписаны на пользователя из параметра `userId`.
+- Если Алиса подписана на Бориса, то для Бориса Алиса будет подписчиком.
+- Подписчики не обязательно являются друзьями пользователя.
+- Если подписчиков нет, возвращается пустой список, а не ошибка.
 
-## Idempotency
+## Идемпотентность
 
-The method only reads data and does not change the system state.
+Метод только читает данные и не изменяет состояние системы.
 
-- A repeated call does not create or delete subscriptions.
-- A repeated call does not create or delete friendship.
-- If the data has not changed, a repeated call returns the same followers list.
+- Повторный вызов не создаёт и не удаляет подписки.
+- Повторный вызов не создаёт и не удаляет дружбу.
+- При неизменных данных повторный вызов возвращает тот же список подписчиков.
 
-## Possible errors
+## Возможные ошибки
 
-| HTTP status | Case |
+| HTTP-статус | Ситуация |
 | --- | --- |
-| `400 Bad Request` | Invalid or missing `userId` parameter. |
-| `404 Not Found` | User was not found. |
+| `400 Bad Request` | Некорректный или отсутствующий параметр `userId`. |
+| `404 Not Found` | Пользователь не найден. |

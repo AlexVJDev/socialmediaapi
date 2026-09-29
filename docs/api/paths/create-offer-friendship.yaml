@@ -1,5 +1,5 @@
 post:
-  summary: Create a friendship offer
+  summary: Создать предложение дружбы
   requestBody:
     required: true
     content:
@@ -20,7 +20,7 @@ post:
               example: 2
   responses:
     '201':
-      description: Friendship offer created
+      description: Предложение дружбы создано
       content:
         application/json:
           schema:
@@ -53,9 +53,9 @@ post:
                 format: date-time
                 example: '2026-09-22T10:15:00Z'
     '204':
-      description: Friendship offer already exists or friendship already exists
+      description: Предложение дружбы уже существует или дружба уже создана
     '400':
-      description: Invalid input data
+      description: Некорректные входные данные
       content:
         application/json:
           schema:
@@ -69,9 +69,9 @@ post:
                 example: INVALID_FRIENDSHIP_OFFER_REQUEST
               message:
                 type: string
-                example: Invalid request body or missing required fields
+                example: Некорректное тело запроса или отсутствуют обязательные поля
     '404':
-      description: User not found
+      description: Пользователь не найден
       content:
         application/json:
           schema:
@@ -85,9 +85,9 @@ post:
                 example: USER_NOT_FOUND
               message:
                 type: string
-                example: Initiating user or recipient user was not found
+                example: Пользователь-инициатор или пользователь-получатель не найден
     '409':
-      description: Friendship offer has already been rejected
+      description: Предложение дружбы уже отклонено
       content:
         application/json:
           schema:
@@ -101,4 +101,4 @@ post:
                 example: OFFER_FRIENDSHIP_ALREADY_REJECTED
               message:
                 type: string
-                example: A rejected friendship offer cannot be created again
+                example: Отклонённое предложение дружбы нельзя создать повторно

@@ -1,142 +1,142 @@
-# Friendship flow
+# Процесс установления дружбы
 
-This document describes how a friend request works when **Alice** sends a request to **Boris**, and how this request affects following and friendship relations.
+Этот документ описывает работу заявки в друзья, которую **Алиса** отправляет **Борису**, и влияние этой заявки на подписки и дружеские связи.
 
 ---
 
-## Quick overview
+## Краткий обзор
 
 ```text
-Alice sends Boris a friend request
+Алиса отправляет Борису заявку в друзья
     ↓
-The system creates a PENDING request
+Система создаёт заявку в состоянии PENDING
     ↓
-Alice starts following Boris
+Алиса начинает следить за обновлениями Бориса
     ↓
-Boris accepts the request
+Борис принимает заявку
     ↓
-The request status changes to ACCEPTED
+Состояние заявки изменяется на ACCEPTED
     ↓
-The system creates a friendship between Alice and Boris
+Система создаёт дружескую связь между Алисой и Борисом
     ↓
-Boris starts following Alice
+Борис начинает следить за обновлениями Алисы
 ```
 
-## Main participants
+## Основные участники
 
-| Participant | Role in the process |
+| Участник | Роль в процессе |
 | --- | --- |
-| **Alice** | Sends a friend request and starts following Boris. |
-| **Boris** | Receives the request and decides whether to accept it. |
-| **System** | Stores request status, creates follow relations and creates friendship. |
+| **Алиса** | Отправляет заявку в друзья и начинает следить за обновлениями Бориса. |
+| **Борис** | Получает заявку и решает, принять ли её. |
+| **Система** | Хранит состояние заявки, создаёт подписки и дружескую связь. |
 
-## Action summary
+## Краткое описание действий
 
-| Action | Initiator | Precondition | Result |
+| Действие | Инициатор | Предварительное условие | Результат |
 | --- | --- | --- | --- |
-| Open Boris's profile | Alice | Alice and Boris exist in the system. | Alice can view Boris's profile and start the friend request flow. |
-| Send a friend request | Alice | Alice and Boris are different users; there is no active request from Alice to Boris; Alice and Boris are not already friends. | The system creates a request with the `PENDING` status and Alice starts following Boris. |
-| Notify about the incoming request | System | A `PENDING` friend request from Alice to Boris exists. | Boris receives information about the incoming friend request. |
-| Accept the friend request | Boris | A `PENDING` friend request from Alice to Boris exists. | The request changes to `ACCEPTED`; mutual friendship is created; Boris starts following Alice. |
-| Reject the friend request | Boris | A `PENDING` friend request from Alice to Boris exists. | The request changes to `REJECTED`; friendship is not created; Alice remains a follower of Boris. |
-| Keep the request pending | Boris | Boris neither accepts nor rejects the request. | The request remains `PENDING`; Alice continues following Boris until another rule changes this relation. |
+| Открыть профиль Бориса | Алиса | Алиса и Борис существуют в системе. | Алиса может просмотреть профиль Бориса и начать процесс добавления в друзья. |
+| Отправить заявку в друзья | Алиса | Алиса и Борис — разные пользователи; активной заявки от Алисы к Борису нет; Алиса и Борис ещё не друзья. | Система создаёт заявку в состоянии `PENDING`, и Алиса начинает следить за обновлениями Бориса. |
+| Уведомить о входящей заявке | Система | Существует заявка в состоянии `PENDING` от Алисы к Борису. | Борис получает информацию о входящей заявке в друзья. |
+| Принять заявку в друзья | Борис | Существует заявка в состоянии `PENDING` от Алисы к Борису. | Состояние заявки изменяется на `ACCEPTED`; создаётся взаимная дружба; Борис начинает следить за обновлениями Алисы. |
+| Отклонить заявку в друзья | Борис | Существует заявка в состоянии `PENDING` от Алисы к Борису. | Состояние заявки изменяется на `REJECTED`; дружба не создаётся; Алиса остаётся подписчиком Бориса. |
+| Оставить заявку в ожидании | Борис | Борис не принимает и не отклоняет заявку. | Заявка остаётся в состоянии `PENDING`; Алиса продолжает следить за обновлениями Бориса, пока другое правило не изменит эту связь. |
 
-## Process description
+## Описание процесса
 
-### 1. Alice opens Boris's profile
+### 1. Алиса открывает профиль Бориса
 
-While using the application, **Alice** opens **Boris's** profile — a user whose updates she wants to follow and with whom she may want to communicate later.
+Используя приложение, **Алиса** открывает профиль **Бориса** — пользователя, за обновлениями которого она хочет следить и с которым, возможно, захочет общаться в дальнейшем.
 
-On Boris's profile, Alice clicks **Add Friend**.
+В профиле Бориса Алиса нажимает **Добавить в друзья**.
 
-### 2. The system creates a friend request
+### 2. Система создаёт заявку в друзья
 
-After Alice sends the request, the system:
+После отправки Алисой заявки система:
 
-- creates a friend request with the `PENDING` status;
-- automatically adds Boris to the list of users Alice follows;
-- makes Alice a `follower` of Boris.
+- создаёт заявку в друзья в состоянии `PENDING`;
+- автоматически добавляет Бориса в список пользователей, за обновлениями которых следит Алиса;
+- делает Алису подписчиком Бориса.
 
-At this point, Alice and Boris are **not friends yet**. Alice has only sent a friend request and started following Boris.
+На этом этапе Алиса и Борис **ещё не являются друзьями**. Алиса только отправила заявку в друзья и начала следить за обновлениями Бориса.
 
-### 3. Alice follows Boris
+### 3. Алиса следит за обновлениями Бориса
 
-Following Boris allows Alice to quickly find his profile in a separate **Following** section and see updates available to her, for example:
+Подписка на Бориса позволяет Алисе быстро найти его профиль в отдельном разделе **Подписки** и видеть доступные ей обновления, например:
 
-- new posts;
-- photos;
-- videos;
-- audio recordings;
-- other events or content available to followers.
+- новые публикации;
+- фотографии;
+- видеозаписи;
+- аудиозаписи;
+- другие события или материалы, доступные подписчикам.
 
-### 4. Boris receives the request
+### 4. Борис получает заявку
 
-Boris receives a notification about the incoming friend request from Alice.
+Борис получает уведомление о входящей заявке в друзья от Алисы.
 
-Depending on the application's implementation, this notification may be delivered as:
+В зависимости от реализации приложения уведомление может быть доставлено как:
 
-- an in-app notification;
-- a push notification;
-- an email.
+- уведомление внутри приложения;
+- push-уведомление;
+- электронное письмо.
 
-### 5. Boris accepts the request
+### 5. Борис принимает заявку
 
-Boris opens the request and clicks **Accept**.
+Борис открывает заявку и нажимает **Принять**.
 
-After Boris accepts the request, the system:
+После принятия Борисом заявки система:
 
-- changes the request status from `PENDING` to `ACCEPTED`;
-- creates a mutual friendship relationship between Alice and Boris;
-- adds Boris to Alice's friends list;
-- adds Alice to Boris's friends list;
-- automatically makes Boris a follower of Alice if such a follow relationship does not already exist.
+- изменяет состояние заявки с `PENDING` на `ACCEPTED`;
+- создаёт взаимную дружескую связь между Алисой и Борисом;
+- добавляет Бориса в список друзей Алисы;
+- добавляет Алису в список друзей Бориса;
+- автоматически делает Бориса подписчиком Алисы, если такой подписки ещё нет.
 
-As a result, Alice and Boris become friends and also follow each other.
+В результате Алиса и Борис становятся друзьями и подписываются друг на друга.
 
-## Alternative scenario: Boris rejects the request
+## Альтернативный сценарий: Борис отклоняет заявку
 
-Boris may decide not to accept Alice's friend request.
+Борис может решить не принимать заявку в друзья от Алисы.
 
-In this case, Boris opens the incoming request and clicks **Reject**.
+В этом случае Борис открывает входящую заявку и нажимает **Отклонить**.
 
-After Boris rejects the request, the system:
+После отклонения Борисом заявки система:
 
-- changes the request status from `PENDING` to `REJECTED`;
-- does not create a friendship relationship between Alice and Boris;
-- does not add Boris to Alice's friends list;
-- does not add Alice to Boris's friends list;
-- does not create a reverse follow relationship from Boris to Alice;
-- keeps Alice as a follower of Boris unless another application rule or privacy setting prevents it.
+- изменяет состояние заявки с `PENDING` на `REJECTED`;
+- не создаёт дружескую связь между Алисой и Борисом;
+- не добавляет Бориса в список друзей Алисы;
+- не добавляет Алису в список друзей Бориса;
+- не создаёт обратную подписку Бориса на Алису;
+- сохраняет Алису подписчиком Бориса, если этому не препятствует другое правило приложения или настройка конфиденциальности.
 
-As a result, Alice and Boris are not friends, but Alice may continue following Boris.
+В результате Алиса и Борис не являются друзьями, но Алиса может продолжать следить за обновлениями Бориса.
 
-## Request states
+## Состояния заявки
 
-| State | Meaning |
+| Состояние | Значение |
 | --- | --- |
-| `PENDING` | The request has been sent, but Boris has not accepted it yet. Alice follows Boris. |
-| `ACCEPTED` | Boris accepted the request. Alice and Boris are friends and follow each other. |
-| `REJECTED` | Boris rejected the request. Friendship is not created, but Alice remains a follower of Boris. |
+| `PENDING` | Заявка отправлена, но Борис ещё не принял её. Алиса следит за обновлениями Бориса. |
+| `ACCEPTED` | Борис принял заявку. Алиса и Борис являются друзьями и подписаны друг на друга. |
+| `REJECTED` | Борис отклонил заявку. Дружба не создана, но Алиса остаётся подписчиком Бориса. |
 
-## Friendship benefits
+## Возможности дружбы
 
-Friendship may provide additional functionality compared with a regular follow relationship, for example:
+Дружба может предоставлять дополнительные возможности по сравнению с обычной подпиской, например:
 
-- sending private text messages;
-- sending audio and video messages;
-- making audio and video calls;
-- viewing the `online` status;
-- viewing the user's last seen time;
-- accessing posts or other information available only to friends.
+- отправку личных текстовых сообщений;
+- отправку аудио- и видеосообщений;
+- аудио- и видеозвонки;
+- просмотр состояния `в сети`;
+- просмотр времени последнего посещения пользователя;
+- доступ к публикациям или другой информации, доступной только друзьям.
 
-The exact set of available features depends on the user's privacy settings and the application's rules.
+Точный набор доступных возможностей зависит от настроек конфиденциальности пользователя и правил приложения.
 
-## If the request remains pending
+## Если заявка остаётся в ожидании
 
-If Boris neither accepts nor rejects the request, it remains in the `PENDING` state.
+Если Борис не принимает и не отклоняет заявку, она остаётся в состоянии `PENDING`.
 
-Alice continues to follow Boris until one of the following happens:
+Алиса продолжает следить за обновлениями Бориса, пока не произойдёт одно из следующих событий:
 
-- Alice unfollows Boris herself;
-- Boris's privacy settings restrict this follow relationship;
-- the application rules cancel or limit pending requests.
+- Алиса сама отпишется от Бориса;
+- настройки конфиденциальности Бориса ограничат эту подписку;
+- правила приложения отменят или ограничат заявки, ожидающие решения.

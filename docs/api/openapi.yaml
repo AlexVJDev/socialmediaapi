@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Social Media API
+  title: API социальной сети
   version: 1.0.0
 paths:
   /api/offer-friendships/create:

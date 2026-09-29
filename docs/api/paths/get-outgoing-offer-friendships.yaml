@@ -1,17 +1,17 @@
 get:
-  summary: Get outgoing friendship offers
+  summary: Получить исходящие предложения дружбы
   parameters:
     - name: userId
       in: query
       required: true
-      description: Identifier of the user whose outgoing friendship offers should be returned
+      description: Идентификатор пользователя, для которого нужно получить исходящие предложения дружбы
       schema:
         type: integer
         format: int64
         example: 1
   responses:
     '200':
-      description: List of outgoing friendship offers
+      description: Список исходящих предложений дружбы
       content:
         application/json:
           schema:
@@ -61,7 +61,7 @@ get:
             empty:
               value: []
     '400':
-      description: Invalid or missing userId parameter
+      description: Некорректный или отсутствующий параметр userId
       content:
         application/json:
           schema:
@@ -75,9 +75,9 @@ get:
                 example: INVALID_USER_ID
               message:
                 type: string
-                example: Invalid or missing userId parameter
+                example: Некорректный или отсутствующий параметр userId
     '404':
-      description: User not found
+      description: Пользователь не найден
       content:
         application/json:
           schema:
@@ -91,4 +91,4 @@ get:
                 example: USER_NOT_FOUND
               message:
                 type: string
-                example: User was not found
+                example: Пользователь не найден

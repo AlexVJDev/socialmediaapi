@@ -1,25 +1,25 @@
-# Getting outgoing friendship offers
+# Получение отправленных предложений дружбы
 
-This method returns the list of friendship offers that the user has sent to other users.
+Метод возвращает список предложений дружбы, которые пользователь отправил другим пользователям.
 
-An offer is considered outgoing when the user is the request initiator. This list can be used to show the user's active outgoing requests.
+Отправленным считается предложение, в котором пользователь является инициатором заявки. Такой список можно использовать, чтобы показать пользователю его активные исходящие заявки.
 
-## HTTP request
+## HTTP-запрос
 
 ```http
 GET /api/offer-friendships/outgoing?userId=1
 Accept: application/json
 ```
 
-## Query parameters
+## Query-параметры
 
-| Parameter | Type | Required | Description |
+| Параметр | Тип | Обязательный | Описание |
 | --- | --- | --- | --- |
-| `userId` | `number` | Yes | Identifier of the user whose sent friendship offers should be returned. |
+| `userId` | `number` | Да | Идентификатор пользователя, для которого нужно получить отправленные предложения дружбы. |
 
-## Successful response
+## Успешный ответ
 
-If outgoing offers are found, the API returns `200 OK` and the list of requests.
+Если отправленные предложения найдены, API возвращает статус `200 OK` и список заявок.
 
 ```http
 HTTP/1.1 200 OK
@@ -45,41 +45,41 @@ Content-Type: application/json
 ]
 ```
 
-If there are no outgoing offers, the API returns an empty list.
+Если отправленных предложений нет, API возвращает пустой список.
 
 ```json
 []
 ```
 
-### Response fields
+### Поля ответа
 
-| Field | Type | Description |
+| Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Friendship offer identifier. |
-| `fromUserId` | `number` | Identifier of the user who sent the friendship offer. |
-| `toUserId` | `number` | Identifier of the user who received the friendship offer. |
-| `status` | `string` | Current offer state. Active outgoing requests usually use `PENDING`. |
-| `createdAt` | `string` | Offer creation date and time in ISO 8601 format. |
+| `id` | `number` | Идентификатор предложения дружбы. |
+| `fromUserId` | `number` | Идентификатор пользователя, который отправил предложение дружбы. |
+| `toUserId` | `number` | Идентификатор пользователя, которому отправлено предложение дружбы. |
+| `status` | `string` | Текущее состояние предложения. Для активных отправленных заявок обычно используется `PENDING`. |
+| `createdAt` | `string` | Дата и время создания предложения в формате ISO 8601. |
 
-## Processing rules
+## Правила обработки
 
-- The method returns offers where the user is specified as the request initiator.
-- By default, the list should contain active outgoing offers in the `PENDING` state.
-- Accepted offers in the `ACCEPTED` state have already created friendship and are usually not displayed as active outgoing requests.
-- Rejected offers in the `REJECTED` state have already been processed by the recipient and are usually not displayed as active outgoing requests.
-- If there are no outgoing offers, an empty list is returned instead of an error.
+- Метод возвращает предложения, где пользователь указан как инициатор заявки.
+- По умолчанию список должен содержать активные отправленные предложения в состоянии `PENDING`.
+- Принятые предложения в состоянии `ACCEPTED` уже привели к созданию дружбы и обычно не отображаются в отправленных активных заявках.
+- Отклонённые предложения в состоянии `REJECTED` уже обработаны получателем и обычно не отображаются в отправленных активных заявках.
+- Если отправленных предложений нет, возвращается пустой список, а не ошибка.
 
-## Idempotency
+## Идемпотентность
 
-The method only reads data and does not change the system state.
+Метод только читает данные и не изменяет состояние системы.
 
-- A repeated call does not create new friendship offers.
-- A repeated call does not create subscriptions or friendship links.
-- If the data has not changed, a repeated call returns the same list of outgoing offers.
+- Повторный вызов не создаёт новые предложения дружбы.
+- Повторный вызов не создаёт подписки и связи дружбы.
+- При неизменных данных повторный вызов возвращает тот же список отправленных предложений.
 
-## Possible errors
+## Возможные ошибки
 
-| HTTP status | Case |
+| HTTP-статус | Ситуация |
 | --- | --- |
-| `400 Bad Request` | Invalid or missing `userId` parameter. |
-| `404 Not Found` | User was not found. |
+| `400 Bad Request` | Некорректный или отсутствующий параметр `userId`. |
+| `404 Not Found` | Пользователь не найден. |

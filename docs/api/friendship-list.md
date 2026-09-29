@@ -1,25 +1,25 @@
-# Getting the friends list
+# Получение списка друзей
 
-This method returns the user's friends list.
+Метод возвращает список друзей пользователя.
 
-A friend is a user with whom a bidirectional friendship link has already been created. Such a link appears after a friendship offer is accepted and the request moves to the `ACCEPTED` state.
+Другом считается пользователь, с которым уже создана двусторонняя связь дружбы. Такая связь появляется после принятия предложения дружбы и перехода заявки в состояние `ACCEPTED`.
 
-## HTTP request
+## HTTP-запрос
 
 ```http
 GET /api/friendships?userId=1
 Accept: application/json
 ```
 
-## Query parameters
+## Query-параметры
 
-| Parameter | Type | Required | Description |
+| Параметр | Тип | Обязательный | Описание |
 | --- | --- | --- | --- |
-| `userId` | `number` | Yes | Identifier of the user whose friends list should be returned. |
+| `userId` | `number` | Да | Идентификатор пользователя, для которого нужно получить список друзей. |
 
-## Successful response
+## Успешный ответ
 
-If friends are found, the API returns `200 OK` and the list of users.
+Если друзья найдены, API возвращает статус `200 OK` и список пользователей.
 
 ```http
 HTTP/1.1 200 OK
@@ -31,48 +31,48 @@ Content-Type: application/json
   {
     "id": 2,
     "username": "boris",
-    "displayName": "Boris"
+    "displayName": "Борис"
   },
   {
     "id": 3,
     "username": "maria",
-    "displayName": "Maria"
+    "displayName": "Мария"
   }
 ]
 ```
 
-If there are no friends, the API returns an empty list.
+Если друзей нет, API возвращает пустой список.
 
 ```json
 []
 ```
 
-### Response fields
+### Поля ответа
 
-| Field | Type | Description |
+| Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Friend user identifier. |
-| `username` | `string` | Unique username. |
-| `displayName` | `string` | User display name. |
+| `id` | `number` | Идентификатор пользователя-друга. |
+| `username` | `string` | Уникальное имя пользователя. |
+| `displayName` | `string` | Отображаемое имя пользователя. |
 
-## Processing rules
+## Правила обработки
 
-- The method returns only users with whom the current user has a friendship link.
-- Requests in the `PENDING` state are not considered friendship and are not included in the friends list.
-- Requests in the `REJECTED` state are not considered friendship and are not included in the friends list.
-- If there are no friends, an empty list is returned instead of an error.
+- Метод возвращает только пользователей, с которыми у текущего пользователя есть связь дружбы.
+- Заявки в состоянии `PENDING` не считаются дружбой и не попадают в список друзей.
+- Заявки в состоянии `REJECTED` не считаются дружбой и не попадают в список друзей.
+- Если друзей нет, возвращается пустой список, а не ошибка.
 
-## Idempotency
+## Идемпотентность
 
-The method only reads data and does not change the system state.
+Метод только читает данные и не изменяет состояние системы.
 
-- A repeated call does not create or delete friendship.
-- A repeated call does not create subscriptions.
-- If the data has not changed, a repeated call returns the same friends list.
+- Повторный вызов не создаёт и не удаляет дружбу.
+- Повторный вызов не создаёт подписки.
+- При неизменных данных повторный вызов возвращает тот же список друзей.
 
-## Possible errors
+## Возможные ошибки
 
-| HTTP status | Case |
+| HTTP-статус | Ситуация |
 | --- | --- |
-| `400 Bad Request` | Invalid or missing `userId` parameter. |
-| `404 Not Found` | User was not found. |
+| `400 Bad Request` | Некорректный или отсутствующий параметр `userId`. |
+| `404 Not Found` | Пользователь не найден. |

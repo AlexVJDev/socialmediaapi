@@ -1,23 +1,23 @@
-# Creating a friendship offer
+# Создание предложения дружбы
 
-This method creates a friendship offer from one user to another.
+Метод создаёт предложение дружбы от одного пользователя к другому.
 
-When the offer is created successfully:
+При успешном создании предложения:
 
-- a request is created in the `PENDING` state;
-- the initiator automatically subscribes to the recipient;
-- friendship between the users is not created yet — it appears only after the offer is accepted.
+- создаётся заявка в состоянии `PENDING`;
+- инициатор автоматически подписывается на получателя;
+- дружба между пользователями ещё не создаётся — она появится только после принятия предложения.
 
-## HTTP request
+## HTTP-запрос
 
 ```http
 POST /api/offer-friendships/create
 Content-Type: application/json
 ```
 
-## Request body
+## Тело запроса
 
-The request body contains identifiers of the initiating user and the recipient user.
+Тело запроса содержит идентификаторы пользователя-инициатора и пользователя-получателя.
 
 ```json
 {
@@ -26,16 +26,16 @@ The request body contains identifiers of the initiating user and the recipient u
 }
 ```
 
-### Request fields
+### Поля запроса
 
-| Field | Type | Required | Description |
+| Поле | Тип | Обязательное | Описание |
 | --- | --- | --- | --- |
-| `fromUserId` | `number` | Yes | Identifier of the user who sends the friendship offer. |
-| `toUserId` | `number` | Yes | Identifier of the user who receives the friendship offer. |
+| `fromUserId` | `number` | Да | Идентификатор пользователя, который отправляет предложение дружбы. |
+| `toUserId` | `number` | Да | Идентификатор пользователя, которому отправляется предложение дружбы. |
 
-## Successful response
+## Успешный ответ
 
-If the offer is created, the API returns `201 Created` and the created request data.
+Если предложение создано, API возвращает статус `201 Created` и данные созданной заявки.
 
 ```http
 HTTP/1.1 201 Created
@@ -52,36 +52,36 @@ Content-Type: application/json
 }
 ```
 
-### Response fields
+### Поля ответа
 
-| Field | Type | Description |
+| Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Identifier of the created friendship offer. |
-| `fromUserId` | `number` | Identifier of the initiating user. |
-| `toUserId` | `number` | Identifier of the recipient user. |
-| `status` | `string` | Current offer state. For a new request — `PENDING`. |
-| `createdAt` | `string` | Offer creation date and time in ISO 8601 format. |
+| `id` | `number` | Идентификатор созданного предложения дружбы. |
+| `fromUserId` | `number` | Идентификатор пользователя-инициатора. |
+| `toUserId` | `number` | Идентификатор пользователя-получателя. |
+| `status` | `string` | Текущее состояние предложения. Для новой заявки — `PENDING`. |
+| `createdAt` | `string` | Дата и время создания предложения в формате ISO 8601. |
 
-## Processing rules
+## Правила обработки
 
-- A user cannot send a friendship offer to themselves.
-- A repeated offer for an existing request in the `PENDING` state does not create a duplicate.
-- If the offer has already been accepted, creating it again does not change the friendship state.
-- If the offer has been rejected, creating it again ends with a conflict.
+- Нельзя отправить предложение дружбы самому себе.
+- Повторное предложение для уже существующей заявки в состоянии `PENDING` не создаёт дубликат.
+- Если предложение уже принято, повторное создание не меняет состояние дружбы.
+- Если предложение было отклонено, повторное создание завершается конфликтом.
 
-## Idempotency
+## Идемпотентность
 
-A repeated HTTP request is possible when the client does not receive a response due to a network error.
+Повторный HTTP-запрос возможен, если клиент не получил ответ из-за сетевой ошибки.
 
-- Re-creating an offer in the `PENDING` state does not create a second request.
-- Re-creating an offer does not create a second subscription from the initiator to the recipient.
-- If the offer has already been accepted and is in the `ACCEPTED` state, the repeated call returns the already reached result without changing friendship or subscriptions.
-- If the offer has already been rejected and is in the `REJECTED` state, the repeated call ends with a conflict because a rejected offer cannot be automatically moved back to `PENDING`.
+- Повторное создание предложения в состоянии `PENDING` не создаёт вторую заявку.
+- Повторное создание не создаёт вторую подписку инициатора на получателя.
+- Если предложение уже принято и находится в состоянии `ACCEPTED`, повторный вызов возвращает достигнутый результат без изменения дружбы и подписок.
+- Если предложение уже отклонено и находится в состоянии `REJECTED`, повторный вызов завершается конфликтом, потому что отклонённое предложение нельзя автоматически вернуть в `PENDING`.
 
-## Possible errors
+## Возможные ошибки
 
-| HTTP status | Case |
+| HTTP-статус | Ситуация |
 | --- | --- |
-| `400 Bad Request` | Invalid request body or missing required fields. |
-| `404 Not Found` | Initiating user or recipient user was not found. |
-| `409 Conflict` | The offer cannot be created because of the current request state, for example after rejection. |
+| `400 Bad Request` | Некорректное тело запроса или отсутствуют обязательные поля. |
+| `404 Not Found` | Пользователь-инициатор или пользователь-получатель не найден. |
+| `409 Conflict` | Предложение невозможно создать из-за текущего состояния заявки, например после отклонения. |

@@ -1,5 +1,5 @@
 @startuml
-title Friend request states
+title Состояния заявки в друзья
 
 skinparam shadowing false
 skinparam state {
@@ -10,44 +10,44 @@ skinparam state {
   EndColor #DC2626
 }
 
-[*] --> PENDING : Alice sends a request to Boris
+[*] --> PENDING : Алиса отправляет заявку Борису
 
-state "PENDING\nRequest is waiting for a decision" as PENDING
-state "ACCEPTED\nRequest is accepted" as ACCEPTED
-state "REJECTED\nRequest is rejected" as REJECTED
+state "PENDING\nЗаявка ожидает решения" as PENDING
+state "ACCEPTED\nЗаявка принята" as ACCEPTED
+state "REJECTED\nЗаявка отклонена" as REJECTED
 
 note right of PENDING
-  The system creates a friend request.
-  Alice starts following Boris.
-  Friendship is not created yet.
+  Система создаёт заявку в друзья.
+  Алиса начинает следить за обновлениями Бориса.
+  Дружба ещё не создана.
 end note
 
-PENDING --> ACCEPTED : Boris accepts the request
-PENDING --> REJECTED : Boris rejects the request
+PENDING --> ACCEPTED : Борис принимает заявку
+PENDING --> REJECTED : Борис отклоняет заявку
 
 note right of ACCEPTED
-  The system creates mutual friendship.
-  Boris is added to Alice's friends list.
-  Alice is added to Boris's friends list.
-  Boris starts following Alice.
+  Система создаёт взаимную дружбу.
+  Борис добавляется в список друзей Алисы.
+  Алиса добавляется в список друзей Бориса.
+  Борис начинает следить за обновлениями Алисы.
 end note
 
 note right of REJECTED
-  Friendship is not created.
-  Alice remains a follower of Boris.
+  Дружба не создаётся.
+  Алиса остаётся подписчиком Бориса.
 end note
 
 note bottom
-  Process invariants
+  Инварианты процесса
   --
-  A user cannot send a friend request to themselves.
-  Two active requests in the same direction cannot exist.
-  Friendship cannot exist only for one side.
-  Accepting a request must create friendship and reverse following atomically.
-  Rejecting a request does not cancel the sender's following relation.
-  Repeating a command must not create duplicate relations.
+  Пользователь не может отправить заявку в друзья самому себе.
+  Две активные заявки в одном направлении не могут существовать.
+  Дружба не может существовать только для одной стороны.
+  Принятие заявки должно атомарно создавать дружбу и обратную подписку.
+  Отклонение заявки не отменяет подписку отправителя.
+  Повторение команды не должно создавать дубликаты связей.
 end note
 
-ACCEPTED --> [*] : process completed successfully
-REJECTED --> [*] : process completed with rejection
+ACCEPTED --> [*] : процесс успешно завершён
+REJECTED --> [*] : процесс завершён отклонением
 @enduml

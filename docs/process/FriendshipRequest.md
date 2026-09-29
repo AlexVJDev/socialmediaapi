@@ -1,45 +1,45 @@
-# `OfferFriendship` Transition Table
+# Таблица переходов `OfferFriendship`
 
-This document describes friendship request transitions for the `offerFriendship`, `acceptFriendship`, and `rejectFriendship` commands.
+Этот документ описывает переходы заявки в друзья для команд `offerFriendship`, `acceptFriendship` и `rejectFriendship`.
 
-## State Transitions
+## Переходы состояний
 
-| Command | Initial State | New State | Subscription Change | Friendship Change | Repeated Call Result |
+| Команда | Исходное состояние | Новое состояние | Изменение подписки | Изменение дружбы | Результат повторного вызова |
 | --- | --- | --- | --- | --- | --- |
-| `offerFriendship` | Request does not exist | `PENDING` | The initiator subscribes to the recipient | No changes | `204 No Content`, state does not change |
-| `acceptFriendship` | `PENDING` | `ACCEPTED` | The recipient subscribes to the initiator if the reverse subscription does not already exist | A bidirectional friendship is created between the initiator and the recipient | `204 No Content`, state does not change |
-| `rejectFriendship` | `PENDING` | `REJECTED` | No changes: the initiator remains subscribed to the recipient | No changes: friendship is not created | `204 No Content`, state does not change |
-| `offerFriendship` | `PENDING` | `PENDING` | No changes: the initiator is already subscribed to the recipient | No changes | `204 No Content`, state does not change |
-| `offerFriendship` | `ACCEPTED` | `ACCEPTED` | No changes: the users already have the required subscriptions | No changes: friendship already exists | `204 No Content`, state does not change |
-| `offerFriendship` | `REJECTED` | `REJECTED` | No changes: a rejected offer cannot be moved back to `PENDING` | No changes | `409 Conflict`, `OfferFriendshipAlreadyRejectedException`, state does not change |
-| `acceptFriendship` | `ACCEPTED` | `ACCEPTED` | No changes: the reverse subscription already exists or should already have been created | No changes: friendship already exists | `204 No Content`, state does not change |
-| `rejectFriendship` | `ACCEPTED` | `ACCEPTED` | No changes | No changes: an already created friendship is not canceled by the reject command | `409 Conflict`, `RejectFriendshipAlreadyAcceptedException`, state does not change |
-| `acceptFriendship` | `REJECTED` | `REJECTED` | No changes | No changes: a rejected request does not create a friendship when accepted again | `409 Conflict`, `AcceptedFriendshipAlreadyreRejectedException`, state does not change |
-| `rejectFriendship` | `REJECTED` | `REJECTED` | No changes | No changes: friendship was not created | `204 No Content`, state does not change |
+| `offerFriendship` | Заявка не существует | `PENDING` | Инициатор подписывается на получателя | Без изменений | `204 No Content`, состояние не изменяется |
+| `acceptFriendship` | `PENDING` | `ACCEPTED` | Получатель подписывается на инициатора, если обратной подписки ещё нет | Между инициатором и получателем создаётся двусторонняя дружба | `204 No Content`, состояние не изменяется |
+| `rejectFriendship` | `PENDING` | `REJECTED` | Без изменений: инициатор остаётся подписанным на получателя | Без изменений: дружба не создаётся | `204 No Content`, состояние не изменяется |
+| `offerFriendship` | `PENDING` | `PENDING` | Без изменений: инициатор уже подписан на получателя | Без изменений | `204 No Content`, состояние не изменяется |
+| `offerFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: у пользователей уже есть необходимые подписки | Без изменений: дружба уже существует | `204 No Content`, состояние не изменяется |
+| `offerFriendship` | `REJECTED` | `REJECTED` | Без изменений: отклонённую заявку нельзя вернуть в состояние `PENDING` | Без изменений | `409 Conflict`, `OfferFriendshipAlreadyRejectedException`, состояние не изменяется |
+| `acceptFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: обратная подписка уже существует или должна была быть создана | Без изменений: дружба уже существует | `204 No Content`, состояние не изменяется |
+| `rejectFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений: уже созданная дружба не отменяется командой отклонения | `409 Conflict`, `RejectFriendshipAlreadyAcceptedException`, состояние не изменяется |
+| `acceptFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений: отклонённая заявка при повторном принятии не создаёт дружбу | `409 Conflict`, `AcceptedFriendshipAlreadyreRejectedException`, состояние не изменяется |
+| `rejectFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений: дружба не была создана | `204 No Content`, состояние не изменяется |
 
-## Idempotency Rules
+## Правила идемпотентности
 
-- A repeated command call must not create duplicate requests, subscriptions, or friendship links.
-- If the target state has already been reached, the system returns `204 No Content` and does not change any data.
-- A repeated `offerFriendship` for a request in the `PENDING` state returns `204 No Content` because the request is already waiting for a decision.
-- A repeated `offerFriendship` for a request in the `ACCEPTED` state returns `204 No Content` because the friendship already exists.
-- A repeated `offerFriendship` for a request in the `REJECTED` state returns `409 Conflict` through `OfferFriendshipAlreadyRejectedException` because a rejected offer cannot be moved back to `PENDING`.
-- Rejecting a request does not cancel the initiator's subscription to the recipient.
-- Accepting a request creates the friendship and the reverse subscription atomically.
+- Повторный вызов команды не должен создавать дубликаты заявок, подписок или связей дружбы.
+- Если целевое состояние уже достигнуто, система возвращает `204 No Content` и не изменяет данные.
+- Повторный вызов `offerFriendship` для заявки в состоянии `PENDING` возвращает `204 No Content`, потому что заявка уже ожидает решения.
+- Повторный вызов `offerFriendship` для заявки в состоянии `ACCEPTED` возвращает `204 No Content`, потому что дружба уже существует.
+- Повторный вызов `offerFriendship` для заявки в состоянии `REJECTED` возвращает `409 Conflict` через `OfferFriendshipAlreadyRejectedException`, потому что отклонённую заявку нельзя вернуть в состояние `PENDING`.
+- Отклонение заявки не отменяет подписку инициатора на получателя.
+- Принятие заявки атомарно создаёт дружбу и обратную подписку.
 
-## Error Cases
+## Ошибочные случаи
 
-Each error case uses a separate exception type. This explicitly communicates the reason for the failure and allows the outer layer to select the appropriate HTTP response.
+Для каждого ошибочного случая используется отдельный тип исключения. Это явно сообщает причину ошибки и позволяет внешнему слою выбрать подходящий HTTP-ответ.
 
-| Case | Command | Initial State | New State | Subscription Change | Friendship Change | Exception |
+| Случай | Команда | Исходное состояние | Новое состояние | Изменение подписки | Изменение дружбы | Исключение |
 | --- | --- | --- | --- | --- | --- | --- |
-| A user offers friendship to themselves | `offerFriendship` | Request does not exist | No changes | No changes | No changes | `OfferFriendshipToSelfException` |
-| Offer to accept was not found | `acceptFriendship` | Request does not exist | No changes | No changes | No changes | `FriendshipRequestNotFoundException` |
-| Offer to reject was not found | `rejectFriendship` | Request does not exist | No changes | No changes | No changes | `FriendshipRequestNotFoundException` |
-| Repeated offer after rejection | `offerFriendship` | `REJECTED` | `REJECTED` | No changes | No changes | `OfferFriendshipAlreadyRejectedException` |
+| Пользователь предлагает дружбу самому себе | `offerFriendship` | Заявка не существует | Без изменений | Без изменений | Без изменений | `OfferFriendshipToSelfException` |
+| Заявка для принятия не найдена | `acceptFriendship` | Заявка не существует | Без изменений | Без изменений | Без изменений | `FriendshipRequestNotFoundException` |
+| Заявка для отклонения не найдена | `rejectFriendship` | Заявка не существует | Без изменений | Без изменений | Без изменений | `FriendshipRequestNotFoundException` |
+| Повторное предложение после отклонения | `offerFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений | `OfferFriendshipAlreadyRejectedException` |
 
-## Repeated Friendship Offer After Rejection
+## Повторное предложение дружбы после отклонения
 
-After the `REJECTED` state, a repeated `offerFriendship` call does not create a new offer and ends with a conflict.
+После перехода в состояние `REJECTED` повторный вызов `offerFriendship` не создаёт новую заявку и завершается конфликтом.
 
-If the product needs to allow a repeated offer after some time, a separate business rule will be required. Such a rule must explicitly describe when a rejected offer can be replaced with a new one, for example after a waiting period expires.
+Если продукт должен разрешать повторное предложение через некоторое время, потребуется отдельное бизнес-правило. Такое правило должно явно описывать, когда отклонённую заявку можно заменить новой, например после окончания периода ожидания.
