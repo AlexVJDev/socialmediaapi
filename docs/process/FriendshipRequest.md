@@ -10,7 +10,7 @@
 | `acceptFriendship` | `PENDING` | `ACCEPTED` | Получатель подписывается на инициатора, если обратной подписки ещё нет | Между инициатором и получателем создаётся двусторонняя дружба | `204 No Content`, состояние не изменяется |
 | `rejectFriendship` | `PENDING` | `REJECTED` | Без изменений: инициатор остаётся подписанным на получателя | Без изменений: дружба не создаётся | `204 No Content`, состояние не изменяется |
 | `offerFriendship` | `PENDING` | `PENDING` | Без изменений: инициатор уже подписан на получателя | Без изменений | `204 No Content`, состояние не изменяется |
-| `offerFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: у пользователей уже есть необходимые подписки | Без изменений: дружба уже существует | `204 No Content`, состояние не изменяется |
+| `offerFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: принятую заявку нельзя вернуть в состояние `PENDING` | Без изменений: дружба уже существует | `409 Conflict`, `OfferFriendshipAlreadyAcceptedException`, состояние не изменяется |
 | `offerFriendship` | `REJECTED` | `REJECTED` | Без изменений: отклонённую заявку нельзя вернуть в состояние `PENDING` | Без изменений | `409 Conflict`, `OfferFriendshipAlreadyRejectedException`, состояние не изменяется |
 | `acceptFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: обратная подписка уже существует или должна была быть создана | Без изменений: дружба уже существует | `204 No Content`, состояние не изменяется |
 | `rejectFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений: уже созданная дружба не отменяется командой отклонения | `409 Conflict`, `RejectFriendshipAlreadyAcceptedException`, состояние не изменяется |
