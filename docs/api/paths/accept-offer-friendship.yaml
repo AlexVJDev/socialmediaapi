@@ -7,17 +7,13 @@ post:
         schema:
           type: object
           required:
-            - fromUserId
-            - toUserId
+            - offerId
           properties:
-            fromUserId:
+            offerId:
               type: integer
               format: int64
-              example: 1
-            toUserId:
-              type: integer
-              format: int64
-              example: 2
+              description: Идентификатор принимаемого предложения дружбы.
+              example: 10
   responses:
     '200':
       description: Предложение дружбы принято
