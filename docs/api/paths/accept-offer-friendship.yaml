@@ -86,7 +86,7 @@ post:
                 type: string
                 example: Предложение дружбы не найдено
     '409':
-      description: Предложение дружбы нельзя принять из-за текущего состояния
+      description: Предложение дружбы нельзя принять, так как его статус отличен от 'PENDING' ('ACCEPTED' или 'REJECTED')
       content:
         application/json:
           schema:
@@ -97,7 +97,8 @@ post:
             properties:
               code:
                 type: string
+                enum: [OFFER_FRIENDSHIP_ALREADY_ACCEPTED, OFFER_FRIENDSHIP_ALREADY_REJECTED]
                 example: OFFER_FRIENDSHIP_ALREADY_REJECTED
               message:
                 type: string
-                example: Отклонённое предложение дружбы нельзя принять
+                example: Предложение дружбы уже обработано и не может быть принято

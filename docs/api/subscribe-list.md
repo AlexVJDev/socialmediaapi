@@ -29,14 +29,10 @@ Content-Type: application/json
 ```json
 [
   {
-    "id": 2,
-    "username": "boris",
-    "displayName": "Борис"
+    "userId": 2
   },
   {
-    "id": 4,
-    "username": "ivan",
-    "displayName": "Иван"
+    "userId": 4
   }
 ]
 ```
@@ -51,9 +47,7 @@ Content-Type: application/json
 
 | Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Идентификатор пользователя, на которого оформлена подписка. |
-| `username` | `string` | Уникальное имя пользователя. |
-| `displayName` | `string` | Отображаемое имя пользователя. |
+| `userId` | `number` | Идентификатор пользователя, на которого оформлена подписка. |
 
 ## Правила обработки
 

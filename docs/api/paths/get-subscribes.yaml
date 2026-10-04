@@ -19,29 +19,18 @@ get:
             items:
               type: object
               required:
-                - id
-                - username
-                - displayName
+                - userId
               properties:
-                id:
+                userId:
                   type: integer
                   format: int64
+                  description: Идентификатор пользователя, на которого оформлена подписка
                   example: 2
-                username:
-                  type: string
-                  example: boris
-                displayName:
-                  type: string
-                  example: Boris
           examples:
             found:
               value:
-                - id: 2
-                  username: boris
-                  displayName: Boris
-                - id: 4
-                  username: ivan
-                  displayName: Ivan
+                - userId: 2
+                - userId: 4
             empty:
               value: []
     '400':

@@ -19,29 +19,18 @@ get:
             items:
               type: object
               required:
-                - id
-                - username
-                - displayName
+                - userId
               properties:
-                id:
+                userId:
                   type: integer
                   format: int64
+                  description: Идентификатор пользователя-друга
                   example: 2
-                username:
-                  type: string
-                  example: boris
-                displayName:
-                  type: string
-                  example: Boris
           examples:
             found:
               value:
-                - id: 2
-                  username: boris
-                  displayName: Boris
-                - id: 3
-                  username: maria
-                  displayName: Maria
+                - userId: 2
+                - userId: 3
             empty:
               value: []
     '400':

@@ -7,17 +7,13 @@ post:
         schema:
           type: object
           required:
-            - fromUserId
-            - toUserId
+            - friendshipOfferId
           properties:
-            fromUserId:
+            offerId:
               type: integer
               format: int64
-              example: 1
-            toUserId:
-              type: integer
-              format: int64
-              example: 2
+              description: Идентификатор отклоняемого предложения дружбы.
+              example: 10
   responses:
     '200':
       description: Предложение дружбы отклонено
@@ -90,7 +86,7 @@ post:
                 type: string
                 example: Предложение дружбы не найдено
     '409':
-      description: Предложение дружбы нельзя отклонить из-за текущего состояния
+      description: Предложение дружбы нельзя отклонить, так как его статус отличен от 'PENDING' ('ACCEPTED' или 'REJECTED')
       content:
         application/json:
           schema:
@@ -101,7 +97,8 @@ post:
             properties:
               code:
                 type: string
+                enum: [OFFER_FRIENDSHIP_ALREADY_ACCEPTED, OFFER_FRIENDSHIP_ALREADY_REJECTED]
                 example: OFFER_FRIENDSHIP_ALREADY_ACCEPTED
               message:
                 type: string
-                example: Принятое предложение дружбы нельзя отклонить
+                example: Предложение дружбы уже обработано и не может быть отклонено
