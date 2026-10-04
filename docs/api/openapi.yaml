@@ -4,18 +4,18 @@ info:
   version: 1.0.0
 paths:
   /api/offer-friendships/create:
-    $ref: './paths/create-offer-friendship.yaml'
+    $ref: './paths/friendship-offer-create.yaml'
   /api/offer-friendships/accept:
-    $ref: './paths/accept-offer-friendship.yaml'
+    $ref: './paths/friendship-offer-accept.yaml'
   /api/offer-friendships/reject:
-    $ref: './paths/reject-offer-friendship.yaml'
+    $ref: './paths/friendship-offer-reject.yaml'
   /api/offer-friendships/incoming:
-    $ref: './paths/get-incoming-offer-friendships.yaml'
+    $ref: './paths/friendships-incoming-get.yaml'
   /api/offer-friendships/outgoing:
-    $ref: './paths/get-outgoing-offer-friendships.yaml'
+    $ref: './paths/friendships-outgoing-get.yaml'
   /api/friendships:
-    $ref: './paths/get-friendships.yaml'
+    $ref: './paths/friends-get.yaml'
   /api/subscribes/followers:
-    $ref: './paths/get-followers.yaml'
+    $ref: './paths/followers-get.yaml'
   /api/subscribes:
-    $ref: './paths/get-subscribes.yaml'
+    $ref: './paths/subscribes-get.yaml'
