@@ -1,4 +1,6 @@
 get:
+  tags:
+    - Subscribe
   summary: Получить список подписчиков пользователя
   parameters:
     - name: userId

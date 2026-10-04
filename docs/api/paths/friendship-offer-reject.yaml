@@ -1,4 +1,6 @@
 post:
+  tags:
+    - Friendship
   summary: Отклонить предложение дружбы
   requestBody:
     required: true

@@ -1,4 +1,6 @@
 get:
+  tags:
+    - Friendship
   summary: Получить входящие предложения дружбы
   parameters:
     - name: userId

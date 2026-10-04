@@ -1,4 +1,6 @@
 post:
+  tags:
+    - Friendship
   summary: Создать предложение дружбы
   requestBody:
     required: true

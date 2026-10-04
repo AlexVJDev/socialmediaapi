@@ -1,4 +1,6 @@
 post:
+  tags:
+    - Friendship
   summary: Принять предложение дружбы
   requestBody:
     required: true

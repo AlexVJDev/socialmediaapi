@@ -1,4 +1,6 @@
 get:
+  tags:
+    - Friendship
   summary: Получить список друзей
   parameters:
     - name: userId
