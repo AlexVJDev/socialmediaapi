@@ -16,14 +16,13 @@ POST /api/offer-friendships/accept
 Content-Type: application/json
 ```
 
-## Тело (предварительно полученного) запроса
+## Тело запроса
 
 Тело запроса на дружбу содержит идентификаторы пользователя-инициатора и пользователя-получателя.
 
 ```json
 {
-  "fromUserId": 1,
-  "toUserId": 2
+  "friendshipOfferId": 1
 }
 ```
 

@@ -7,7 +7,7 @@ post:
         schema:
           type: object
           required:
-            - offerId
+            - friendshipOfferId
           properties:
             offerId:
               type: integer
