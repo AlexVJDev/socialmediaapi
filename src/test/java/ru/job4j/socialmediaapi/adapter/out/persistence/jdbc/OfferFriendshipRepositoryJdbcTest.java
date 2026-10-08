@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.repository;
+package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import ru.job4j.socialmediaapi.domain.OfferFriendshipStatus;
+import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
+import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -25,7 +26,7 @@ class OfferFriendshipRepositoryJdbcTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres =
+    private static final PostgreSQLContainer POSTGRES =
             new PostgreSQLContainer("postgres:17");
 
     @Autowired

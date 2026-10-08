@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.controller;
+package ru.job4j.socialmediaapi.adapter.in.web;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -4,6 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FriendshipPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository;
 
 import java.sql.Timestamp;
@@ -33,15 +34,21 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public FriendshipRepositoryJdbc(JdbcTemplate jdbcTemplate) {
+    private final FriendshipPersistenceMapper mapper;
+
+    public FriendshipRepositoryJdbc(
+            JdbcTemplate jdbcTemplate,
+            FriendshipPersistenceMapper mapper
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.mapper = mapper;
     }
 
     @Override
     public CreateFriendshipResponse createFriendship(
             CreateFriendshipRequest request
     ) {
-        var entity = toEntity(request);
+        var entity = mapper.toEntity(request);
         var saved = jdbcTemplate.queryForObject(
                 CREATE,
                 ENTITY_MAPPER,
@@ -51,30 +58,6 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
                 entity.offerFriendshipId(),
                 Timestamp.from(entity.createdAt())
         );
-        return toResponse(saved);
-    }
-
-    private static FriendshipEntity toEntity(
-            CreateFriendshipRequest request
-    ) {
-        return new FriendshipEntity(
-                request.id(),
-                request.firstUserId(),
-                request.secondUserId(),
-                request.offerFriendshipId(),
-                request.createdAt()
-        );
-    }
-
-    private static CreateFriendshipResponse toResponse(
-            FriendshipEntity entity
-    ) {
-        return new CreateFriendshipResponse(
-                entity.id(),
-                entity.firstUserId(),
-                entity.secondUserId(),
-                entity.offerFriendshipId(),
-                entity.createdAt()
-        );
+        return mapper.toResponse(saved);
     }
 }

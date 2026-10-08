@@ -1,9 +1,11 @@
-package ru.job4j.socialmediaapi.repository;
+package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import ru.job4j.socialmediaapi.domain.OfferFriendshipStatus;
+import ru.job4j.socialmediaapi.adapter.out.persistence.entity.OfferFriendshipEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.OfferFriendshipPersistenceMapper;
+import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -33,15 +35,21 @@ public class OfferFriendshipRepositoryJdbc implements OfferFriendshipRepository 
 
     private final JdbcTemplate jdbcTemplate;
 
-    public OfferFriendshipRepositoryJdbc(JdbcTemplate jdbcTemplate) {
+    private final OfferFriendshipPersistenceMapper mapper;
+
+    public OfferFriendshipRepositoryJdbc(
+            JdbcTemplate jdbcTemplate,
+            OfferFriendshipPersistenceMapper mapper
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.mapper = mapper;
     }
 
     @Override
     public CreateOfferFriendshipResponse createOfferFriendship(
             CreateOfferFriendshipRequest request
     ) {
-        var entity = toEntity(request);
+        var entity = mapper.toEntity(request);
         var saved = jdbcTemplate.queryForObject(
                 CREATE,
                 ENTITY_MAPPER,
@@ -52,32 +60,6 @@ public class OfferFriendshipRepositoryJdbc implements OfferFriendshipRepository 
                 Timestamp.from(entity.createdAt()),
                 Timestamp.from(entity.updatedAt())
         );
-        return toResponse(saved);
-    }
-
-    private static OfferFriendshipEntity toEntity(
-            CreateOfferFriendshipRequest request
-    ) {
-        return new OfferFriendshipEntity(
-                request.id(),
-                request.fromUserId(),
-                request.toUserId(),
-                request.status().name(),
-                request.createdAt(),
-                request.updatedAt()
-        );
-    }
-
-    private static CreateOfferFriendshipResponse toResponse(
-            OfferFriendshipEntity entity
-    ) {
-        return new CreateOfferFriendshipResponse(
-                entity.id(),
-                entity.fromUserId(),
-                entity.toUserId(),
-                OfferFriendshipStatus.valueOf(entity.status()),
-                entity.createdAt(),
-                entity.updatedAt()
-        );
+        return mapper.toResponse(saved);
     }
 }

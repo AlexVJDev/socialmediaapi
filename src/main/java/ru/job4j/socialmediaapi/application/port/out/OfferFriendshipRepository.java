@@ -1,6 +1,6 @@
-package ru.job4j.socialmediaapi.repository;
+package ru.job4j.socialmediaapi.application.port.out;
 
-import ru.job4j.socialmediaapi.domain.OfferFriendshipStatus;
+import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
 
 import java.time.Instant;
 import java.util.UUID;

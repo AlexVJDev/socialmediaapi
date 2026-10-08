@@ -4,6 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.SubscriptionEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.SubscriptionPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 
 import java.sql.Timestamp;
@@ -30,15 +31,21 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public SubscriptionRepositoryJdbc(JdbcTemplate jdbcTemplate) {
+    private final SubscriptionPersistenceMapper mapper;
+
+    public SubscriptionRepositoryJdbc(
+            JdbcTemplate jdbcTemplate,
+            SubscriptionPersistenceMapper mapper
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.mapper = mapper;
     }
 
     @Override
     public CreateSubscriptionResponse createSubscription(
             CreateSubscriptionRequest request
     ) {
-        var entity = toEntity(request);
+        var entity = mapper.toEntity(request);
         var saved = jdbcTemplate.queryForObject(
                 CREATE,
                 ENTITY_MAPPER,
@@ -47,28 +54,6 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
                 entity.followedId(),
                 Timestamp.from(entity.createdAt())
         );
-        return toResponse(saved);
-    }
-
-    private static SubscriptionEntity toEntity(
-            CreateSubscriptionRequest request
-    ) {
-        return new SubscriptionEntity(
-                request.id(),
-                request.followerId(),
-                request.followedId(),
-                request.createdAt()
-        );
-    }
-
-    private static CreateSubscriptionResponse toResponse(
-            SubscriptionEntity entity
-    ) {
-        return new CreateSubscriptionResponse(
-                entity.id(),
-                entity.followerId(),
-                entity.followedId(),
-                entity.createdAt()
-        );
+        return mapper.toResponse(saved);
     }
 }
