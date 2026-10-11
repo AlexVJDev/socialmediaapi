@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataIntegrityViolationException;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
+import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionToSelfException;
+import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionUserRequiredException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -43,7 +45,7 @@ class SubscriptionRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("Повторная подписка на того же пользователя выбросит исключение из-за ограничения уникальности")
+    @DisplayName("Повторная подписка на того же пользователя выбросит SubscriptionAlreadyExistsException")
     void whenCreateDuplicateSubscriptionThenThrowException() {
         var followerId = UUID.randomUUID();
         var followedId = UUID.randomUUID();
@@ -53,27 +55,27 @@ class SubscriptionRepositoryJdbcTest {
 
         assertThatThrownBy(() -> repository.createSubscription(
                 request(UUID.randomUUID(), followerId, followedId)
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(SubscriptionAlreadyExistsException.class);
     }
 
     @Test
-    @DisplayName("Подписка на самого себя выбросит исключение из-за CHECK-ограничения")
+    @DisplayName("Подписка на самого себя выбросит SubscriptionToSelfException")
     void whenCreateSubscriptionToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> repository.createSubscription(
                 request(UUID.randomUUID(), userId, userId)
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(SubscriptionToSelfException.class);
     }
 
     @Test
-    @DisplayName("Подписка без followed_id выбросит исключение из-за ограничения NOT NULL")
+    @DisplayName("Подписка без followed_id выбросит SubscriptionUserRequiredException")
     void whenCreateSubscriptionToNullUserThenThrowException() {
         var followerId = UUID.randomUUID();
 
         assertThatThrownBy(() -> repository.createSubscription(
                 request(UUID.randomUUID(), followerId, null)
-        )).isInstanceOf(DataIntegrityViolationException.class)
+        )).isInstanceOf(SubscriptionUserRequiredException.class)
                 .hasMessageContaining("followed_id");
     }
 

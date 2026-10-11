@@ -1,11 +1,15 @@
 package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.SubscriptionEntity;
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.SubscriptionPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
+import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionToSelfException;
+import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionUserRequiredException;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -46,14 +50,37 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             CreateSubscriptionRequest request
     ) {
         var entity = mapper.toEntity(request);
-        var saved = jdbcTemplate.queryForObject(
-                CREATE,
-                ENTITY_MAPPER,
-                entity.id(),
-                entity.followerId(),
-                entity.followedId(),
-                Timestamp.from(entity.createdAt())
-        );
-        return mapper.toResponse(saved);
+        try {
+            var saved = jdbcTemplate.queryForObject(
+                    CREATE,
+                    ENTITY_MAPPER,
+                    entity.id(),
+                    entity.followerId(),
+                    entity.followedId(),
+                    Timestamp.from(entity.createdAt())
+            );
+            return mapper.toResponse(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw translate(request, e);
+        }
+    }
+
+    private static RuntimeException translate(
+            CreateSubscriptionRequest request,
+            DataIntegrityViolationException exception
+    ) {
+        var notNullColumn = PostgresErrors.notNullColumn(exception);
+        if (notNullColumn.isPresent()) {
+            return new SubscriptionUserRequiredException(notNullColumn.get(), exception);
+        }
+        return switch (PostgresErrors.constraint(exception)) {
+            case "uq_subscriptions_users" -> new SubscriptionAlreadyExistsException(
+                    request.followerId(), request.followedId(), exception
+            );
+            case "chk_subscriptions_different_users" -> new SubscriptionToSelfException(
+                    request.followerId(), exception
+            );
+            default -> exception;
+        };
     }
 }

@@ -1,11 +1,15 @@
 package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipEntity;
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FriendshipPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository;
+import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipInvalidUserOrderException;
+import ru.job4j.socialmediaapi.domain.offerfriendship.exception.FriendshipRequestNotFoundException;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -16,11 +20,11 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
     private static final String CREATE = """
             INSERT INTO friendships (
                 id, first_user_id, second_user_id,
-                offer_friendship_id, created_at
+                offer_friendship_id, status, created_at
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             RETURNING id, first_user_id, second_user_id,
-                      offer_friendship_id, created_at
+                      offer_friendship_id, status, created_at
             """;
 
     private static final RowMapper<FriendshipEntity> ENTITY_MAPPER =
@@ -29,6 +33,7 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
                     resultSet.getObject("first_user_id", UUID.class),
                     resultSet.getObject("second_user_id", UUID.class),
                     resultSet.getObject("offer_friendship_id", UUID.class),
+                    resultSet.getString("status"),
                     resultSet.getTimestamp("created_at").toInstant()
             );
 
@@ -49,15 +54,38 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
             CreateFriendshipRequest request
     ) {
         var entity = mapper.toEntity(request);
-        var saved = jdbcTemplate.queryForObject(
-                CREATE,
-                ENTITY_MAPPER,
-                entity.id(),
-                entity.firstUserId(),
-                entity.secondUserId(),
-                entity.offerFriendshipId(),
-                Timestamp.from(entity.createdAt())
-        );
-        return mapper.toResponse(saved);
+        try {
+            var saved = jdbcTemplate.queryForObject(
+                    CREATE,
+                    ENTITY_MAPPER,
+                    entity.id(),
+                    entity.firstUserId(),
+                    entity.secondUserId(),
+                    entity.offerFriendshipId(),
+                    entity.status(),
+                    Timestamp.from(entity.createdAt())
+            );
+            return mapper.toResponse(saved);
+        } catch (DataIntegrityViolationException e) {
+            throw translate(request, e);
+        }
+    }
+
+    private static RuntimeException translate(
+            CreateFriendshipRequest request,
+            DataIntegrityViolationException exception
+    ) {
+        return switch (PostgresErrors.constraint(exception)) {
+            case "uq_friendships_users" -> new FriendshipAlreadyExistsException(
+                    request.firstUserId(), request.secondUserId(), exception
+            );
+            case "chk_friendships_canonical_order" -> new FriendshipInvalidUserOrderException(
+                    request.firstUserId(), request.secondUserId(), exception
+            );
+            case "fk_friendships_offer_friendship" -> new FriendshipRequestNotFoundException(
+                    request.offerFriendshipId(), exception
+            );
+            default -> exception;
+        };
     }
 }

@@ -12,6 +12,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
 import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
+import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipToSelfException;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -68,7 +70,7 @@ class OfferFriendshipRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("Повторная заявка from -> to выбросит исключение из-за ограничения уникальности")
+    @DisplayName("Повторная заявка from -> to выбросит OfferFriendshipAlreadyExistsException")
     void whenCreateDuplicateOfferFriendshipThenThrowException() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
@@ -78,17 +80,17 @@ class OfferFriendshipRepositoryJdbcTest {
 
         assertThatThrownBy(() -> repository.createOfferFriendship(request(
                 UUID.randomUUID(), fromUserId, toUserId, OfferFriendshipStatus.PENDING
-        ))).isInstanceOf(DataIntegrityViolationException.class);
+        ))).isInstanceOf(OfferFriendshipAlreadyExistsException.class);
     }
 
     @Test
-    @DisplayName("Заявка в друзья самому себе выбросит исключение из-за CHECK-ограничения")
+    @DisplayName("Заявка в друзья самому себе выбросит OfferFriendshipToSelfException")
     void whenCreateOfferFriendshipToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> repository.createOfferFriendship(request(
                 UUID.randomUUID(), userId, userId, OfferFriendshipStatus.PENDING
-        ))).isInstanceOf(DataIntegrityViolationException.class);
+        ))).isInstanceOf(OfferFriendshipToSelfException.class);
     }
 
     @Test

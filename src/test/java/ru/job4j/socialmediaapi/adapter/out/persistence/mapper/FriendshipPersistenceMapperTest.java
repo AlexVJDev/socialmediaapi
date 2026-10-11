@@ -1,0 +1,68 @@
+package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipEntity;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository.CreateFriendshipRequest;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository.CreateFriendshipResponse;
+import ru.job4j.socialmediaapi.domain.friendship.FriendshipStatus;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@DisplayName("Маппер дружбы: преобразование между Request/Response порта и FriendshipEntity")
+class FriendshipPersistenceMapperTest {
+
+    private static final Instant CREATED_AT = Instant.parse("2026-10-06T10:15:00Z");
+
+    private final FriendshipPersistenceMapper mapper =
+            Mappers.getMapper(FriendshipPersistenceMapper.class);
+
+    @Test
+    @DisplayName("toEntity: статус-enum записывается в Entity строкой через name()")
+    void whenToEntityThenStatusStoredAsName() {
+        var request = new CreateFriendshipRequest(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                FriendshipStatus.ACTIVE, CREATED_AT
+        );
+
+        var entity = mapper.toEntity(request);
+
+        assertThat(entity).isEqualTo(new FriendshipEntity(
+                request.id(), request.firstUserId(), request.secondUserId(),
+                request.offerFriendshipId(), "ACTIVE", CREATED_AT
+        ));
+    }
+
+    @Test
+    @DisplayName("toResponse: строковый статус из Entity преобразуется в enum")
+    void whenToResponseThenStatusParsedToEnum() {
+        var entity = new FriendshipEntity(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                "DELETED", CREATED_AT
+        );
+
+        var response = mapper.toResponse(entity);
+
+        assertThat(response).isEqualTo(new CreateFriendshipResponse(
+                entity.id(), entity.firstUserId(), entity.secondUserId(),
+                entity.offerFriendshipId(), FriendshipStatus.DELETED, CREATED_AT
+        ));
+    }
+
+    @Test
+    @DisplayName("toResponse: неизвестный статус из БД выбросит IllegalArgumentException")
+    void whenToResponseWithUnknownStatusThenThrowException() {
+        var entity = new FriendshipEntity(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                "UNKNOWN", CREATED_AT
+        );
+
+        assertThatThrownBy(() -> mapper.toResponse(entity))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+}
