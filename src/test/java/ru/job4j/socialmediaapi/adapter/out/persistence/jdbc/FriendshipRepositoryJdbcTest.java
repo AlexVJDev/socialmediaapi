@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+@DisplayName("JDBC-репозиторий дружбы: сохранение в таблицу friendships")
 class FriendshipRepositoryJdbcTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
@@ -29,6 +31,7 @@ class FriendshipRepositoryJdbcTest {
     private OfferFriendshipRepository offerFriendshipRepository;
 
     @Test
+    @DisplayName("Создание дружбы по принятой заявке возвращает сохранённые в БД данные")
     void whenCreateFriendshipThenReturnStoredData() {
         var users = orderedPair();
         var offerId = acceptedOffer(users[0], users[1]);
@@ -45,6 +48,7 @@ class FriendshipRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Повторное создание дружбы для той же пары выбросит исключение из-за ограничения уникальности")
     void whenCreateDuplicateFriendshipThenThrowException() {
         var users = orderedPair();
         var offerId = acceptedOffer(users[0], users[1]);
@@ -58,6 +62,7 @@ class FriendshipRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Создание дружбы с first_user_id > second_user_id выбросит исключение из-за CHECK-ограничения")
     void whenCreateFriendshipInNonCanonicalOrderThenThrowException() {
         var users = orderedPair();
         var offerId = acceptedOffer(users[0], users[1]);
@@ -68,6 +73,7 @@ class FriendshipRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Создание дружбы со ссылкой на несуществующую заявку выбросит исключение из-за внешнего ключа")
     void whenCreateFriendshipWithUnknownOfferThenThrowException() {
         var users = orderedPair();
 

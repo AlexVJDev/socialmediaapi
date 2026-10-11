@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+@DisplayName("JDBC-репозиторий подписок: сохранение в таблицу subscriptions")
 class SubscriptionRepositoryJdbcTest {
 
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
@@ -24,6 +26,7 @@ class SubscriptionRepositoryJdbcTest {
     private SubscriptionRepository repository;
 
     @Test
+    @DisplayName("Создание подписки возвращает сохранённые в БД данные")
     void whenCreateSubscriptionThenReturnStoredData() {
         var id = UUID.randomUUID();
         var followerId = UUID.randomUUID();
@@ -40,6 +43,7 @@ class SubscriptionRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Повторная подписка на того же пользователя выбросит исключение из-за ограничения уникальности")
     void whenCreateDuplicateSubscriptionThenThrowException() {
         var followerId = UUID.randomUUID();
         var followedId = UUID.randomUUID();
@@ -53,6 +57,7 @@ class SubscriptionRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Подписка на самого себя выбросит исключение из-за CHECK-ограничения")
     void whenCreateSubscriptionToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
@@ -62,6 +67,7 @@ class SubscriptionRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Подписка без followed_id выбросит исключение из-за ограничения NOT NULL")
     void whenCreateSubscriptionToNullUserThenThrowException() {
         var followerId = UUID.randomUUID();
 

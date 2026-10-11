@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 @SpringBootTest
+@DisplayName("JDBC-репозиторий заявок в друзья: сохранение в таблицу offer_friendships")
 class OfferFriendshipRepositoryJdbcTest {
 
     @Container
@@ -36,6 +38,7 @@ class OfferFriendshipRepositoryJdbcTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
+    @DisplayName("Создание заявки в друзья возвращает сохранённые в БД данные")
     void whenCreateOfferFriendshipThenReturnStoredData() {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
@@ -65,6 +68,7 @@ class OfferFriendshipRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Повторная заявка from -> to выбросит исключение из-за ограничения уникальности")
     void whenCreateDuplicateOfferFriendshipThenThrowException() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
@@ -78,6 +82,7 @@ class OfferFriendshipRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Заявка в друзья самому себе выбросит исключение из-за CHECK-ограничения")
     void whenCreateOfferFriendshipToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
@@ -87,6 +92,7 @@ class OfferFriendshipRepositoryJdbcTest {
     }
 
     @Test
+    @DisplayName("Заявка с неизвестным статусом выбросит исключение из-за CHECK-ограничения на status")
     void whenCreateOfferFriendshipWithUnknownStatusThenThrowException() {
         var now = Timestamp.from(Instant.parse("2026-10-06T10:15:00Z"));
 

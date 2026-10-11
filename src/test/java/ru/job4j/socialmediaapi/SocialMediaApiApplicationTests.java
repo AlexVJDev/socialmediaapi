@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,15 +15,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
+@DisplayName("Приложение: запуск контекста и проверка служебного эндпоинта")
 class SocialMediaApiApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
     @Test
+    @DisplayName("Spring-контекст приложения поднимается без ошибок")
     void contextLoads() {
     }
 
     @Test
+    @DisplayName("GET /api/ping возвращает 200 и статус сервиса")
     void whenPingThenReturnServiceStatus() throws Exception {
         mockMvc.perform(get("/api/ping"))
                 .andExpect(status().isOk())

@@ -8,6 +8,7 @@ public record FriendshipEntity(
         UUID firstUserId,
         UUID secondUserId,
         UUID offerFriendshipId,
+        String status,
         Instant createdAt
 ) {
 }

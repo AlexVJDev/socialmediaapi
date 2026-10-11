@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.OfferFriendshipEntity;
@@ -13,6 +14,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("Маппер заявок в друзья: преобразование между Request/Response порта и OfferFriendshipEntity")
 class OfferFriendshipPersistenceMapperTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-10-06T10:15:00Z");
@@ -23,6 +25,7 @@ class OfferFriendshipPersistenceMapperTest {
             Mappers.getMapper(OfferFriendshipPersistenceMapper.class);
 
     @Test
+    @DisplayName("toEntity: статус-enum записывается в Entity строкой через name()")
     void whenToEntityThenStatusStoredAsName() {
         var request = new CreateOfferFriendshipRequest(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
@@ -38,6 +41,7 @@ class OfferFriendshipPersistenceMapperTest {
     }
 
     @Test
+    @DisplayName("toResponse: строковый статус из Entity преобразуется в enum")
     void whenToResponseThenStatusParsedToEnum() {
         var entity = new OfferFriendshipEntity(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
@@ -53,6 +57,7 @@ class OfferFriendshipPersistenceMapperTest {
     }
 
     @Test
+    @DisplayName("toResponse: неизвестный статус из БД приводит к IllegalArgumentException")
     void whenToResponseWithUnknownStatusThenThrowException() {
         var entity = new OfferFriendshipEntity(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
