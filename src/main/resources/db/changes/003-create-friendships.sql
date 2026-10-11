@@ -7,10 +7,12 @@ CREATE TABLE friendships
     first_user_id           UUID            NOT NULL,
     second_user_id          UUID            NOT NULL,
     offer_friendship_id     UUID            NOT NULL,
+    status                  VARCHAR(16)     NOT NULL DEFAULT 'ACTIVE',
     created_at              TIMESTAMPTZ     NOT NULL,
     CONSTRAINT chk_friendships_canonical_order CHECK (first_user_id < second_user_id),
     CONSTRAINT uq_friendships_users UNIQUE (first_user_id, second_user_id),
-    CONSTRAINT fk_friendships_offer_friendship FOREIGN KEY (offer_friendship_id) REFERENCES offer_friendships (id)
+    CONSTRAINT fk_friendships_offer_friendship FOREIGN KEY (offer_friendship_id) REFERENCES offer_friendships (id),
+    CONSTRAINT chk_friendships_status CHECK (status IN ('ACTIVE', 'DELETED'))
 );
 
 --rollback DROP TABLE IF EXISTS friendships;
