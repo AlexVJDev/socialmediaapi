@@ -1,130 +1,104 @@
 @startuml
-title Сценарии изменения заявки в друзья
+title Заявка в друзья: создание, принятие, отклонение
 
 skinparam shadowing false
+skinparam sequenceMessageAlign left
 skinparam sequence {
-  ArrowColor #334155
-  ActorBorderColor #334155
   LifeLineBorderColor #CBD5E1
-  LifeLineBackgroundColor #F8FAFC
-  ParticipantBorderColor #334155
-  ParticipantBackgroundColor #F8FAFC
-  ParticipantFontColor #0F172A
+  GroupBorderColor #94A3B8
 }
 
-actor "Алиса\nинициатор заявки" as Alice
-actor "Борис\nполучатель заявки" as Boris
-participant "FriendRequestController" as Controller
-participant "FriendRequestService" as Service
-participant "FriendRequestRepository" as Repository
-database DB
+actor "Алиса\n(инициатор)" as Alice
+actor "Борис\n(получатель)" as Boris
+participant "Social Media API" as Api
+database "БД" as DB
 
-== Создание заявки в друзья ==
+== 1. Создание заявки: POST /api/offer-friendships/create ==
 
-Alice -> Controller : create(fromUserId = Alice, toUserId = Boris)
-Controller -> Service : createOffer(Alice, Boris)
-Service -> Repository : findByUsers(Alice, Boris)
-Repository -> DB : SELECT friend_request
-DB --> Repository : существующая заявка или пустой результат
-Repository --> Service : существующая заявка или пустой результат
+Alice -> Api : create(from = Алиса, to = Борис)
+Api -> DB : найти заявку Алиса -> Борис
 
-alt заявка не существует
-  Service -> Repository : save(status = PENDING)
-  Repository -> DB : INSERT friend_request(PENDING)
-  DB --> Repository : созданная заявка
-  Repository --> Service : FriendRequest(PENDING)
-  Service -> Repository : обеспечить подписку Алиса -> Борис
-  Repository -> DB : INSERT подписки, если она отсутствует
-  DB --> Repository : подписка существует
-  Repository --> Service : результат создания подписки
-  Service --> Controller : созданная заявка PENDING
-  Controller --> Alice : 201 Created, status = PENDING
-else состояние существующей заявки = PENDING
-  Service --> Controller : существующая заявка PENDING
-  Controller --> Alice : 200 OK, status = PENDING, дубликат не создан
-else состояние существующей заявки = ACCEPTED
-  Service --> Controller : результат уже принятой заявки
-  Controller --> Alice : 200 OK, status = ACCEPTED, состояние дружбы не изменено
-else состояние существующей заявки = REJECTED
-  Service --> Controller : конфликт: автоматический возврат в PENDING невозможен
-  Controller --> Alice : 409 Conflict
+alt Алиса = Борис
+  Api --> Alice : 400 INVALID_FRIENDSHIP_OFFER_REQUEST
+else заявки нет
+  group одна транзакция
+    Api -> DB : INSERT заявка (PENDING)
+    Api -> DB : INSERT подписка Алиса -> Борис\n(если её ещё нет)
+  end
+  Api --> Alice : 201 Created, status = PENDING
+else повтор: заявка уже PENDING
+  Api --> Alice : 204 No Content\n(ничего не меняется)
+else повтор: заявка уже ACCEPTED или REJECTED
+  Api --> Alice : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED\nили FRIENDSHIP_OFFER_ALREADY_REJECTED
 end
 
-== Принятие заявки в друзья ==
+== 2. Принятие заявки: POST /api/offer-friendships/accept ==
 
-Boris -> Controller : accept(fromUserId = Alice, toUserId = Boris)
-Controller -> Service : acceptOffer(Alice, Boris)
-Service -> Repository : findByUsers(Alice, Boris)
-Repository -> DB : SELECT friend_request
-DB --> Repository : заявка или пустой результат
-Repository --> Service : заявка или пустой результат
+Boris -> Api : accept(offerId)
+Api -> DB : найти заявку по offerId
 
-alt заявка существует и состояние = PENDING
-  Service -> Repository : save(status = ACCEPTED)
-  Repository -> DB : UPDATE friend_request SET status = ACCEPTED
-  DB --> Repository : обновлённая заявка
-  Repository --> Service : FriendRequest(ACCEPTED)
-  Service -> Repository : обеспечить дружбу Алиса <-> Борис
-  Repository -> DB : INSERT взаимной дружбы, если она отсутствует
-  DB --> Repository : дружба существует
-  Repository --> Service : результат создания дружбы
-  Service -> Repository : обеспечить подписку Борис -> Алиса
-  Repository -> DB : INSERT обратной подписки, если она отсутствует
-  DB --> Repository : подписка существует
-  Repository --> Service : результат создания подписки
-  Service --> Controller : принятая заявка
-  Controller --> Boris : 200 OK, status = ACCEPTED
-else заявка существует и состояние = ACCEPTED
-  Service --> Controller : результат уже принятой заявки
-  Controller --> Boris : 200 OK, status = ACCEPTED, дубликаты изменений не созданы
-else заявка существует и состояние = REJECTED
-  Service --> Controller : конфликт: отклонённую заявку нельзя принять
-  Controller --> Boris : 409 Conflict
-else заявка не найдена
-  Service --> Controller : заявка не найдена
-  Controller --> Boris : 404 Not Found
+alt заявка не найдена
+  Api --> Boris : 404 FRIENDSHIP_OFFER_NOT_FOUND
+else заявка PENDING
+  group одна транзакция (атомарно)
+    Api -> DB : UPDATE заявка -> ACCEPTED
+    Api -> DB : INSERT дружба Алиса <-> Борис
+    Api -> DB : INSERT подписка Борис -> Алиса\n(если её ещё нет)
+  end
+  Api --> Boris : 200 OK, status = ACCEPTED
+else повтор: заявка уже ACCEPTED
+  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED
+else заявка REJECTED
+  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_REJECTED
 end
 
-== Отклонение заявки в друзья ==
+== 3. Отклонение заявки: POST /api/offer-friendships/reject ==
 
-Boris -> Controller : reject(fromUserId = Alice, toUserId = Boris)
-Controller -> Service : rejectOffer(Alice, Boris)
-Service -> Repository : findByUsers(Alice, Boris)
-Repository -> DB : SELECT friend_request
-DB --> Repository : заявка или пустой результат
-Repository --> Service : заявка или пустой результат
+Boris -> Api : reject(offerId)
+Api -> DB : найти заявку по offerId
 
-alt заявка существует и состояние = PENDING
-  Service -> Repository : save(status = REJECTED)
-  Repository -> DB : UPDATE friend_request SET status = REJECTED
-  DB --> Repository : обновлённая заявка
-  Repository --> Service : FriendRequest(REJECTED)
-  Service --> Controller : отклонённая заявка
-  Controller --> Boris : 200 OK, status = REJECTED
-else заявка существует и состояние = REJECTED
-  Service --> Controller : результат уже отклонённой заявки
-  Controller --> Boris : 200 OK, status = REJECTED, дубликаты изменений не созданы
-else заявка существует и состояние = ACCEPTED
-  Service --> Controller : конфликт: принятую заявку нельзя отклонить
-  Controller --> Boris : 409 Conflict
-else заявка не найдена
-  Service --> Controller : заявка не найдена
-  Controller --> Boris : 404 Not Found
+alt заявка не найдена
+  Api --> Boris : 404 FRIENDSHIP_OFFER_NOT_FOUND
+else заявка PENDING
+  Api -> DB : UPDATE заявка -> REJECTED
+  note right of DB
+    Дружба не создаётся.
+    Подписка Алиса -> Борис остаётся.
+  end note
+  Api --> Boris : 200 OK, status = REJECTED
+else повтор: заявка уже REJECTED
+  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_REJECTED
+else заявка ACCEPTED
+  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED
 end
-
-== Матрица действий ==
 
 legend bottom
-|= Действие |= Инициатор |= Предварительное условие |= Результат |
-| Создать заявку | Инициатор заявки | Между пользователями нет заявки | Заявка создаётся в состоянии PENDING; инициатор подписывается на получателя |
-| Повторно создать заявку | Инициатор заявки | Состояние существующей заявки — PENDING | Возвращается существующая заявка; дубликаты заявки и подписки не создаются |
-| Повторно создать заявку | Инициатор заявки | Состояние существующей заявки — ACCEPTED | Возвращается существующий результат; дружба и подписки не изменяются |
-| Повторно создать заявку | Инициатор заявки | Состояние существующей заявки — REJECTED | Операция завершается конфликтом; заявка не возвращается в состояние PENDING |
-| Принять заявку | Получатель заявки | Состояние существующей заявки — PENDING | Состояние заявки изменяется на ACCEPTED; отсутствующие дружба и обратная подписка создаются |
-| Повторно принять заявку | Получатель заявки | Состояние существующей заявки — ACCEPTED | Возвращается существующий результат; дубликаты дружбы и подписки не создаются |
-| Принять отклонённую заявку | Получатель заявки | Состояние существующей заявки — REJECTED | Операция завершается конфликтом |
-| Отклонить заявку | Получатель заявки | Состояние существующей заявки — PENDING | Состояние заявки изменяется на REJECTED; дружба и обратная подписка не создаются |
-| Повторно отклонить заявку | Получатель заявки | Состояние существующей заявки — REJECTED | Возвращается существующий результат; данные не изменяются |
-| Отклонить принятую заявку | Получатель заявки | Состояние существующей заявки — ACCEPTED | Операция завершается конфликтом |
+|= Действие |= Инициатор |= Предусловие |= Результат |
+| Создать заявку | Алиса | заявки Алиса -> Борис нет | 201: заявка PENDING + подписка Алиса -> Борис |
+| Создать повторно | Алиса | заявка PENDING | 204: ничего не меняется |
+| Создать повторно | Алиса | заявка ACCEPTED / REJECTED | 409: ничего не меняется |
+| Принять | Борис | заявка PENDING | 200: ACCEPTED + дружба + подписка Борис -> Алиса (атомарно) |
+| Принять повторно | Борис | заявка ACCEPTED | 409: дубликатов нет |
+| Принять отклонённую | Борис | заявка REJECTED | 409: дружба не создаётся |
+| Отклонить | Борис | заявка PENDING | 200: REJECTED, подписка Алисы остаётся |
+| Отклонить повторно | Борис | заявка REJECTED | 409: ничего не меняется |
+| Отклонить принятую | Борис | заявка ACCEPTED | 409: дружба не отменяется |
+
+**Инварианты**
+  Нельзя отправить заявку себе или создать две активные (PENDING) заявки одной направленности.
+  Дружба всегда взаимна. Подписки направлены и существуют отдельно от дружбы.
+  Принятие меняет статус, создаёт дружбу и обратную подписку атомарно.
+  Отклонение не отменяет подписку инициатора. Повторы не создают дубли связей.
+  При одновременных командах проверка статуса и изменение выполняются атомарно:
+  только одно решение меняет PENDING; остальные обрабатываются как повтор или конфликт.
+  Уникальность заявок и связей сохраняется и при одновременном создании.
+
+**Правило повторной отправки в этой схеме**
+  ACCEPTED и REJECTED — конечные состояния, возврата в PENDING нет.
+  Проверка существующей заявки при создании относится к направлению Алиса → Борис.
+
+  **Вне первого релиза**
+  Блокировки, приватные профили, рекомендации и удаление друзей.
+  Эти функции требуют отдельных правил, а не скрытых условий в этой схеме.
 endlegend
 @enduml
