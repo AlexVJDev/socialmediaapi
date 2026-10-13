@@ -20,6 +20,11 @@ public interface SubscriptionRepository {
             CreateSubscriptionRequest request
     );
 
+    /**
+     * @return {@code true} if the follower is already subscribed to the followed user
+     */
+    boolean existsSubscription(UUID followerId, UUID followedId);
+
     record CreateSubscriptionRequest(
             UUID id,
             UUID followerId,

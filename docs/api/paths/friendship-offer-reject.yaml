@@ -99,8 +99,8 @@ post:
             properties:
               code:
                 type: string
-                enum: [OFFER_FRIENDSHIP_ALREADY_ACCEPTED, OFFER_FRIENDSHIP_ALREADY_REJECTED]
-                example: OFFER_FRIENDSHIP_ALREADY_ACCEPTED
+                enum: [FRIENDSHIP_OFFER_ALREADY_ACCEPTED, FRIENDSHIP_OFFER_ALREADY_REJECTED]
+                example: FRIENDSHIP_OFFER_ALREADY_ACCEPTED
               message:
                 type: string
                 example: Предложение дружбы уже обработано и не может быть отклонено

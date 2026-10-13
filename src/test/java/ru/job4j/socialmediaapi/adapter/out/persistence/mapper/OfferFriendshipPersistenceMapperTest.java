@@ -6,6 +6,7 @@ import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.OfferFriendshipEntity;
 import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.CreateOfferFriendshipRequest;
 import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.CreateOfferFriendshipResponse;
+import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.FindOfferFriendshipResponse;
 import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
 
 import java.time.Instant;
@@ -65,6 +66,34 @@ class OfferFriendshipPersistenceMapperTest {
         );
 
         assertThatThrownBy(() -> mapper.toResponse(entity))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("toFindResponse: строковый статус из Entity преобразуется в enum")
+    void whenToFindResponseThenStatusParsedToEnum() {
+        var entity = new OfferFriendshipEntity(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                "ACCEPTED", CREATED_AT, UPDATED_AT
+        );
+
+        var response = mapper.toFindResponse(entity);
+
+        assertThat(response).isEqualTo(new FindOfferFriendshipResponse(
+                entity.id(), entity.fromUserId(), entity.toUserId(),
+                OfferFriendshipStatus.ACCEPTED, CREATED_AT, UPDATED_AT
+        ));
+    }
+
+    @Test
+    @DisplayName("toFindResponse: неизвестный статус из БД приводит к IllegalArgumentException")
+    void whenToFindResponseWithUnknownStatusThenThrowException() {
+        var entity = new OfferFriendshipEntity(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                "UNKNOWN", CREATED_AT, UPDATED_AT
+        );
+
+        assertThatThrownBy(() -> mapper.toFindResponse(entity))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

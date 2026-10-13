@@ -5,6 +5,7 @@ import org.mapstruct.ReportingPolicy;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.OfferFriendshipEntity;
 import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.CreateOfferFriendshipRequest;
 import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.CreateOfferFriendshipResponse;
+import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.FindOfferFriendshipResponse;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
@@ -18,4 +19,6 @@ public interface OfferFriendshipPersistenceMapper {
     OfferFriendshipEntity toEntity(CreateOfferFriendshipRequest request);
 
     CreateOfferFriendshipResponse toResponse(OfferFriendshipEntity entity);
+
+    FindOfferFriendshipResponse toFindResponse(OfferFriendshipEntity entity);
 }

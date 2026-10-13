@@ -100,7 +100,7 @@ class FriendshipRepositoryJdbcTest {
 
     private UUID acceptedOffer(UUID fromUserId, UUID toUserId) {
         var id = UUID.randomUUID();
-        offerFriendshipRepository.createOfferFriendship(
+        offerFriendshipRepository.createOfferFriendshipIfAbsent(
                 new OfferFriendshipRepository.CreateOfferFriendshipRequest(
                         id, fromUserId, toUserId,
                         OfferFriendshipStatus.ACCEPTED, NOW, NOW

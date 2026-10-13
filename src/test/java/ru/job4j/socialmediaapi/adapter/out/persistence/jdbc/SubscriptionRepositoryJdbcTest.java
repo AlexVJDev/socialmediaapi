@@ -79,6 +79,26 @@ class SubscriptionRepositoryJdbcTest {
                 .hasMessageContaining("followed_id");
     }
 
+    @Test
+    @DisplayName("existsSubscription: существующая подписка follower -> followed возвращает true")
+    void whenSubscriptionExistsThenExistsReturnsTrue() {
+        var followerId = UUID.randomUUID();
+        var followedId = UUID.randomUUID();
+        repository.createSubscription(request(UUID.randomUUID(), followerId, followedId));
+
+        assertThat(repository.existsSubscription(followerId, followedId)).isTrue();
+    }
+
+    @Test
+    @DisplayName("existsSubscription: без подписки, в том числе при наличии встречной, возвращает false")
+    void whenOnlyOppositeSubscriptionExistsThenExistsReturnsFalse() {
+        var followerId = UUID.randomUUID();
+        var followedId = UUID.randomUUID();
+        repository.createSubscription(request(UUID.randomUUID(), followedId, followerId));
+
+        assertThat(repository.existsSubscription(followerId, followedId)).isFalse();
+    }
+
     private static SubscriptionRepository.CreateSubscriptionRequest request(
             UUID id,
             UUID followerId,

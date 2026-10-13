@@ -53,7 +53,7 @@ dump it with `pg_dump` from the old version first and restore it afterwards.
 ## Why tests run on PostgreSQL, not H2
 
 Tests start a real PostgreSQL in Docker via Testcontainers
-(`TestcontainersConfiguration`, `OfferFriendshipRepositoryJdbcTest`) instead of
+(`TestcontainersConfiguration`, `FriendshipOfferRepositoryJdbcTest`) instead of
 using an in-memory H2 database. The goal of the tests is to check the code
 against the same database it runs on in production, and H2 would only imitate
 it:
@@ -64,7 +64,7 @@ it:
   PostgreSQL-specific syntax, and the tests would no longer verify the real
   schema.
 - **PostgreSQL-specific SQL.** The repositories use plain JDBC with native SQL,
-  for example `INSERT ... RETURNING` in `OfferFriendshipRepositoryJdbc`. H2
+  for example `INSERT ... RETURNING` in `FriendshipOfferRepositoryJdbc`. H2
   does not support `RETURNING` even in `MODE=PostgreSQL`, so such a query
   would fail in tests or would have to be rewritten only for them.
 - **Types and constraints.** The schema relies on `UUID`, `TIMESTAMPTZ`,
@@ -110,7 +110,7 @@ In short: `@SpringBootTest` starts the application, `@Testcontainers` and
 
 The project uses two ways to wire the container:
 
-1. **Container managed by JUnit** — `OfferFriendshipRepositoryJdbcTest`:
+1. **Container managed by JUnit** — `FriendshipOfferRepositoryJdbcTest`:
    ```java
    @Testcontainers
    @SpringBootTest
@@ -177,7 +177,7 @@ sh ./mvnw test
 Last verified on 2026-10-08 (macOS, Docker 29.7.2, Maven 3.9.16 via the
 wrapper, JDK 25, PostgreSQL `postgres:17` started by Testcontainers).
 
-`OfferFriendshipRepositoryJdbcTest` was run twice in a row; each run is a
+`FriendshipOfferRepositoryJdbcTest` was run twice in a row; each run is a
 separate Maven invocation with its own fresh PostgreSQL container:
 ```shell
 sh ./mvnw test -Dtest=OfferFriendshipRepositoryJdbcTest

@@ -25,6 +25,14 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             RETURNING id, follower_id, followed_id, created_at
             """;
 
+    private static final String EXISTS = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM subscriptions
+                WHERE follower_id = ? AND followed_id = ?
+            )
+            """;
+
     private static final RowMapper<SubscriptionEntity> ENTITY_MAPPER =
             (resultSet, rowNum) -> new SubscriptionEntity(
                     resultSet.getObject("id", UUID.class),
@@ -63,6 +71,13 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
         } catch (DataIntegrityViolationException e) {
             throw translate(request, e);
         }
+    }
+
+    @Override
+    public boolean existsSubscription(UUID followerId, UUID followedId) {
+        return Boolean.TRUE.equals(
+                jdbcTemplate.queryForObject(EXISTS, Boolean.class, followerId, followedId)
+        );
     }
 
     private static RuntimeException translate(
