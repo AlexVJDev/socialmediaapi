@@ -17,8 +17,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("Маппер дружбы: преобразование между Request/Response порта и FriendshipEntity")
 class FriendshipPersistenceMapperTest {
 
+    /** Fixed creation time of the friendship. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-06T10:15:00Z");
 
+    /** Mapper under test, created without Spring. */
     private final FriendshipPersistenceMapper mapper =
             Mappers.getMapper(FriendshipPersistenceMapper.class);
 

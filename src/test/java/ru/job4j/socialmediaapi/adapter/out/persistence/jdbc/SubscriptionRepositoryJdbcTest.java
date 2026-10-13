@@ -22,8 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("JDBC-репозиторий подписок: сохранение в таблицу subscriptions")
 class SubscriptionRepositoryJdbcTest {
 
+    /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
 
+    /** Repository under test. */
     @Autowired
     private SubscriptionRepository repository;
 

@@ -18,10 +18,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("Маппер заявок в друзья: преобразование между Request/Response порта и OfferFriendshipEntity")
 class OfferFriendshipPersistenceMapperTest {
 
+    /** Fixed creation time of the offer. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-06T10:15:00Z");
 
+    /** Fixed update time of the offer. */
     private static final Instant UPDATED_AT = Instant.parse("2026-10-07T11:20:00Z");
 
+    /** Mapper under test, created without Spring. */
     private final OfferFriendshipPersistenceMapper mapper =
             Mappers.getMapper(OfferFriendshipPersistenceMapper.class);
 

@@ -17,6 +17,7 @@ import java.util.UUID;
 @Repository
 public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
 
+    /** Inserts a subscription and returns the stored row. */
     private static final String CREATE = """
             INSERT INTO subscriptions (
                 id, follower_id, followed_id, created_at
@@ -25,6 +26,7 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             RETURNING id, follower_id, followed_id, created_at
             """;
 
+    /** Checks whether the follower is already subscribed to the followed user. */
     private static final String EXISTS = """
             SELECT EXISTS (
                 SELECT 1
@@ -33,6 +35,7 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             )
             """;
 
+    /** Reads a table row into an entity. */
     private static final RowMapper<SubscriptionEntity> ENTITY_MAPPER =
             (resultSet, rowNum) -> new SubscriptionEntity(
                     resultSet.getObject("id", UUID.class),
@@ -41,8 +44,10 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
                     resultSet.getTimestamp("created_at").toInstant()
             );
 
+    /** Executes the native SQL queries. */
     private final JdbcTemplate jdbcTemplate;
 
+    /** Maps port requests/responses to entities and back. */
     private final SubscriptionPersistenceMapper mapper;
 
     public SubscriptionRepositoryJdbc(

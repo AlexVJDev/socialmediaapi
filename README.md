@@ -172,6 +172,25 @@ instead:
 sh ./mvnw test
 ```
 
+### Code style (Checkstyle)
+
+The rules are in `checkstyle.xml`; only hand-written code in `src/main/java`
+and `src/test/java` is checked. Any violation fails the build, so
+`./mvnw verify` (and CI) runs the check after the tests.
+
+Check the code style without running the tests:
+```shell
+./mvnw checkstyle:check
+```
+Each violation is printed with its file, line and rule, and the build fails;
+`You have 0 Checkstyle violations.` and `BUILD SUCCESS` mean the code is clean.
+
+Build an HTML report without failing the build, then open
+`target/reports/checkstyle.html` in a browser:
+```shell
+./mvnw checkstyle:checkstyle
+```
+
 ### Test results
 
 Last verified on 2026-10-08 (macOS, Docker 29.7.2, Maven 3.9.16 via the

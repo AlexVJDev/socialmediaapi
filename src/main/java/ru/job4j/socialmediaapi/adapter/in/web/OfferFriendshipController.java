@@ -17,8 +17,10 @@ import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase.
 @RequestMapping("/api/offer-friendships")
 public class OfferFriendshipController {
 
+    /** Use case that creates friendship offers. */
     private final CreateOfferFriendshipUseCase createOfferFriendship;
 
+    /** Maps web DTOs to use case commands and results back. */
     private final OfferFriendshipWebMapper mapper;
 
     public OfferFriendshipController(
@@ -32,6 +34,9 @@ public class OfferFriendshipController {
     /**
      * {@code 201} with the new offer, or {@code 204} without a body
      * if the offer already waits for a decision.
+     *
+     * @param request sender and recipient of the offer
+     * @return the created offer, or an empty response for a repeated offer
      */
     @PostMapping("/create")
     public ResponseEntity<CreateOfferFriendshipWebResponse> create(

@@ -16,6 +16,7 @@ import java.util.UUID;
 @Repository
 public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository {
 
+    /** Inserts an offer unless one already exists for the pair; returns nothing on conflict. */
     private static final String CREATE_IF_ABSENT = """
             INSERT INTO offer_friendships (
                 id, from_user_id, to_user_id,
@@ -27,6 +28,7 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
                       status, created_at, updated_at
             """;
 
+    /** Selects the offer for the pair and locks it until the end of the transaction. */
     private static final String FIND_BY_USERS = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
@@ -35,6 +37,7 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
             FOR UPDATE
             """;
 
+    /** Reads a table row into an entity. */
     private static final RowMapper<OfferFriendshipEntity> ENTITY_MAPPER =
             (resultSet, rowNum) -> new OfferFriendshipEntity(
                     resultSet.getObject("id", UUID.class),
@@ -45,8 +48,10 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
                     resultSet.getTimestamp("updated_at").toInstant()
             );
 
+    /** Executes the native SQL queries. */
     private final JdbcTemplate jdbcTemplate;
 
+    /** Maps port requests/responses to entities and back. */
     private final OfferFriendshipPersistenceMapper mapper;
 
     public FriendshipOfferRepositoryJdbc(
@@ -93,11 +98,8 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
             CreateOfferFriendshipRequest request,
             DataIntegrityViolationException exception
     ) {
-        return switch (PostgresErrors.constraint(exception)) {
-            case "chk_offer_friendships_different_users" -> new OfferFriendshipToSelfException(
-                    request.fromUserId(), exception
-            );
-            default -> exception;
-        };
+        return "chk_offer_friendships_different_users".equals(PostgresErrors.constraint(exception))
+                ? new OfferFriendshipToSelfException(request.fromUserId(), exception)
+                : exception;
     }
 }

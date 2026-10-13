@@ -31,12 +31,16 @@ import java.util.UUID;
 @Service
 public class OfferFriendshipService implements CreateOfferFriendshipUseCase {
 
+    /** Stores friendship offers. */
     private final OfferFriendshipRepository offerFriendshipRepository;
 
+    /** Stores the sender's subscription to the recipient.*/
     private final SubscriptionRepository subscriptionRepository;
 
+    /** Maps commands and repository responses to use case results. */
     private final OfferFriendshipApplicationMapper mapper;
 
+    /** Source of the creation time of offers and subscriptions. */
     private final Clock clock;
 
     public OfferFriendshipService(

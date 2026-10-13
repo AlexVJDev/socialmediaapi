@@ -12,6 +12,7 @@ import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase.
 import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase.CreateOfferFriendshipResult;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -26,11 +27,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Сервис заявок в друзья: одновременное создание одной и той же заявки")
 class OfferFriendshipServiceConcurrencyTest {
 
+    /** Number of concurrent requests for the same offer. */
     private static final int THREADS = 2;
 
+    /** Use case under test, with real transactions. */
     @Autowired
     private CreateOfferFriendshipUseCase useCase;
 
+    /** Direct access to the database to prepare and check data. */
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -39,6 +43,8 @@ class OfferFriendshipServiceConcurrencyTest {
     void whenCreateSameOfferConcurrentlyThenOneCreatedAndOneAlreadyPending() throws Exception {
         var command = new CreateOfferFriendshipCommand(UUID.randomUUID(), UUID.randomUUID());
         var start = new CountDownLatch(1);
+        // ExecutorService is AutoCloseable only since Java 19, the project targets Java 17
+        @SuppressWarnings("resource")
         var executor = Executors.newFixedThreadPool(THREADS);
         try {
             var futures = new ArrayList<Future<CreateOfferFriendshipResult>>();
@@ -77,6 +83,6 @@ class OfferFriendshipServiceConcurrencyTest {
     }
 
     private int count(String sql, Object... args) {
-        return jdbcTemplate.queryForObject(sql, Integer.class, args);
+        return Objects.requireNonNull(jdbcTemplate.queryForObject(sql, Integer.class, args));
     }
 }

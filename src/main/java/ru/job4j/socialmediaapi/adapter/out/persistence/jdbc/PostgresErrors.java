@@ -17,6 +17,7 @@ final class PostgresErrors {
     }
 
     /**
+     * @param exception exception thrown by Spring JDBC
      * @return name of the violated constraint, or an empty string
      *         when PostgreSQL did not report one (e.g. NOT NULL)
      */
@@ -27,6 +28,7 @@ final class PostgresErrors {
     }
 
     /**
+     * @param exception exception thrown by Spring JDBC
      * @return column of the violated NOT NULL constraint, if that is the cause
      */
     static Optional<String> notNullColumn(DataIntegrityViolationException exception) {

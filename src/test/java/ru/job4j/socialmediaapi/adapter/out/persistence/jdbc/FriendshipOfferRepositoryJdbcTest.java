@@ -29,14 +29,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("JDBC-репозиторий заявок в друзья: сохранение в таблицу offer_friendships")
 class FriendshipOfferRepositoryJdbcTest {
 
+    /** Throwaway PostgreSQL, started and stopped by the {@code @Testcontainers} extension. */
+    @SuppressWarnings("unused")
     @Container
     @ServiceConnection
     private static final PostgreSQLContainer POSTGRES =
             new PostgreSQLContainer("postgres:17");
 
+    /** Repository under test. */
     @Autowired
     private OfferFriendshipRepository repository;
 
+    /** Direct access to the database to prepare and check data. */
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -65,7 +69,7 @@ class FriendshipOfferRepositoryJdbcTest {
     @DisplayName("createOfferFriendshipIfAbsent: новая заявка сохраняется и возвращается")
     void whenCreateIfAbsentAndOfferNotExistsThenReturnStoredData() {
         var request = request(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), OfferFriendshipStatus.PENDING
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()
         );
 
         var result = repository.createOfferFriendshipIfAbsent(request);
@@ -77,17 +81,16 @@ class FriendshipOfferRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("createOfferFriendshipIfAbsent: при существующей заявке from -> to пустой результат, данные не меняются")
+    @DisplayName("createOfferFriendshipIfAbsent: при существующей заявке from -> to "
+            + "пустой результат, данные не меняются")
     void whenCreateIfAbsentAndOfferExistsThenEmptyAndStoredOfferUnchanged() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
         var existingId = UUID.randomUUID();
-        repository.createOfferFriendshipIfAbsent(request(
-                existingId, fromUserId, toUserId, OfferFriendshipStatus.PENDING
-        ));
+        repository.createOfferFriendshipIfAbsent(request(existingId, fromUserId, toUserId));
 
         var result = repository.createOfferFriendshipIfAbsent(request(
-                UUID.randomUUID(), fromUserId, toUserId, OfferFriendshipStatus.PENDING
+                UUID.randomUUID(), fromUserId, toUserId
         ));
 
         assertThat(result).isEmpty();
@@ -102,7 +105,7 @@ class FriendshipOfferRepositoryJdbcTest {
         var userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> repository.createOfferFriendshipIfAbsent(request(
-                UUID.randomUUID(), userId, userId, OfferFriendshipStatus.PENDING
+                UUID.randomUUID(), userId, userId
         ))).isInstanceOf(OfferFriendshipToSelfException.class);
     }
 
@@ -120,9 +123,7 @@ class FriendshipOfferRepositoryJdbcTest {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        var created = repository.createOfferFriendshipIfAbsent(request(
-                id, fromUserId, toUserId, OfferFriendshipStatus.PENDING
-        )).orElseThrow();
+        var created = repository.createOfferFriendshipIfAbsent(request(id, fromUserId, toUserId)).orElseThrow();
 
         var result = repository.findByUsers(fromUserId, toUserId);
 
@@ -142,7 +143,7 @@ class FriendshipOfferRepositoryJdbcTest {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
         repository.createOfferFriendshipIfAbsent(request(
-                UUID.randomUUID(), toUserId, fromUserId, OfferFriendshipStatus.PENDING
+                UUID.randomUUID(), toUserId, fromUserId
         ));
 
         var result = repository.findByUsers(fromUserId, toUserId);
@@ -157,9 +158,7 @@ class FriendshipOfferRepositoryJdbcTest {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        repository.createOfferFriendshipIfAbsent(request(
-                id, fromUserId, toUserId, OfferFriendshipStatus.PENDING
-        ));
+        repository.createOfferFriendshipIfAbsent(request(id, fromUserId, toUserId));
         jdbcTemplate.update(
                 "UPDATE offer_friendships SET status = ? WHERE id = ?",
                 status.name(), id
@@ -175,12 +174,11 @@ class FriendshipOfferRepositoryJdbcTest {
     private OfferFriendshipRepository.CreateOfferFriendshipRequest request(
             UUID id,
             UUID fromUserId,
-            UUID toUserId,
-            OfferFriendshipStatus status
+            UUID toUserId
     ) {
         var now = Instant.parse("2026-10-06T10:15:00Z");
         return new OfferFriendshipRepository.CreateOfferFriendshipRequest(
-                id, fromUserId, toUserId, status, now, now
+                id, fromUserId, toUserId, OfferFriendshipStatus.PENDING, now, now
         );
     }
 }

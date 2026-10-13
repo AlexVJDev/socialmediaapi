@@ -17,6 +17,8 @@ public class GlobalExceptionHandler {
      * An unreadable or invalid body is so far possible only for /api/offer-friendships/*,
      * and accept/reject use the same INVALID_FRIENDSHIP_OFFER_REQUEST code as create.
      * Map these exceptions per endpoint once other request bodies appear.
+     *
+     * @return {@code 400} with the INVALID_FRIENDSHIP_OFFER_REQUEST error body
      */
     @ExceptionHandler({
             MethodArgumentNotValidException.class,

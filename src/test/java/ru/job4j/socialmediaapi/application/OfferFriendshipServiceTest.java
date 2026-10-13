@@ -40,18 +40,24 @@ import static org.mockito.Mockito.when;
 @DisplayName("Сервис заявок в друзья: создание заявки по схеме friendship_transitions.puml")
 class OfferFriendshipServiceTest {
 
+    /** Fixed time returned by the test clock. */
     private static final Instant NOW = Instant.parse("2026-10-12T10:15:00Z");
 
+    /** Sender of the offer. */
     private static final UUID FROM_USER_ID = UUID.randomUUID();
 
+    /** Recipient of the offer. */
     private static final UUID TO_USER_ID = UUID.randomUUID();
 
+    /** Mocked offer repository. */
     @Mock
     private OfferFriendshipRepository offerFriendshipRepository;
 
+    /** Mocked subscription repository. */
     @Mock
     private SubscriptionRepository subscriptionRepository;
 
+    /** Service under test. */
     private OfferFriendshipService service;
 
     @BeforeEach

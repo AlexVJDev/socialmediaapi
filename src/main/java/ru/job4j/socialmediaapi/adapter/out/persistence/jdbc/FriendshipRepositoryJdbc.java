@@ -17,6 +17,7 @@ import java.util.UUID;
 @Repository
 public class FriendshipRepositoryJdbc implements FriendshipRepository {
 
+    /** Inserts a friendship and returns the stored row. */
     private static final String CREATE = """
             INSERT INTO friendships (
                 id, first_user_id, second_user_id,
@@ -27,6 +28,7 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
                       offer_friendship_id, status, created_at
             """;
 
+    /** Reads a table row into an entity. */
     private static final RowMapper<FriendshipEntity> ENTITY_MAPPER =
             (resultSet, rowNum) -> new FriendshipEntity(
                     resultSet.getObject("id", UUID.class),
@@ -37,8 +39,10 @@ public class FriendshipRepositoryJdbc implements FriendshipRepository {
                     resultSet.getTimestamp("created_at").toInstant()
             );
 
+    /** Executes the native SQL queries. */
     private final JdbcTemplate jdbcTemplate;
 
+    /** Maps port requests/responses to entities and back. */
     private final FriendshipPersistenceMapper mapper;
 
     public FriendshipRepositoryJdbc(

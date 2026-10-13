@@ -13,6 +13,8 @@ public interface FriendshipRepository {
     /**
      * Saves the friendship of two users stored in canonical order.
      *
+     * @param request friendship to save
+     * @return the saved friendship
      * @throws FriendshipAlreadyExistsException    friendship of these users already exists
      * @throws FriendshipInvalidUserOrderException {@code firstUserId} is not less than {@code secondUserId}
      * @throws FriendshipRequestNotFoundException  the referenced offer friendship does not exist

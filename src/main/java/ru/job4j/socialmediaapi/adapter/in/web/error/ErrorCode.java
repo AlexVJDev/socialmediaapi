@@ -7,21 +7,26 @@ import org.springframework.http.HttpStatus;
  */
 public enum ErrorCode {
 
+    /** Invalid request body, missing required fields or an offer to oneself. */
     INVALID_FRIENDSHIP_OFFER_REQUEST(
             HttpStatus.BAD_REQUEST,
             "Некорректное тело запроса, отсутствуют обязательные поля или пользователь предлагает дружбу самому себе"
     ),
+    /** The friendship offer has already been accepted. */
     FRIENDSHIP_OFFER_ALREADY_ACCEPTED(
             HttpStatus.CONFLICT,
             "Предложение дружбы уже принято"
     ),
+    /** The friendship offer has already been rejected. */
     FRIENDSHIP_OFFER_ALREADY_REJECTED(
             HttpStatus.CONFLICT,
             "Предложение дружбы уже отклонено"
     );
 
+    /** HTTP status of the error response. */
     private final HttpStatus status;
 
+    /** Human-readable {@code message} of the error response body. */
     private final String message;
 
     ErrorCode(HttpStatus status, String message) {

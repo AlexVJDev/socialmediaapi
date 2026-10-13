@@ -25,11 +25,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("JDBC-репозиторий дружбы: сохранение в таблицу friendships")
 class FriendshipRepositoryJdbcTest {
 
+    /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
 
+    /** Repository under test. */
     @Autowired
     private FriendshipRepository repository;
 
+    /** Creates the offers that friendships refer to. */
     @Autowired
     private OfferFriendshipRepository offerFriendshipRepository;
 
@@ -89,6 +92,8 @@ class FriendshipRepositoryJdbcTest {
      * Two random user ids ordered as PostgreSQL compares UUIDs (unsigned,
      * byte by byte), which matches the order of their string form;
      * {@link UUID#compareTo} compares signed values and may disagree.
+     *
+     * @return two user ids, the first less than the second
      */
     private static UUID[] orderedPair() {
         var first = UUID.randomUUID();

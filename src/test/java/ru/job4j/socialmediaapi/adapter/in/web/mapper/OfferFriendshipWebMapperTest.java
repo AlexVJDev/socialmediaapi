@@ -17,8 +17,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Web-маппер заявок в друзья: преобразование между web-DTO и входным портом")
 class OfferFriendshipWebMapperTest {
 
+    /** Fixed creation time of the offer. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-12T10:15:00Z");
 
+    /** Mapper under test, created without Spring. */
     private final OfferFriendshipWebMapper mapper =
             Mappers.getMapper(OfferFriendshipWebMapper.class);
 

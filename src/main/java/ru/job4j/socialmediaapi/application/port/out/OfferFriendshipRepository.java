@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface OfferFriendshipRepository {
 
     /**
+     * @param request offer to save
      * @return the saved offer, or empty if an offer in the same direction already exists
      * @throws OfferFriendshipToSelfException the user offers friendship to themselves
      */
@@ -18,6 +19,8 @@ public interface OfferFriendshipRepository {
     );
 
     /**
+     * @param fromUserId sender of the offer
+     * @param toUserId   recipient of the offer
      * @return the offer from {@code fromUserId} to {@code toUserId}, or empty if there is none
      */
     Optional<FindOfferFriendshipResponse> findByUsers(UUID fromUserId, UUID toUserId);

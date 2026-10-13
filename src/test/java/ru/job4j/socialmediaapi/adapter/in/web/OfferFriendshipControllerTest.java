@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,11 +29,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("POST /api/offer-friendships/create: ответы и ошибки по схеме friendship_transitions.puml")
 class OfferFriendshipControllerTest {
 
+    /** URL of the create offer endpoint. */
     private static final String CREATE = "/api/offer-friendships/create";
 
+    /** MockMvc to call the API without a running server. */
     @Autowired
     private MockMvc mockMvc;
 
+    /** Direct access to the database to prepare and check data. */
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -176,6 +180,6 @@ class OfferFriendshipControllerTest {
     }
 
     private int count(String sql, Object... args) {
-        return jdbcTemplate.queryForObject(sql, Integer.class, args);
+        return Objects.requireNonNull(jdbcTemplate.queryForObject(sql, Integer.class, args));
     }
 }

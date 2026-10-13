@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Приложение: запуск контекста и проверка служебного эндпоинта")
 class SocialMediaApiApplicationTests {
+    /** MockMvc to call the API without a running server. */
     @Autowired
     private MockMvc mockMvc;
 
