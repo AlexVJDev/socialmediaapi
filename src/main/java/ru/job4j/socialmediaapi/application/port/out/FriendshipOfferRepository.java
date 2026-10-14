@@ -1,21 +1,21 @@
 package ru.job4j.socialmediaapi.application.port.out;
 
-import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipToSelfException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface OfferFriendshipRepository {
+public interface FriendshipOfferRepository {
 
     /**
      * @param request offer to save
      * @return the saved offer, or empty if an offer in the same direction already exists
-     * @throws OfferFriendshipToSelfException the user offers friendship to themselves
+     * @throws FriendshipOfferToSelfException the user offers friendship to themselves
      */
-    Optional<CreateOfferFriendshipResponse> createOfferFriendshipIfAbsent(
-            CreateOfferFriendshipRequest request
+    Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(
+            CreateFriendshipOfferRequest request
     );
 
     /**
@@ -23,33 +23,33 @@ public interface OfferFriendshipRepository {
      * @param toUserId   recipient of the offer
      * @return the offer from {@code fromUserId} to {@code toUserId}, or empty if there is none
      */
-    Optional<FindOfferFriendshipResponse> findByUsers(UUID fromUserId, UUID toUserId);
+    Optional<FindFriendshipOfferResponse> findByUsers(UUID fromUserId, UUID toUserId);
 
-    record CreateOfferFriendshipRequest(
+    record CreateFriendshipOfferRequest(
             UUID id,
             UUID fromUserId,
             UUID toUserId,
-            OfferFriendshipStatus status,
+            FriendshipOfferStatus status,
             Instant createdAt,
             Instant updatedAt
     ) {
     }
 
-    record CreateOfferFriendshipResponse(
+    record CreateFriendshipOfferResponse(
             UUID id,
             UUID fromUserId,
             UUID toUserId,
-            OfferFriendshipStatus status,
+            FriendshipOfferStatus status,
             Instant createdAt,
             Instant updatedAt
     ) {
     }
 
-    record FindOfferFriendshipResponse(
+    record FindFriendshipOfferResponse(
             UUID id,
             UUID fromUserId,
             UUID toUserId,
-            OfferFriendshipStatus status,
+            FriendshipOfferStatus status,
             Instant createdAt,
             Instant updatedAt
     ) {

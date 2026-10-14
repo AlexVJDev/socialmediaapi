@@ -33,16 +33,16 @@ docker compose --profile tools run --rm openapi-validator   # validate the OpenA
 ## Architecture
 
 - **Packages** (hexagonal / ports and adapters, under `ru.job4j.socialmediaapi`); dependencies point inwards — `domain` depends on nothing, `application` only on `domain`, adapters on both:
-  - `domain.<aggregate>` — domain model per aggregate, framework-free (e.g. `domain.offerfriendship.OfferFriendshipStatus`).
-  - `application.port.out` — output ports, interfaces the application needs from infrastructure (e.g. `OfferFriendshipRepository`). Use cases / services and `application.port.in` go into `application` as well.
+  - `domain.<aggregate>` — domain model per aggregate, framework-free (e.g. `domain.friendshipoffer.FriendshipOfferStatus`).
+  - `application.port.out` — output ports, interfaces the application needs from infrastructure (e.g. `FriendshipOfferRepository`). Use cases / services and `application.port.in` go into `application` as well.
   - `adapter.in.web` — REST controllers (driving adapters).
   - `adapter.out.persistence` — driven persistence adapter, split into:
-    - `entity` — table-mirroring `*Entity` records (`OfferFriendshipEntity`, `FriendshipEntity`, `SubscriptionEntity`). They are `public` only so that `jdbc` can use them; they must not be used outside `adapter.out.persistence` (ports and the domain use their own types).
+    - `entity` — table-mirroring `*Entity` records (`FriendshipOfferEntity`, `FriendshipsEntity`, `SubscriptionEntity`). They are `public` only so that `jdbc` can use them; they must not be used outside `adapter.out.persistence` (ports and the domain use their own types).
     - `jdbc` — `JdbcTemplate` implementations of the output ports (`*RepositoryJdbc`): Request → Entity (mapper) → SQL → Entity (`RowMapper`) → Response (mapper). Their tests live in the same package under `src/test`.
     - `mapper` — MapStruct mappers between port Request/Response and entities (`*PersistenceMapper`, methods `toEntity` / `toResponse`).
 - **Mapping** follows the «Маппинг» section below: MapStruct only (no hand-written object mapping in adapters/services; `RowMapper` for `ResultSet` is the exception), every mapper is an interface annotated `@Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)` and lives next to the adapter of its layer; non-trivial mappers get a Spring-free unit test via `Mappers.getMapper(...)`. Generated code is in `target/generated-sources/annotations`.
-- **Persistence**: plain `spring-boot-starter-jdbc` (no JPA) + Liquibase. A repository is an output port plus a `JdbcTemplate` adapter with native SQL (`OfferFriendshipRepository` / `FriendshipOfferRepositoryJdbc`, likewise `Friendship*` and `Subscription*`). Master changelog `src/main/resources/db/db.changelog-master.yaml` includes numbered Liquibase *formatted SQL* files from `db/changes/` (`--liquibase formatted sql`, `--changeset student:NNN`, explicit `--rollback`). Each table gets one file for the table and a separate one for its indexes. New changesets must be added to the master changelog in order.
-  - Tables (all UUID ids, `TIMESTAMPTZ` timestamps): `offer_friendships` (`status` in `PENDING|ACCEPTED|REJECTED`, unique `(from_user_id, to_user_id)`, self-offer forbidden by CHECK); `friendships` (one row per pair stored in canonical order `first_user_id < second_user_id`, FK to the accepted offer, `status` in `ACTIVE|DELETED`, default `ACTIVE`); `subscriptions` (unique `(follower_id, followed_id)`, self-subscription forbidden).
+- **Persistence**: plain `spring-boot-starter-jdbc` (no JPA) + Liquibase. A repository is an output port plus a `JdbcTemplate` adapter with native SQL (`FriendshipOfferRepository` / `FriendshipOfferRepositoryJdbc`, likewise `Friendship*` and `Subscription*`). Master changelog `src/main/resources/db/db.changelog-master.yaml` includes numbered Liquibase *formatted SQL* files from `db/changes/` (`--liquibase formatted sql`, `--changeset student:NNN`, explicit `--rollback`). Each table gets one file for the table and a separate one for its indexes. New changesets must be added to the master changelog in order.
+  - Tables (all UUID ids, `TIMESTAMPTZ` timestamps): `friendship_offer` (`status` in `PENDING|ACCEPTED|REJECTED`, unique `(from_user_id, to_user_id)`, self-offer forbidden by CHECK); `friendships` (one row per pair stored in canonical order `first_user_id < second_user_id`, FK to the accepted offer, `status` in `ACTIVE|DELETED`, default `ACTIVE`); `subscriptions` (unique `(follower_id, followed_id)`, self-subscription forbidden).
 - **API contract**: `docs/api/openapi.yaml` is the entry point; each path is a separate file in `docs/api/paths/*.yaml` referenced via `$ref`. Per-endpoint human docs live in `docs/api/*.md`. Endpoints: `/api/offer-friendships/{create,accept,reject,incoming,outgoing}`, `/api/friendships`, `/api/subscribes`, `/api/subscribes/followers`. Errors use `{code, message}` bodies (e.g. `USER_NOT_FOUND`, `FRIENDSHIP_OFFER_ALREADY_REJECTED`).
 - **Business process** (`docs/process/`): friendship offer state machine `PENDING → ACCEPTED | REJECTED`, with the full transition table in `FriendshipRequest.md`.
   - Create offer → `PENDING` and the sender auto-subscribes to the recipient.
@@ -67,8 +67,8 @@ docker compose --profile tools run --rm openapi-validator   # validate the OpenA
 
 | Образец | Что показывает |
 |---|---|
-| `adapter/out/persistence/mapper/OfferFriendshipPersistenceMapper` | Persistence-маппер: port Request → Entity → port Response, enum ↔ `String` |
-| `OfferFriendshipPersistenceMapperTest` (`src/test`, тот же пакет) | Юнит-тест маппера через `Mappers.getMapper(...)` |
+| `adapter/out/persistence/mapper/FriendshipOfferPersistenceMapper` | Persistence-маппер: port Request → Entity → port Response, enum ↔ `String` |
+| `FriendshipOfferPersistenceMapperTest` (`src/test`, тот же пакет) | Юнит-тест маппера через `Mappers.getMapper(...)` |
 
 Для случаев, которых в проекте ещё нет, — образцы из другого проекта в `docs/md/examples`. Их модели и пакеты (`uz.kapitalbank...`, `infrastructure/...`) не копируются, файлы — только эталон оформления:
 
@@ -96,4 +96,5 @@ docker compose --profile tools run --rm openapi-validator   # validate the OpenA
 **Проверка:**
 - `./mvnw clean compile` проходит без ошибок и предупреждений MapStruct об unmapped properties.
 - Сгенерированная реализация лежит в `target/generated-sources/annotations`. При сомнениях смотреть туда.
-- Для нетривиальных мапперов (переименования, enum ↔ `String`, `default`-методы, `expression`) пишется юнит-тест через `Mappers.getMapper(XxxMapper.class)`, без Spring-контекста, в том же пакете под `src/test` (см. `OfferFriendshipPersistenceMapperTest`). Если у маппера есть `uses` с бинами, конвертеры подставляются вручную или маппер тестируется в составе адаптера.
+- Для нетривиальных мапперов (переименования, enum ↔ `String`, `default`-методы, `expression`) пишется юнит-тест через `Mappers.getMapper(XxxMapper.class)`, без Spring-контекста, в том же пакете под `src/test` (см. `FriendshipOfferPersistenceMapperTest`). Если у маппера есть `uses` с бинами, конвертеры подставляются вручную или маппер тестируется в составе адаптера.
+

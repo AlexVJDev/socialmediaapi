@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @DisplayName("POST /api/offer-friendships/create: ответы и ошибки по схеме friendship_transitions.puml")
-class OfferFriendshipControllerTest {
+class FriendshipOfferControllerTest {
 
     /** URL of the create offer endpoint. */
     private static final String CREATE = "/api/offer-friendships/create";
@@ -126,7 +126,7 @@ class OfferFriendshipControllerTest {
         var toUserId = UUID.randomUUID();
         create(body(fromUserId, toUserId)).andExpect(status().isCreated());
         jdbcTemplate.update(
-                "UPDATE offer_friendships SET status = ? WHERE from_user_id = ? AND to_user_id = ?",
+                "UPDATE friendship_offer SET status = ? WHERE from_user_id = ? AND to_user_id = ?",
                 offerStatus, fromUserId, toUserId
         );
 
@@ -154,11 +154,11 @@ class OfferFriendshipControllerTest {
     }
 
     private int offersFrom(UUID userId) {
-        return count("SELECT count(*) FROM offer_friendships WHERE from_user_id = ?", userId);
+        return count("SELECT count(*) FROM friendship_offer WHERE from_user_id = ?", userId);
     }
 
     private int offersTo(UUID userId) {
-        return count("SELECT count(*) FROM offer_friendships WHERE to_user_id = ?", userId);
+        return count("SELECT count(*) FROM friendship_offer WHERE to_user_id = ?", userId);
     }
 
     private int subscriptionsOf(UUID followerId) {
@@ -174,7 +174,7 @@ class OfferFriendshipControllerTest {
 
     private String offerStatus(UUID fromUserId, UUID toUserId) {
         return jdbcTemplate.queryForObject(
-                "SELECT status FROM offer_friendships WHERE from_user_id = ? AND to_user_id = ?",
+                "SELECT status FROM friendship_offer WHERE from_user_id = ? AND to_user_id = ?",
                 String.class, fromUserId, toUserId
         );
     }

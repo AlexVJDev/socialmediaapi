@@ -6,13 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
-import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository;
-import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
-import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.domain.friendship.FriendshipStatus;
 import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipAlreadyExistsException;
 import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipInvalidUserOrderException;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.FriendshipRequestNotFoundException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipRequestNotFoundException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -23,18 +23,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @DisplayName("JDBC-репозиторий дружбы: сохранение в таблицу friendships")
-class FriendshipRepositoryJdbcTest {
+class FriendshipsRepositoryJdbcTest {
 
     /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
 
     /** Repository under test. */
     @Autowired
-    private FriendshipRepository repository;
+    private FriendshipsRepository repository;
 
     /** Creates the offers that friendships refer to. */
     @Autowired
-    private OfferFriendshipRepository offerFriendshipRepository;
+    private FriendshipOfferRepository friendshipOfferRepository;
 
     @Test
     @DisplayName("Создание дружбы по принятой заявке возвращает сохранённые в БД данные")
@@ -47,7 +47,7 @@ class FriendshipRepositoryJdbcTest {
                 request(id, users[0], users[1], offerId)
         );
 
-        var expected = new FriendshipRepository.CreateFriendshipResponse(
+        var expected = new FriendshipsRepository.CreateFriendshipResponse(
                 id, users[0], users[1], offerId, FriendshipStatus.ACTIVE, NOW
         );
         assertThat(result).isEqualTo(expected);
@@ -105,23 +105,23 @@ class FriendshipRepositoryJdbcTest {
 
     private UUID acceptedOffer(UUID fromUserId, UUID toUserId) {
         var id = UUID.randomUUID();
-        offerFriendshipRepository.createOfferFriendshipIfAbsent(
-                new OfferFriendshipRepository.CreateOfferFriendshipRequest(
+        friendshipOfferRepository.createFriendshipOfferIfAbsent(
+                new FriendshipOfferRepository.CreateFriendshipOfferRequest(
                         id, fromUserId, toUserId,
-                        OfferFriendshipStatus.ACCEPTED, NOW, NOW
+                        FriendshipOfferStatus.ACCEPTED, NOW, NOW
                 )
         );
         return id;
     }
 
-    private static FriendshipRepository.CreateFriendshipRequest request(
+    private static FriendshipsRepository.CreateFriendshipRequest request(
             UUID id,
             UUID firstUserId,
             UUID secondUserId,
-            UUID offerFriendshipId
+            UUID friendshipOfferId
     ) {
-        return new FriendshipRepository.CreateFriendshipRequest(
-                id, firstUserId, secondUserId, offerFriendshipId,
+        return new FriendshipsRepository.CreateFriendshipRequest(
+                id, firstUserId, secondUserId, friendshipOfferId,
                 FriendshipStatus.ACTIVE, NOW
         );
     }

@@ -3,9 +3,9 @@ package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipEntity;
-import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository.CreateFriendshipRequest;
-import ru.job4j.socialmediaapi.application.port.out.FriendshipRepository.CreateFriendshipResponse;
+import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipsEntity;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository.CreateFriendshipRequest;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository.CreateFriendshipResponse;
 import ru.job4j.socialmediaapi.domain.friendship.FriendshipStatus;
 
 import java.time.Instant;
@@ -34,16 +34,16 @@ class FriendshipPersistenceMapperTest {
 
         var entity = mapper.toEntity(request);
 
-        assertThat(entity).isEqualTo(new FriendshipEntity(
+        assertThat(entity).isEqualTo(new FriendshipsEntity(
                 request.id(), request.firstUserId(), request.secondUserId(),
-                request.offerFriendshipId(), "ACTIVE", CREATED_AT
+                request.friendshipOfferId(), "ACTIVE", CREATED_AT
         ));
     }
 
     @Test
     @DisplayName("toResponse: строковый статус из Entity преобразуется в enum")
     void whenToResponseThenStatusParsedToEnum() {
-        var entity = new FriendshipEntity(
+        var entity = new FriendshipsEntity(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 "DELETED", CREATED_AT
         );
@@ -52,14 +52,14 @@ class FriendshipPersistenceMapperTest {
 
         assertThat(response).isEqualTo(new CreateFriendshipResponse(
                 entity.id(), entity.firstUserId(), entity.secondUserId(),
-                entity.offerFriendshipId(), FriendshipStatus.DELETED, CREATED_AT
+                entity.friendshipOfferId(), FriendshipStatus.DELETED, CREATED_AT
         ));
     }
 
     @Test
     @DisplayName("toResponse: неизвестный статус из БД выбросит IllegalArgumentException")
     void whenToResponseWithUnknownStatusThenThrowException() {
-        var entity = new FriendshipEntity(
+        var entity = new FriendshipsEntity(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 "UNKNOWN", CREATED_AT
         );

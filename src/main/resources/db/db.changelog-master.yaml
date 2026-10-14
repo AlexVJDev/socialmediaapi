@@ -1,9 +1,9 @@
 databaseChangeLog:
   - include:
-      file: changes/001-create-offer-friendships.sql
+      file: changes/001-create-friendship-offer.sql
       relativeToChangelogFile: true
   - include:
-      file: changes/002-create-offer-friendships-indexes.sql
+      file: changes/002-create-friendship-offer-indexes.sql
       relativeToChangelogFile: true
   - include:
       file: changes/003-create-friendships.sql

@@ -114,7 +114,7 @@ The project uses two ways to wire the container:
    ```java
    @Testcontainers
    @SpringBootTest
-   class OfferFriendshipRepositoryJdbcTest {
+   class FriendshipOfferRepositoryJdbcTest {
 
        @Container
        @ServiceConnection
@@ -199,20 +199,20 @@ wrapper, JDK 25, PostgreSQL `postgres:17` started by Testcontainers).
 `FriendshipOfferRepositoryJdbcTest` was run twice in a row; each run is a
 separate Maven invocation with its own fresh PostgreSQL container:
 ```shell
-sh ./mvnw test -Dtest=OfferFriendshipRepositoryJdbcTest
-sh ./mvnw test -Dtest=OfferFriendshipRepositoryJdbcTest
+sh ./mvnw test -Dtest=FriendshipOfferRepositoryJdbcTest
+sh ./mvnw test -Dtest=FriendshipOfferRepositoryJdbcTest
 ```
 
 Run 1:
 ```text
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.05 s -- in ru.job4j.socialmediaapi.repository.OfferFriendshipRepositoryJdbcTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.05 s -- in ru.job4j.socialmediaapi.repository.FriendshipOfferRepositoryJdbcTest
 [INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
 Run 2:
 ```text
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 12.44 s -- in ru.job4j.socialmediaapi.repository.OfferFriendshipRepositoryJdbcTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 12.44 s -- in ru.job4j.socialmediaapi.repository.FriendshipOfferRepositoryJdbcTest
 [INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```

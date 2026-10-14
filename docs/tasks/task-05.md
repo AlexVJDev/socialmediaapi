@@ -13,14 +13,14 @@
 ## Что сделать
 
 1. Web-DTO в `adapter.in.web.dto` (records):
-   - `CreateOfferFriendshipWebRequest(@NotNull UUID fromUserId, @NotNull UUID toUserId)`;
-   - `CreateOfferFriendshipWebResponse(UUID id, UUID fromUserId, UUID toUserId, String status, Instant createdAt)` — ровно поля из контракта (без `updatedAt`).
-2. `adapter.in.web.mapper.OfferFriendshipWebMapper` (MapStruct, `@Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)`): `toCommand(WebRequest)`, `toResponse(Created)`.
-3. `OfferFriendshipController`, `@RequestMapping("/api/offer-friendships")`, метод `@PostMapping("/create")` принимает `@Valid @RequestBody`:
+   - `CreateFriendshipOfferWebRequest(@NotNull UUID fromUserId, @NotNull UUID toUserId)`;
+   - `CreateFriendshipOfferWebResponse(UUID id, UUID fromUserId, UUID toUserId, String status, Instant createdAt)` — ровно поля из контракта (без `updatedAt`).
+2. `adapter.in.web.mapper.FriendshipOfferWebMapper` (MapStruct, `@Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)`): `toCommand(WebRequest)`, `toResponse(Created)`.
+3. `FriendshipOfferController`, `@RequestMapping("/api/offer-friendships")`, метод `@PostMapping("/create")` принимает `@Valid @RequestBody`:
    - `Created` → `ResponseEntity.status(201).body(...)`;
    - `AlreadyPending` → `ResponseEntity.noContent().build()`.
    Исключения в контроллере **не ловить** — это задача обработчика из задания 06.
-4. Юнит-тест маппера `OfferFriendshipWebMapperTest` через `Mappers.getMapper(...)`.
+4. Юнит-тест маппера `FriendshipOfferWebMapperTest` через `Mappers.getMapper(...)`.
 
 ## Критерии приёмки
 

@@ -3,12 +3,12 @@ package ru.job4j.socialmediaapi.adapter.out.persistence.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-public record FriendshipEntity(
+public record FriendshipOfferEntity(
         UUID id,
-        UUID firstUserId,
-        UUID secondUserId,
-        UUID offerFriendshipId,
+        UUID fromUserId,
+        UUID toUserId,
         String status,
-        Instant createdAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

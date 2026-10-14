@@ -6,9 +6,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.job4j.socialmediaapi.adapter.in.web.dto.ErrorResponse;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipAlreadyAcceptedException;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipAlreadyRejectedException;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipToSelfException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -23,18 +23,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
             HttpMessageNotReadableException.class,
-            OfferFriendshipToSelfException.class
+            FriendshipOfferToSelfException.class
     })
     public ResponseEntity<ErrorResponse> handleInvalidRequest() {
         return response(ErrorCode.INVALID_FRIENDSHIP_OFFER_REQUEST);
     }
 
-    @ExceptionHandler(OfferFriendshipAlreadyAcceptedException.class)
+    @ExceptionHandler(FriendshipOfferAlreadyAcceptedException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyAccepted() {
         return response(ErrorCode.FRIENDSHIP_OFFER_ALREADY_ACCEPTED);
     }
 
-    @ExceptionHandler(OfferFriendshipAlreadyRejectedException.class)
+    @ExceptionHandler(FriendshipOfferAlreadyRejectedException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyRejected() {
         return response(ErrorCode.FRIENDSHIP_OFFER_ALREADY_REJECTED);
     }

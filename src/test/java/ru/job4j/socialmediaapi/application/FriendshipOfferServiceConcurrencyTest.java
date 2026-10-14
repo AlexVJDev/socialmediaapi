@@ -7,9 +7,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
-import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase;
-import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase.CreateOfferFriendshipCommand;
-import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase.CreateOfferFriendshipResult;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -25,14 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Сервис заявок в друзья: одновременное создание одной и той же заявки")
-class OfferFriendshipServiceConcurrencyTest {
+class FriendshipOfferServiceConcurrencyTest {
 
     /** Number of concurrent requests for the same offer. */
     private static final int THREADS = 2;
 
     /** Use case under test, with real transactions. */
     @Autowired
-    private CreateOfferFriendshipUseCase useCase;
+    private CreateFriendshipOfferUseCase useCase;
 
     /** Direct access to the database to prepare and check data. */
     @Autowired
@@ -41,15 +41,15 @@ class OfferFriendshipServiceConcurrencyTest {
     @RepeatedTest(10)
     @DisplayName("Два одновременных запроса: один Created, второй AlreadyPending, без дубликатов в БД")
     void whenCreateSameOfferConcurrentlyThenOneCreatedAndOneAlreadyPending() throws Exception {
-        var command = new CreateOfferFriendshipCommand(UUID.randomUUID(), UUID.randomUUID());
+        var command = new CreateFriendshipOfferCommand(UUID.randomUUID(), UUID.randomUUID());
         var start = new CountDownLatch(1);
         // ExecutorService is AutoCloseable only since Java 19, the project targets Java 17
         @SuppressWarnings("resource")
         var executor = Executors.newFixedThreadPool(THREADS);
         try {
-            var futures = new ArrayList<Future<CreateOfferFriendshipResult>>();
+            var futures = new ArrayList<Future<CreateFriendshipOfferResult>>();
             for (var i = 0; i < THREADS; i++) {
-                Callable<CreateOfferFriendshipResult> task = () -> {
+                Callable<CreateFriendshipOfferResult> task = () -> {
                     start.await();
                     return useCase.create(command);
                 };
@@ -57,23 +57,23 @@ class OfferFriendshipServiceConcurrencyTest {
             }
             start.countDown();
 
-            var results = new ArrayList<CreateOfferFriendshipResult>();
+            var results = new ArrayList<CreateFriendshipOfferResult>();
             for (var future : futures) {
                 results.add(future.get(30, TimeUnit.SECONDS));
             }
 
             assertThat(results)
-                    .filteredOn(CreateOfferFriendshipResult.Created.class::isInstance)
+                    .filteredOn(CreateFriendshipOfferResult.Created.class::isInstance)
                     .hasSize(1);
             assertThat(results)
-                    .filteredOn(CreateOfferFriendshipResult.AlreadyPending.class::isInstance)
+                    .filteredOn(CreateFriendshipOfferResult.AlreadyPending.class::isInstance)
                     .hasSize(1);
         } finally {
             executor.shutdownNow();
         }
 
         assertThat(count(
-                "SELECT count(*) FROM offer_friendships WHERE from_user_id = ? AND to_user_id = ?",
+                "SELECT count(*) FROM friendship_offer WHERE from_user_id = ? AND to_user_id = ?",
                 command.fromUserId(), command.toUserId()
         )).isOne();
         assertThat(count(

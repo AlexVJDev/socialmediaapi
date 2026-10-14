@@ -8,18 +8,18 @@
 
 ## Контекст
 
-`SELECT ... FOR UPDATE` из задания 03 не помогает, когда строки ещё нет: два параллельных запроса оба увидят «заявки нет», второй `INSERT` упадёт на `uq_offer_friendships_users`, адаптер бросит `OfferFriendshipAlreadyExistsException`, а транзакция PostgreSQL будет прервана — перечитать заявку в ней уже нельзя.
+`SELECT ... FOR UPDATE` из задания 03 не помогает, когда строки ещё нет: два параллельных запроса оба увидят «заявки нет», второй `INSERT` упадёт на `uq_friendship_offer_users`, адаптер бросит `FriendshipOfferAlreadyExistsException`, а транзакция PostgreSQL будет прервана — перечитать заявку в ней уже нельзя.
 
 ## Что сделать
 
 Выбрать и реализовать один из вариантов, решение описать в Javadoc сервиса:
 
-- **A. `INSERT ... ON CONFLICT DO NOTHING`.** Новый метод порта `Optional<CreateOfferFriendshipResponse> createOfferFriendshipIfAbsent(...)`: `INSERT ... ON CONFLICT (from_user_id, to_user_id) DO NOTHING RETURNING ...`. Пустой результат → в той же транзакции `findByUsers(...)` (с `FOR UPDATE`) и дальше та же ветка по статусу, что в задании 04. Транзакция не прерывается.
-- **B. Повтор снаружи транзакции.** Перехватывать `OfferFriendshipAlreadyExistsException` вне `@Transactional`-метода (отдельный бин или обёртка) и один раз повторять вызов: во второй попытке заявка найдётся и обработается как `PENDING`/`ACCEPTED`/`REJECTED`.
+- **A. `INSERT ... ON CONFLICT DO NOTHING`.** Новый метод порта `Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(...)`: `INSERT ... ON CONFLICT (from_user_id, to_user_id) DO NOTHING RETURNING ...`. Пустой результат → в той же транзакции `findByUsers(...)` (с `FOR UPDATE`) и дальше та же ветка по статусу, что в задании 04. Транзакция не прерывается.
+- **B. Повтор снаружи транзакции.** Перехватывать `FriendshipOfferAlreadyExistsException` вне `@Transactional`-метода (отдельный бин или обёртка) и один раз повторять вызов: во второй попытке заявка найдётся и обработается как `PENDING`/`ACCEPTED`/`REJECTED`.
 
 Тест: два потока (`ExecutorService` + `CountDownLatch`) одновременно создают заявку Алиса → Борис. Ожидается: один ответ `Created`, второй `AlreadyPending`; в БД одна заявка и одна подписка.
 
 ## Критерии приёмки
 
 - Тест на гонку стабильно зелёный (прогнать 10+ раз, например `@RepeatedTest(10)`).
-- `OfferFriendshipAlreadyExistsException` не доходит до клиента как `500`.
+- `FriendshipOfferAlreadyExistsException` не доходит до клиента как `500`.

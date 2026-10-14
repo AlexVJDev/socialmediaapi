@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
 
-public record CreateOfferFriendshipWebRequest(
+public record CreateFriendshipOfferWebRequest(
         @NotNull UUID fromUserId,
         @NotNull UUID toUserId
 ) {

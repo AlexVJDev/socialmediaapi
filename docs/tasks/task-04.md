@@ -13,40 +13,40 @@
 
 ## Что сделать
 
-1. `application.port.in.CreateOfferFriendshipUseCase`:
+1. `application.port.in.CreateFriendshipOfferUseCase`:
    ```java
-   CreateOfferFriendshipResult create(CreateOfferFriendshipCommand command);
+   CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command);
 
-   record CreateOfferFriendshipCommand(UUID fromUserId, UUID toUserId) { }
+   record CreateFriendshipOfferCommand(UUID fromUserId, UUID toUserId) { }
    ```
    Результат должен различать два успешных исхода — `201` (создана) и `204` (уже `PENDING`). Например:
    ```java
-   sealed interface CreateOfferFriendshipResult {
+   sealed interface CreateFriendshipOfferResult {
        record Created(UUID id, UUID fromUserId, UUID toUserId,
-                      OfferFriendshipStatus status, Instant createdAt) implements CreateOfferFriendshipResult { }
-       record AlreadyPending() implements CreateOfferFriendshipResult { }
+                      FriendshipOfferStatus status, Instant createdAt) implements CreateFriendshipOfferResult { }
+       record AlreadyPending() implements CreateFriendshipOfferResult { }
    }
    ```
-2. `application.OfferFriendshipService implements CreateOfferFriendshipUseCase`, метод `create` помечен `@Transactional`. Алгоритм строго по схеме:
-   1. `fromUserId.equals(toUserId)` → `throw new OfferFriendshipToSelfException(fromUserId)` (в БД не ходим);
+2. `application.FriendshipOfferService implements CreateFriendshipOfferUseCase`, метод `create` помечен `@Transactional`. Алгоритм строго по схеме:
+   1. `fromUserId.equals(toUserId)` → `throw new FriendshipOfferToSelfException(fromUserId)` (в БД не ходим);
    2. `repository.findByUsers(from, to)`:
-      - пусто → `INSERT` заявки со статусом `PENDING` (`createOfferFriendship`) и подписки Алиса → Борис, **если её ещё нет** → `Created`;
+      - пусто → `INSERT` заявки со статусом `PENDING` (`createFriendshipOffer`) и подписки Алиса → Борис, **если её ещё нет** → `Created`;
       - `PENDING` → `AlreadyPending`, ничего не меняется;
-      - `ACCEPTED` → `throw new OfferFriendshipAlreadyAcceptedException(...)`;
-      - `REJECTED` → `throw new OfferFriendshipAlreadyRejectedException(...)`.
+      - `ACCEPTED` → `throw new FriendshipOfferAlreadyAcceptedException(...)`;
+      - `REJECTED` → `throw new FriendshipOfferAlreadyRejectedException(...)`.
    Ветвление по статусу — через `switch` по enum без `default`, чтобы компилятор подсказал при появлении нового статуса.
 3. «Подписка, если её ещё нет»: в PostgreSQL ошибка внутри транзакции её прерывает, поэтому **нельзя** ловить `SubscriptionAlreadyExistsException` и продолжать. Добавить в `SubscriptionRepository` метод `boolean existsSubscription(UUID followerId, UUID followedId)` (реализация `SELECT EXISTS(...)` в `SubscriptionRepositoryJdbc` + тест) и вызывать `createSubscription` только если подписки нет.
-4. Маппинг `CreateOfferFriendshipResponse` (порт out) → `Created` (порт in) — MapStruct-маппер в `application.mapper` (`OfferFriendshipApplicationMapper`, метод `toResult`), не вручную.
-5. Юнит-тест `OfferFriendshipServiceTest` (Mockito, без Spring и БД), по тесту на ветку:
-   - `from = to` → `OfferFriendshipToSelfException`, репозитории не вызывались;
-   - заявки нет → `Created`, вызваны `createOfferFriendship` и `createSubscription`;
+4. Маппинг `CreateFriendshipOfferResponse` (порт out) → `Created` (порт in) — MapStruct-маппер в `application.mapper` (`FriendshipOfferApplicationMapper`, метод `toResult`), не вручную.
+5. Юнит-тест `FriendshipOfferServiceTest` (Mockito, без Spring и БД), по тесту на ветку:
+   - `from = to` → `FriendshipOfferToSelfException`, репозитории не вызывались;
+   - заявки нет → `Created`, вызваны `createFriendshipOffer` и `createSubscription`;
    - заявки нет, подписка уже есть → `Created`, `createSubscription` не вызван;
    - `PENDING` → `AlreadyPending`, ничего не создаётся;
-   - `ACCEPTED` → `OfferFriendshipAlreadyAcceptedException`, ничего не создаётся;
-   - `REJECTED` → `OfferFriendshipAlreadyRejectedException`, ничего не создаётся.
+   - `ACCEPTED` → `FriendshipOfferAlreadyAcceptedException`, ничего не создаётся;
+   - `REJECTED` → `FriendshipOfferAlreadyRejectedException`, ничего не создаётся.
 
 ## Критерии приёмки
 
-- `./mvnw test -Dtest=OfferFriendshipServiceTest` зелёный.
+- `./mvnw test -Dtest=FriendshipOfferServiceTest` зелёный.
 - Сервис не импортирует классы из `adapter`.
 - Проверка пользователей (`404 USER_NOT_FOUND`) в это задание не входит: таблицы пользователей в схеме БД нет.
