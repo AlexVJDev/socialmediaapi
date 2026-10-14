@@ -14,6 +14,7 @@ public interface CreateFriendshipOfferUseCase {
      * Creates a {@code PENDING} offer friendship and subscribes the sender
      * to the recipient, if the sender is not subscribed yet.
      *
+     * @param command sender and recipient of the offer
      * @return {@link CreateFriendshipOfferResult.Created} for a new offer,
      *         {@link CreateFriendshipOfferResult.AlreadyPending} if the offer already waits for a decision
      * @throws FriendshipOfferToSelfException          the user offers friendship to themselves

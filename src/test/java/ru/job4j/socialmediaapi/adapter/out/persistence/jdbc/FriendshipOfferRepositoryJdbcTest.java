@@ -12,9 +12,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
-import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipToSelfException;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 @SpringBootTest
-@DisplayName("JDBC-репозиторий заявок в друзья: сохранение в таблицу offer_friendships")
+@DisplayName("JDBC-репозиторий заявок в друзья: сохранение в таблицу friendship_offer")
 class FriendshipOfferRepositoryJdbcTest {
 
     /** Throwaway PostgreSQL, started and stopped by the {@code @Testcontainers} extension. */
@@ -38,7 +38,7 @@ class FriendshipOfferRepositoryJdbcTest {
 
     /** Repository under test. */
     @Autowired
-    private OfferFriendshipRepository repository;
+    private FriendshipOfferRepository repository;
 
     /** Direct access to the database to prepare and check data. */
     @Autowired
@@ -46,11 +46,11 @@ class FriendshipOfferRepositoryJdbcTest {
 
     @Test
     @DisplayName("Заявка с неизвестным статусом выбросит исключение из-за CHECK-ограничения на status")
-    void whenCreateOfferFriendshipWithUnknownStatusThenThrowException() {
+    void whenCreateFriendshipOfferWithUnknownStatusThenThrowException() {
         var now = Timestamp.from(Instant.parse("2026-10-06T10:15:00Z"));
 
         assertThatThrownBy(() -> jdbcTemplate.update("""
-                INSERT INTO offer_friendships (
+                INSERT INTO friendship_offer (
                     id, from_user_id, to_user_id,
                     status, created_at, updated_at
                 )
@@ -66,47 +66,47 @@ class FriendshipOfferRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("createOfferFriendshipIfAbsent: новая заявка сохраняется и возвращается")
+    @DisplayName("createFriendshipOfferIfAbsent: новая заявка сохраняется и возвращается")
     void whenCreateIfAbsentAndOfferNotExistsThenReturnStoredData() {
         var request = request(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()
         );
 
-        var result = repository.createOfferFriendshipIfAbsent(request);
+        var result = repository.createFriendshipOfferIfAbsent(request);
 
-        assertThat(result).contains(new OfferFriendshipRepository.CreateOfferFriendshipResponse(
+        assertThat(result).contains(new FriendshipOfferRepository.CreateFriendshipOfferResponse(
                 request.id(), request.fromUserId(), request.toUserId(),
                 request.status(), request.createdAt(), request.updatedAt()
         ));
     }
 
     @Test
-    @DisplayName("createOfferFriendshipIfAbsent: при существующей заявке from -> to "
+    @DisplayName("createFriendshipOfferIfAbsent: при существующей заявке from -> to "
             + "пустой результат, данные не меняются")
     void whenCreateIfAbsentAndOfferExistsThenEmptyAndStoredOfferUnchanged() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
         var existingId = UUID.randomUUID();
-        repository.createOfferFriendshipIfAbsent(request(existingId, fromUserId, toUserId));
+        repository.createFriendshipOfferIfAbsent(request(existingId, fromUserId, toUserId));
 
-        var result = repository.createOfferFriendshipIfAbsent(request(
+        var result = repository.createFriendshipOfferIfAbsent(request(
                 UUID.randomUUID(), fromUserId, toUserId
         ));
 
         assertThat(result).isEmpty();
         assertThat(repository.findByUsers(fromUserId, toUserId))
-                .map(OfferFriendshipRepository.FindOfferFriendshipResponse::id)
+                .map(FriendshipOfferRepository.FindFriendshipOfferResponse::id)
                 .contains(existingId);
     }
 
     @Test
-    @DisplayName("createOfferFriendshipIfAbsent: заявка самому себе выбросит OfferFriendshipToSelfException")
+    @DisplayName("createFriendshipOfferIfAbsent: заявка самому себе выбросит FriendshipOfferToSelfException")
     void whenCreateIfAbsentToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> repository.createOfferFriendshipIfAbsent(request(
+        assertThatThrownBy(() -> repository.createFriendshipOfferIfAbsent(request(
                 UUID.randomUUID(), userId, userId
-        ))).isInstanceOf(OfferFriendshipToSelfException.class);
+        ))).isInstanceOf(FriendshipOfferToSelfException.class);
     }
 
     @Test
@@ -123,15 +123,15 @@ class FriendshipOfferRepositoryJdbcTest {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        var created = repository.createOfferFriendshipIfAbsent(request(id, fromUserId, toUserId)).orElseThrow();
+        var created = repository.createFriendshipOfferIfAbsent(request(id, fromUserId, toUserId)).orElseThrow();
 
         var result = repository.findByUsers(fromUserId, toUserId);
 
-        assertThat(result).contains(new OfferFriendshipRepository.FindOfferFriendshipResponse(
+        assertThat(result).contains(new FriendshipOfferRepository.FindFriendshipOfferResponse(
                 id,
                 fromUserId,
                 toUserId,
-                OfferFriendshipStatus.PENDING,
+                FriendshipOfferStatus.PENDING,
                 created.createdAt(),
                 created.updatedAt()
         ));
@@ -142,7 +142,7 @@ class FriendshipOfferRepositoryJdbcTest {
     void whenFindByUsersAndOnlyOppositeOfferExistsThenEmpty() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        repository.createOfferFriendshipIfAbsent(request(
+        repository.createFriendshipOfferIfAbsent(request(
                 UUID.randomUUID(), toUserId, fromUserId
         ));
 
@@ -152,33 +152,33 @@ class FriendshipOfferRepositoryJdbcTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = OfferFriendshipStatus.class, names = {"ACCEPTED", "REJECTED"})
+    @EnumSource(value = FriendshipOfferStatus.class, names = {"ACCEPTED", "REJECTED"})
     @DisplayName("Поиск заявки возвращает статус, изменённый после создания")
-    void whenFindByUsersAfterStatusChangedThenReturnNewStatus(OfferFriendshipStatus status) {
+    void whenFindByUsersAfterStatusChangedThenReturnNewStatus(FriendshipOfferStatus status) {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        repository.createOfferFriendshipIfAbsent(request(id, fromUserId, toUserId));
+        repository.createFriendshipOfferIfAbsent(request(id, fromUserId, toUserId));
         jdbcTemplate.update(
-                "UPDATE offer_friendships SET status = ? WHERE id = ?",
+                "UPDATE friendship_offer SET status = ? WHERE id = ?",
                 status.name(), id
         );
 
         var result = repository.findByUsers(fromUserId, toUserId);
 
         assertThat(result)
-                .map(OfferFriendshipRepository.FindOfferFriendshipResponse::status)
+                .map(FriendshipOfferRepository.FindFriendshipOfferResponse::status)
                 .contains(status);
     }
 
-    private OfferFriendshipRepository.CreateOfferFriendshipRequest request(
+    private FriendshipOfferRepository.CreateFriendshipOfferRequest request(
             UUID id,
             UUID fromUserId,
             UUID toUserId
     ) {
         var now = Instant.parse("2026-10-06T10:15:00Z");
-        return new OfferFriendshipRepository.CreateOfferFriendshipRequest(
-                id, fromUserId, toUserId, OfferFriendshipStatus.PENDING, now, now
+        return new FriendshipOfferRepository.CreateFriendshipOfferRequest(
+                id, fromUserId, toUserId, FriendshipOfferStatus.PENDING, now, now
         );
     }
 }

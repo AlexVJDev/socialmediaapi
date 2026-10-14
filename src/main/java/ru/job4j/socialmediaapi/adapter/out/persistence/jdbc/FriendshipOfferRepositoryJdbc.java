@@ -4,21 +4,21 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import ru.job4j.socialmediaapi.adapter.out.persistence.entity.OfferFriendshipEntity;
-import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.OfferFriendshipPersistenceMapper;
-import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipToSelfException;
+import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipOfferEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FriendshipOfferPersistenceMapper;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
 import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository {
+public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository {
 
     /** Inserts an offer unless one already exists for the pair; returns nothing on conflict. */
     private static final String CREATE_IF_ABSENT = """
-            INSERT INTO offer_friendships (
+            INSERT INTO friendship_offer (
                 id, from_user_id, to_user_id,
                 status, created_at, updated_at
             )
@@ -32,14 +32,14 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
     private static final String FIND_BY_USERS = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
-            FROM offer_friendships
+            FROM friendship_offer
             WHERE from_user_id = ? AND to_user_id = ?
             FOR UPDATE
             """;
 
     /** Reads a table row into an entity. */
-    private static final RowMapper<OfferFriendshipEntity> ENTITY_MAPPER =
-            (resultSet, rowNum) -> new OfferFriendshipEntity(
+    private static final RowMapper<FriendshipOfferEntity> ENTITY_MAPPER =
+            (resultSet, rowNum) -> new FriendshipOfferEntity(
                     resultSet.getObject("id", UUID.class),
                     resultSet.getObject("from_user_id", UUID.class),
                     resultSet.getObject("to_user_id", UUID.class),
@@ -52,19 +52,19 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
     private final JdbcTemplate jdbcTemplate;
 
     /** Maps port requests/responses to entities and back. */
-    private final OfferFriendshipPersistenceMapper mapper;
+    private final FriendshipOfferPersistenceMapper mapper;
 
     public FriendshipOfferRepositoryJdbc(
             JdbcTemplate jdbcTemplate,
-            OfferFriendshipPersistenceMapper mapper
+            FriendshipOfferPersistenceMapper mapper
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.mapper = mapper;
     }
 
     @Override
-    public Optional<CreateOfferFriendshipResponse> createOfferFriendshipIfAbsent(
-            CreateOfferFriendshipRequest request
+    public Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(
+            CreateFriendshipOfferRequest request
     ) {
         var entity = mapper.toEntity(request);
         try {
@@ -87,7 +87,7 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
     }
 
     @Override
-    public Optional<FindOfferFriendshipResponse> findByUsers(UUID fromUserId, UUID toUserId) {
+    public Optional<FindFriendshipOfferResponse> findByUsers(UUID fromUserId, UUID toUserId) {
         return jdbcTemplate.query(FIND_BY_USERS, ENTITY_MAPPER, fromUserId, toUserId)
                 .stream()
                 .findFirst()
@@ -95,11 +95,11 @@ public class FriendshipOfferRepositoryJdbc implements OfferFriendshipRepository 
     }
 
     private static RuntimeException translate(
-            CreateOfferFriendshipRequest request,
+            CreateFriendshipOfferRequest request,
             DataIntegrityViolationException exception
     ) {
-        return "chk_offer_friendships_different_users".equals(PostgresErrors.constraint(exception))
-                ? new OfferFriendshipToSelfException(request.fromUserId(), exception)
+        return "chk_friendship_offer_different_users".equals(PostgresErrors.constraint(exception))
+                ? new FriendshipOfferToSelfException(request.fromUserId(), exception)
                 : exception;
     }
 }

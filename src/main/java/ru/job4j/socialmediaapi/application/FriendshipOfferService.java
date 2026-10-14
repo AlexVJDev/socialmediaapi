@@ -2,17 +2,17 @@ package ru.job4j.socialmediaapi.application;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.job4j.socialmediaapi.application.mapper.OfferFriendshipApplicationMapper;
-import ru.job4j.socialmediaapi.application.port.in.CreateOfferFriendshipUseCase;
-import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository;
-import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.CreateOfferFriendshipRequest;
-import ru.job4j.socialmediaapi.application.port.out.OfferFriendshipRepository.FindOfferFriendshipResponse;
+import ru.job4j.socialmediaapi.application.mapper.FriendshipOfferApplicationMapper;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.FindFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.CreateSubscriptionRequest;
-import ru.job4j.socialmediaapi.domain.offerfriendship.OfferFriendshipStatus;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipAlreadyAcceptedException;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipAlreadyRejectedException;
-import ru.job4j.socialmediaapi.domain.offerfriendship.exception.OfferFriendshipToSelfException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
 import java.time.Clock;
 import java.util.UUID;
@@ -29,27 +29,27 @@ import java.util.UUID;
  * aborted by a unique violation, so no retry outside the transaction is needed.
  */
 @Service
-public class OfferFriendshipService implements CreateOfferFriendshipUseCase {
+public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
 
     /** Stores friendship offers. */
-    private final OfferFriendshipRepository offerFriendshipRepository;
+    private final FriendshipOfferRepository friendshipOfferRepository;
 
     /** Stores the sender's subscription to the recipient.*/
     private final SubscriptionRepository subscriptionRepository;
 
     /** Maps commands and repository responses to use case results. */
-    private final OfferFriendshipApplicationMapper mapper;
+    private final FriendshipOfferApplicationMapper mapper;
 
     /** Source of the creation time of offers and subscriptions. */
     private final Clock clock;
 
-    public OfferFriendshipService(
-            OfferFriendshipRepository offerFriendshipRepository,
+    public FriendshipOfferService(
+            FriendshipOfferRepository friendshipOfferRepository,
             SubscriptionRepository subscriptionRepository,
-            OfferFriendshipApplicationMapper mapper,
+            FriendshipOfferApplicationMapper mapper,
             Clock clock
     ) {
-        this.offerFriendshipRepository = offerFriendshipRepository;
+        this.friendshipOfferRepository = friendshipOfferRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.mapper = mapper;
         this.clock = clock;
@@ -57,37 +57,37 @@ public class OfferFriendshipService implements CreateOfferFriendshipUseCase {
 
     @Override
     @Transactional
-    public CreateOfferFriendshipResult create(CreateOfferFriendshipCommand command) {
+    public CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command) {
         var fromUserId = command.fromUserId();
         var toUserId = command.toUserId();
         if (fromUserId.equals(toUserId)) {
-            throw new OfferFriendshipToSelfException(fromUserId);
+            throw new FriendshipOfferToSelfException(fromUserId);
         }
-        return offerFriendshipRepository.findByUsers(fromUserId, toUserId)
-                .map(OfferFriendshipService::repeated)
+        return friendshipOfferRepository.findByUsers(fromUserId, toUserId)
+                .map(FriendshipOfferService::repeated)
                 .orElseGet(() -> createNew(fromUserId, toUserId));
     }
 
-    private static CreateOfferFriendshipResult repeated(FindOfferFriendshipResponse offer) {
+    private static CreateFriendshipOfferResult repeated(FindFriendshipOfferResponse offer) {
         return switch (offer.status()) {
-            case PENDING -> new CreateOfferFriendshipResult.AlreadyPending();
-            case ACCEPTED -> throw new OfferFriendshipAlreadyAcceptedException(
+            case PENDING -> new CreateFriendshipOfferResult.AlreadyPending();
+            case ACCEPTED -> throw new FriendshipOfferAlreadyAcceptedException(
                     offer.id(), offer.fromUserId(), offer.toUserId()
             );
-            case REJECTED -> throw new OfferFriendshipAlreadyRejectedException(
+            case REJECTED -> throw new FriendshipOfferAlreadyRejectedException(
                     offer.id(), offer.fromUserId(), offer.toUserId()
             );
         };
     }
 
-    private CreateOfferFriendshipResult createNew(UUID fromUserId, UUID toUserId) {
+    private CreateFriendshipOfferResult createNew(UUID fromUserId, UUID toUserId) {
         var now = clock.instant();
-        var created = offerFriendshipRepository.createOfferFriendshipIfAbsent(new CreateOfferFriendshipRequest(
-                UUID.randomUUID(), fromUserId, toUserId, OfferFriendshipStatus.PENDING, now, now
+        var created = friendshipOfferRepository.createFriendshipOfferIfAbsent(new CreateFriendshipOfferRequest(
+                UUID.randomUUID(), fromUserId, toUserId, FriendshipOfferStatus.PENDING, now, now
         ));
         if (created.isEmpty()) {
-            return offerFriendshipRepository.findByUsers(fromUserId, toUserId)
-                    .map(OfferFriendshipService::repeated)
+            return friendshipOfferRepository.findByUsers(fromUserId, toUserId)
+                    .map(FriendshipOfferService::repeated)
                     .orElseThrow(() -> new IllegalStateException(
                             "Offer friendship from user %s to user %s was neither created nor found"
                                     .formatted(fromUserId, toUserId)

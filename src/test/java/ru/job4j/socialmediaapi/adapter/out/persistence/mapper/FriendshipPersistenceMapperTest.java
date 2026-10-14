@@ -14,7 +14,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("Маппер дружбы: преобразование между Request/Response порта и FriendshipEntity")
+@DisplayName("Маппер дружбы: преобразование между Request/Response порта и FriendshipsEntity")
 class FriendshipPersistenceMapperTest {
 
     /** Fixed creation time of the friendship. */
