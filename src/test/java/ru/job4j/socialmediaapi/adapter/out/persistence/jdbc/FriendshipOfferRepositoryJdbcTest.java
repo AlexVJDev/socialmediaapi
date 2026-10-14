@@ -9,12 +9,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -44,6 +45,10 @@ class FriendshipOfferRepositoryJdbcTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    /** Runs code in a transaction, like the service does. */
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     @Test
     @DisplayName("Заявка с неизвестным статусом выбросит исключение из-за CHECK-ограничения на status")
     void whenCreateFriendshipOfferWithUnknownStatusThenThrowException() {
@@ -66,47 +71,68 @@ class FriendshipOfferRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("createFriendshipOfferIfAbsent: новая заявка сохраняется и возвращается")
-    void whenCreateIfAbsentAndOfferNotExistsThenReturnStoredData() {
+    @DisplayName("createFriendshipOffer: новая заявка сохраняется и возвращается")
+    void whenCreateOfferThenReturnStoredData() {
         var request = request(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()
         );
 
-        var result = repository.createFriendshipOfferIfAbsent(request);
+        var result = repository.createFriendshipOffer(request);
 
-        assertThat(result).contains(new FriendshipOfferRepository.CreateFriendshipOfferResponse(
+        assertThat(result).isEqualTo(new FriendshipOfferRepository.CreateFriendshipOfferResponse(
                 request.id(), request.fromUserId(), request.toUserId(),
                 request.status(), request.createdAt(), request.updatedAt()
         ));
     }
 
     @Test
-    @DisplayName("createFriendshipOfferIfAbsent: при существующей заявке from -> to "
-            + "пустой результат, данные не меняются")
-    void whenCreateIfAbsentAndOfferExistsThenEmptyAndStoredOfferUnchanged() {
+    @DisplayName("createFriendshipOffer: при существующей заявке from -> to (uq_friendship_offer_users) "
+            + "выбросит FriendshipOfferAlreadyExistsException, данные не меняются")
+    void whenCreateDuplicateOfferThenThrowExceptionAndStoredOfferUnchanged() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
         var existingId = UUID.randomUUID();
-        repository.createFriendshipOfferIfAbsent(request(existingId, fromUserId, toUserId));
+        repository.createFriendshipOffer(request(existingId, fromUserId, toUserId));
 
-        var result = repository.createFriendshipOfferIfAbsent(request(
+        assertThatThrownBy(() -> repository.createFriendshipOffer(request(
                 UUID.randomUUID(), fromUserId, toUserId
-        ));
-
-        assertThat(result).isEmpty();
+        ))).isInstanceOf(FriendshipOfferAlreadyExistsException.class)
+                .hasCauseInstanceOf(DataIntegrityViolationException.class);
         assertThat(repository.findByUsers(fromUserId, toUserId))
                 .map(FriendshipOfferRepository.FindFriendshipOfferResponse::id)
                 .contains(existingId);
     }
 
     @Test
-    @DisplayName("createFriendshipOfferIfAbsent: заявка самому себе выбросит FriendshipOfferToSelfException")
-    void whenCreateIfAbsentToSelfThenThrowException() {
+    @DisplayName("createFriendshipOffer: после дубликата транзакция вызывающего не прерывается, "
+            + "заявку можно перечитать в ней же")
+    void whenDuplicateInsideTransactionThenTransactionStillUsable() {
+        var fromUserId = UUID.randomUUID();
+        var toUserId = UUID.randomUUID();
+        var existingId = UUID.randomUUID();
+        repository.createFriendshipOffer(request(existingId, fromUserId, toUserId));
+
+        var found = transactionTemplate.execute(status -> {
+            assertThatThrownBy(() -> repository.createFriendshipOffer(request(
+                    UUID.randomUUID(), fromUserId, toUserId
+            ))).isInstanceOf(FriendshipOfferAlreadyExistsException.class);
+            return repository.findByUsers(fromUserId, toUserId);
+        });
+
+        assertThat(found)
+                .map(FriendshipOfferRepository.FindFriendshipOfferResponse::id)
+                .contains(existingId);
+    }
+
+    @Test
+    @DisplayName("createFriendshipOffer: заявку самому себе отклонит CHECK в БД, адаптер её не переводит")
+    void whenCreateOfferToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> repository.createFriendshipOfferIfAbsent(request(
+        assertThatThrownBy(() -> repository.createFriendshipOffer(request(
                 UUID.randomUUID(), userId, userId
-        ))).isInstanceOf(FriendshipOfferToSelfException.class);
+        ))).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("chk_friendship_offer_different_users");
     }
 
     @Test
@@ -123,7 +149,7 @@ class FriendshipOfferRepositoryJdbcTest {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        var created = repository.createFriendshipOfferIfAbsent(request(id, fromUserId, toUserId)).orElseThrow();
+        var created = repository.createFriendshipOffer(request(id, fromUserId, toUserId));
 
         var result = repository.findByUsers(fromUserId, toUserId);
 
@@ -142,7 +168,7 @@ class FriendshipOfferRepositoryJdbcTest {
     void whenFindByUsersAndOnlyOppositeOfferExistsThenEmpty() {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        repository.createFriendshipOfferIfAbsent(request(
+        repository.createFriendshipOffer(request(
                 UUID.randomUUID(), toUserId, fromUserId
         ));
 
@@ -158,7 +184,7 @@ class FriendshipOfferRepositoryJdbcTest {
         var id = UUID.randomUUID();
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        repository.createFriendshipOfferIfAbsent(request(id, fromUserId, toUserId));
+        repository.createFriendshipOffer(request(id, fromUserId, toUserId));
         jdbcTemplate.update(
                 "UPDATE friendship_offer SET status = ? WHERE id = ?",
                 status.name(), id

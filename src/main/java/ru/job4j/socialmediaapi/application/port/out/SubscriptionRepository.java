@@ -1,10 +1,9 @@
 package ru.job4j.socialmediaapi.application.port.out;
 
 import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionToSelfException;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionUserRequiredException;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface SubscriptionRepository {
@@ -15,10 +14,20 @@ public interface SubscriptionRepository {
      * @param request subscription to save
      * @return the saved subscription
      * @throws SubscriptionAlreadyExistsException the follower is already subscribed to the user
-     * @throws SubscriptionToSelfException        the user subscribes to themselves
-     * @throws SubscriptionUserRequiredException  the follower or followed user is not set
      */
     CreateSubscriptionResponse createSubscription(
+            CreateSubscriptionRequest request
+    );
+
+    /**
+     * Saves the subscription unless the follower is already subscribed to the user;
+     * a duplicate is reported by an empty result, so a concurrent insert
+     * does not abort the caller's transaction.
+     *
+     * @param request subscription to save
+     * @return the saved subscription, or empty if it already exists
+     */
+    Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(
             CreateSubscriptionRequest request
     );
 

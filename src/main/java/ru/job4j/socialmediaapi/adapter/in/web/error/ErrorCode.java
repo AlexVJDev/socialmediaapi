@@ -21,6 +21,11 @@ public enum ErrorCode {
     FRIENDSHIP_OFFER_ALREADY_REJECTED(
             HttpStatus.CONFLICT,
             "Предложение дружбы уже отклонено"
+    ),
+    /** Unexpected server error; details are logged, not returned to the client. */
+    INTERNAL_ERROR(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Внутренняя ошибка сервера"
     );
 
     /** HTTP status of the error response. */

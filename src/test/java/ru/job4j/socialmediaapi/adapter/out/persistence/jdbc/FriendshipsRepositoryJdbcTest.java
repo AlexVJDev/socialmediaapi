@@ -5,14 +5,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.domain.friendship.FriendshipStatus;
 import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipAlreadyExistsException;
-import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipInvalidUserOrderException;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipRequestNotFoundException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -68,24 +67,26 @@ class FriendshipsRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("Создание дружбы с first_user_id > second_user_id выбросит FriendshipInvalidUserOrderException")
+    @DisplayName("Дружбу с first_user_id > second_user_id отклонит CHECK в БД, адаптер её не переводит")
     void whenCreateFriendshipInNonCanonicalOrderThenThrowException() {
         var users = orderedPair();
         var offerId = acceptedOffer(users[0], users[1]);
 
         assertThatThrownBy(() -> repository.createFriendship(
                 request(UUID.randomUUID(), users[1], users[0], offerId)
-        )).isInstanceOf(FriendshipInvalidUserOrderException.class);
+        )).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("chk_friendships_canonical_order");
     }
 
     @Test
-    @DisplayName("Создание дружбы со ссылкой на несуществующую заявку выбросит FriendshipRequestNotFoundException")
+    @DisplayName("Дружбу со ссылкой на несуществующую заявку отклонит FK в БД, адаптер её не переводит")
     void whenCreateFriendshipWithUnknownOfferThenThrowException() {
         var users = orderedPair();
 
         assertThatThrownBy(() -> repository.createFriendship(
                 request(UUID.randomUUID(), users[0], users[1], UUID.randomUUID())
-        )).isInstanceOf(FriendshipRequestNotFoundException.class);
+        )).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("fk_friendships_friendship_offer");
     }
 
     /**
@@ -105,7 +106,7 @@ class FriendshipsRepositoryJdbcTest {
 
     private UUID acceptedOffer(UUID fromUserId, UUID toUserId) {
         var id = UUID.randomUUID();
-        friendshipOfferRepository.createFriendshipOfferIfAbsent(
+        friendshipOfferRepository.createFriendshipOffer(
                 new FriendshipOfferRepository.CreateFriendshipOfferRequest(
                         id, fromUserId, toUserId,
                         FriendshipOfferStatus.ACCEPTED, NOW, NOW

@@ -5,14 +5,14 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.job4j.socialmediaapi.application.mapper.FriendshipOfferApplicationMapper;
 import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
-import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.FindFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.CreateSubscriptionRequest;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOffer;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
 import java.time.Clock;
 import java.util.UUID;
@@ -22,11 +22,16 @@ import java.util.UUID;
  * in {@code docs/process/friendship_transitions.puml}.
  *
  * <p>Concurrent creation of the same offer: {@code SELECT ... FOR UPDATE} cannot lock
- * a row that does not exist yet, so the offer is inserted with
- * {@code ON CONFLICT DO NOTHING}. The losing transaction waits for the winner,
- * gets nothing inserted, re-reads the committed offer and answers as a repeat
- * ({@code AlreadyPending} or a conflict). The PostgreSQL transaction is never
- * aborted by a unique violation, so no retry outside the transaction is needed.
+ * a row that does not exist yet, so the losing transaction's insert waits for the winner
+ * and fails with {@link FriendshipOfferAlreadyExistsException}. The repository rolls back
+ * only that insert (a savepoint), so the transaction goes on: the service re-reads
+ * the committed offer and answers as a repeat ({@code AlreadyPending} or a conflict).
+ * The sender's subscription is inserted with {@code ON CONFLICT DO NOTHING}, so
+ * a subscription created concurrently (e.g. by accepting the opposite offer)
+ * is not an error.
+ *
+ * <p>The rules of a new offer (ids are set, no offer to oneself, {@code PENDING})
+ * are checked by {@link FriendshipOffer#create} before the database is queried.
  */
 @Service
 public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
@@ -58,14 +63,10 @@ public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
     @Override
     @Transactional
     public CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command) {
-        var fromUserId = command.fromUserId();
-        var toUserId = command.toUserId();
-        if (fromUserId.equals(toUserId)) {
-            throw new FriendshipOfferToSelfException(fromUserId);
-        }
-        return friendshipOfferRepository.findByUsers(fromUserId, toUserId)
+        var offer = FriendshipOffer.create(command.fromUserId(), command.toUserId(), clock.instant());
+        return friendshipOfferRepository.findByUsers(offer.fromUserId(), offer.toUserId())
                 .map(FriendshipOfferService::repeated)
-                .orElseGet(() -> createNew(fromUserId, toUserId));
+                .orElseGet(() -> createNew(offer));
     }
 
     private static CreateFriendshipOfferResult repeated(FindFriendshipOfferResponse offer) {
@@ -80,24 +81,21 @@ public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
         };
     }
 
-    private CreateFriendshipOfferResult createNew(UUID fromUserId, UUID toUserId) {
-        var now = clock.instant();
-        var created = friendshipOfferRepository.createFriendshipOfferIfAbsent(new CreateFriendshipOfferRequest(
-                UUID.randomUUID(), fromUserId, toUserId, FriendshipOfferStatus.PENDING, now, now
-        ));
-        if (created.isEmpty()) {
-            return friendshipOfferRepository.findByUsers(fromUserId, toUserId)
+    private CreateFriendshipOfferResult createNew(FriendshipOffer offer) {
+        CreateFriendshipOfferResponse created;
+        try {
+            created = friendshipOfferRepository.createFriendshipOffer(mapper.toRequest(offer));
+        } catch (FriendshipOfferAlreadyExistsException e) {
+            return friendshipOfferRepository.findByUsers(offer.fromUserId(), offer.toUserId())
                     .map(FriendshipOfferService::repeated)
                     .orElseThrow(() -> new IllegalStateException(
-                            "Offer friendship from user %s to user %s was neither created nor found"
-                                    .formatted(fromUserId, toUserId)
+                            "Offer friendship from user %s to user %s already exists but was not found"
+                                    .formatted(offer.fromUserId(), offer.toUserId()), e
                     ));
         }
-        if (!subscriptionRepository.existsSubscription(fromUserId, toUserId)) {
-            subscriptionRepository.createSubscription(new CreateSubscriptionRequest(
-                    UUID.randomUUID(), fromUserId, toUserId, now
-            ));
-        }
-        return mapper.toResult(created.get());
+        subscriptionRepository.createSubscriptionIfAbsent(new CreateSubscriptionRequest(
+                UUID.randomUUID(), offer.fromUserId(), offer.toUserId(), offer.createdAt()
+        ));
+        return mapper.toResult(created);
     }
 }

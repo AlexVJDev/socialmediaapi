@@ -5,11 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionToSelfException;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionUserRequiredException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -28,6 +28,10 @@ class SubscriptionRepositoryJdbcTest {
     /** Repository under test. */
     @Autowired
     private SubscriptionRepository repository;
+
+    /** Direct access to the table to count rows. */
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Test
     @DisplayName("Создание подписки возвращает сохранённые в БД данные")
@@ -61,24 +65,56 @@ class SubscriptionRepositoryJdbcTest {
     }
 
     @Test
-    @DisplayName("Подписка на самого себя выбросит SubscriptionToSelfException")
+    @DisplayName("Подписку на самого себя отклонит CHECK в БД, адаптер её не переводит")
     void whenCreateSubscriptionToSelfThenThrowException() {
         var userId = UUID.randomUUID();
 
         assertThatThrownBy(() -> repository.createSubscription(
                 request(UUID.randomUUID(), userId, userId)
-        )).isInstanceOf(SubscriptionToSelfException.class);
+        )).isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("chk_subscriptions_different_users");
     }
 
     @Test
-    @DisplayName("Подписка без followed_id выбросит SubscriptionUserRequiredException")
+    @DisplayName("Подписку без followed_id отклонит NOT NULL в БД, адаптер её не переводит")
     void whenCreateSubscriptionToNullUserThenThrowException() {
         var followerId = UUID.randomUUID();
 
         assertThatThrownBy(() -> repository.createSubscription(
                 request(UUID.randomUUID(), followerId, null)
-        )).isInstanceOf(SubscriptionUserRequiredException.class)
+        )).isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("followed_id");
+    }
+
+    @Test
+    @DisplayName("createSubscriptionIfAbsent: новая подписка сохраняется и возвращается")
+    void whenCreateSubscriptionIfAbsentThenReturnStoredData() {
+        var id = UUID.randomUUID();
+        var followerId = UUID.randomUUID();
+        var followedId = UUID.randomUUID();
+
+        var result = repository.createSubscriptionIfAbsent(request(id, followerId, followedId));
+
+        assertThat(result).contains(new SubscriptionRepository.CreateSubscriptionResponse(
+                id, followerId, followedId, NOW
+        ));
+    }
+
+    @Test
+    @DisplayName("createSubscriptionIfAbsent: при существующей подписке возвращает пустой результат, "
+            + "вторая строка не создаётся")
+    void whenCreateSubscriptionIfAbsentForExistingThenEmptyAndNoDuplicate() {
+        var followerId = UUID.randomUUID();
+        var followedId = UUID.randomUUID();
+        repository.createSubscriptionIfAbsent(request(UUID.randomUUID(), followerId, followedId));
+
+        var result = repository.createSubscriptionIfAbsent(request(UUID.randomUUID(), followerId, followedId));
+
+        assertThat(result).isEmpty();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM subscriptions WHERE follower_id = ? AND followed_id = ?",
+                Integer.class, followerId, followedId
+        )).isEqualTo(1);
     }
 
     @Test

@@ -19,6 +19,7 @@ import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.CreateSubscriptionRequest;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
@@ -84,14 +85,13 @@ class FriendshipOfferServiceTest {
     @DisplayName("Заявки нет: создаётся заявка PENDING и подписка инициатора на получателя")
     void whenOfferNotExistsThenCreateOfferAndSubscription() {
         when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
-        when(friendshipOfferRepository.createFriendshipOfferIfAbsent(any()))
-                .thenAnswer(invocation -> Optional.of(saved(invocation.getArgument(0))));
-        when(subscriptionRepository.existsSubscription(FROM_USER_ID, TO_USER_ID)).thenReturn(false);
+        when(friendshipOfferRepository.createFriendshipOffer(any()))
+                .thenAnswer(invocation -> saved(invocation.getArgument(0)));
 
         var result = service.create(command());
 
         var offerCaptor = ArgumentCaptor.forClass(CreateFriendshipOfferRequest.class);
-        verify(friendshipOfferRepository).createFriendshipOfferIfAbsent(offerCaptor.capture());
+        verify(friendshipOfferRepository).createFriendshipOffer(offerCaptor.capture());
         var offer = offerCaptor.getValue();
         assertThat(offer.fromUserId()).isEqualTo(FROM_USER_ID);
         assertThat(offer.toUserId()).isEqualTo(TO_USER_ID);
@@ -100,7 +100,7 @@ class FriendshipOfferServiceTest {
         assertThat(offer.updatedAt()).isEqualTo(NOW);
 
         var subscriptionCaptor = ArgumentCaptor.forClass(CreateSubscriptionRequest.class);
-        verify(subscriptionRepository).createSubscription(subscriptionCaptor.capture());
+        verify(subscriptionRepository).createSubscriptionIfAbsent(subscriptionCaptor.capture());
         var subscription = subscriptionCaptor.getValue();
         assertThat(subscription.followerId()).isEqualTo(FROM_USER_ID);
         assertThat(subscription.followedId()).isEqualTo(TO_USER_ID);
@@ -112,12 +112,12 @@ class FriendshipOfferServiceTest {
     }
 
     @Test
-    @DisplayName("Заявки нет, подписка уже есть: создаётся только заявка")
-    void whenOfferNotExistsAndSubscriptionExistsThenCreateOnlyOffer() {
+    @DisplayName("Заявки нет, подписка уже есть (в том числе создана параллельно): заявка всё равно создаётся")
+    void whenOfferNotExistsAndSubscriptionExistsThenOfferCreated() {
         when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
-        when(friendshipOfferRepository.createFriendshipOfferIfAbsent(any()))
-                .thenAnswer(invocation -> Optional.of(saved(invocation.getArgument(0))));
-        when(subscriptionRepository.existsSubscription(FROM_USER_ID, TO_USER_ID)).thenReturn(true);
+        when(friendshipOfferRepository.createFriendshipOffer(any()))
+                .thenAnswer(invocation -> saved(invocation.getArgument(0)));
+        when(subscriptionRepository.createSubscriptionIfAbsent(any())).thenReturn(Optional.empty());
 
         var result = service.create(command());
 
@@ -160,12 +160,14 @@ class FriendshipOfferServiceTest {
     }
 
     @Test
-    @DisplayName("Гонка: параллельный запрос успел создать заявку, повтор отвечает AlreadyPending без подписки")
+    @DisplayName("Гонка: параллельный запрос успел создать заявку (FriendshipOfferAlreadyExistsException), "
+            + "повтор отвечает AlreadyPending без подписки")
     void whenOfferCreatedConcurrentlyThenAlreadyPending() {
         when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(existing(FriendshipOfferStatus.PENDING)));
-        when(friendshipOfferRepository.createFriendshipOfferIfAbsent(any())).thenReturn(Optional.empty());
+        when(friendshipOfferRepository.createFriendshipOffer(any()))
+                .thenThrow(new FriendshipOfferAlreadyExistsException(FROM_USER_ID, TO_USER_ID, null));
 
         var result = service.create(command());
 
@@ -174,7 +176,7 @@ class FriendshipOfferServiceTest {
     }
 
     private void verifyNothingCreated() {
-        verify(friendshipOfferRepository, never()).createFriendshipOfferIfAbsent(any());
+        verify(friendshipOfferRepository, never()).createFriendshipOffer(any());
         verifyNoInteractions(subscriptionRepository);
     }
 

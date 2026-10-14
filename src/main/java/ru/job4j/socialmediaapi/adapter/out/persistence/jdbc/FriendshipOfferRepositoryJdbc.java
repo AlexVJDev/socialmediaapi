@@ -4,10 +4,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipOfferEntity;
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FriendshipOfferPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -16,14 +18,13 @@ import java.util.UUID;
 @Repository
 public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository {
 
-    /** Inserts an offer unless one already exists for the pair; returns nothing on conflict. */
-    private static final String CREATE_IF_ABSENT = """
+    /** Inserts an offer and returns the stored row. */
+    private static final String CREATE = """
             INSERT INTO friendship_offer (
                 id, from_user_id, to_user_id,
                 status, created_at, updated_at
             )
             VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT (from_user_id, to_user_id) DO NOTHING
             RETURNING id, from_user_id, to_user_id,
                       status, created_at, updated_at
             """;
@@ -62,27 +63,34 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
         this.mapper = mapper;
     }
 
+    /**
+     * Runs in a nested transaction (a savepoint inside the caller's one):
+     * a unique violation aborts the whole PostgreSQL transaction, so on a duplicate
+     * only the insert is rolled back and the caller can still read the existing offer.
+     */
     @Override
-    public Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(
+    @Transactional(propagation = Propagation.NESTED)
+    public CreateFriendshipOfferResponse createFriendshipOffer(
             CreateFriendshipOfferRequest request
     ) {
         var entity = mapper.toEntity(request);
         try {
-            return jdbcTemplate.query(
-                            CREATE_IF_ABSENT,
-                            ENTITY_MAPPER,
-                            entity.id(),
-                            entity.fromUserId(),
-                            entity.toUserId(),
-                            entity.status(),
-                            Timestamp.from(entity.createdAt()),
-                            Timestamp.from(entity.updatedAt())
-                    )
-                    .stream()
-                    .findFirst()
-                    .map(mapper::toResponse);
-        } catch (DataIntegrityViolationException e) {
-            throw translate(request, e);
+            var saved = jdbcTemplate.queryForObject(
+                    CREATE,
+                    ENTITY_MAPPER,
+                    entity.id(),
+                    entity.fromUserId(),
+                    entity.toUserId(),
+                    entity.status(),
+                    Timestamp.from(entity.createdAt()),
+                    Timestamp.from(entity.updatedAt())
+            );
+            return mapper.toResponse(saved);
+        } catch (DataIntegrityViolationException ex) {
+            if ("uq_friendship_offer_users".equals(PostgresErrors.constraint(ex))) {
+                throw new FriendshipOfferAlreadyExistsException(request.fromUserId(), request.toUserId(), ex);
+            }
+            throw ex;
         }
     }
 
@@ -92,14 +100,5 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
                 .stream()
                 .findFirst()
                 .map(mapper::toFindResponse);
-    }
-
-    private static RuntimeException translate(
-            CreateFriendshipOfferRequest request,
-            DataIntegrityViolationException exception
-    ) {
-        return "chk_friendship_offer_different_users".equals(PostgresErrors.constraint(exception))
-                ? new FriendshipOfferToSelfException(request.fromUserId(), exception)
-                : exception;
     }
 }

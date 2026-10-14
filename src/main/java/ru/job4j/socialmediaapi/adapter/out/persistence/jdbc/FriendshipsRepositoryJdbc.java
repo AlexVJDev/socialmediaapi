@@ -8,8 +8,6 @@ import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipsEntity;
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FriendshipPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository;
 import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipAlreadyExistsException;
-import ru.job4j.socialmediaapi.domain.friendship.exception.FriendshipInvalidUserOrderException;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipRequestNotFoundException;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -71,25 +69,10 @@ public class FriendshipsRepositoryJdbc implements FriendshipsRepository {
             );
             return mapper.toResponse(saved);
         } catch (DataIntegrityViolationException e) {
-            throw translate(request, e);
+            if ("uq_friendships_users".equals(PostgresErrors.constraint(e))) {
+                throw new FriendshipAlreadyExistsException(request.firstUserId(), request.secondUserId(), e);
+            }
+            throw e;
         }
-    }
-
-    private static RuntimeException translate(
-            CreateFriendshipRequest request,
-            DataIntegrityViolationException exception
-    ) {
-        return switch (PostgresErrors.constraint(exception)) {
-            case "uq_friendships_users" -> new FriendshipAlreadyExistsException(
-                    request.firstUserId(), request.secondUserId(), exception
-            );
-            case "chk_friendships_canonical_order" -> new FriendshipInvalidUserOrderException(
-                    request.firstUserId(), request.secondUserId(), exception
-            );
-            case "fk_friendships_friendship_offer" -> new FriendshipRequestNotFoundException(
-                    request.friendshipOfferId(), exception
-            );
-            default -> exception;
-        };
     }
 }

@@ -1,7 +1,7 @@
 package ru.job4j.socialmediaapi.application.port.out;
 
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
-import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -10,11 +10,14 @@ import java.util.UUID;
 public interface FriendshipOfferRepository {
 
     /**
+     * Saves the offer. A duplicate does not abort the caller's transaction:
+     * only the failed insert is rolled back, so the caller may re-read the offer.
+     *
      * @param request offer to save
-     * @return the saved offer, or empty if an offer in the same direction already exists
-     * @throws FriendshipOfferToSelfException the user offers friendship to themselves
+     * @return the saved offer
+     * @throws FriendshipOfferAlreadyExistsException an offer in the same direction already exists
      */
-    Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(
+    CreateFriendshipOfferResponse createFriendshipOffer(
             CreateFriendshipOfferRequest request
     );
 

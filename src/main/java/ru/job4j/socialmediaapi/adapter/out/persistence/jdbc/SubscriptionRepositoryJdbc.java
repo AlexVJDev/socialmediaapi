@@ -8,10 +8,9 @@ import ru.job4j.socialmediaapi.adapter.out.persistence.entity.SubscriptionEntity
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.SubscriptionPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionToSelfException;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionUserRequiredException;
 
 import java.sql.Timestamp;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -23,6 +22,16 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
                 id, follower_id, followed_id, created_at
             )
             VALUES (?, ?, ?, ?)
+            RETURNING id, follower_id, followed_id, created_at
+            """;
+
+    /** Inserts a subscription unless it already exists; returns nothing on conflict. */
+    private static final String CREATE_IF_ABSENT = """
+            INSERT INTO subscriptions (
+                id, follower_id, followed_id, created_at
+            )
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (follower_id, followed_id) DO NOTHING
             RETURNING id, follower_id, followed_id, created_at
             """;
 
@@ -74,8 +83,29 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             );
             return mapper.toResponse(saved);
         } catch (DataIntegrityViolationException e) {
-            throw translate(request, e);
+            if ("uq_subscriptions_users".equals(PostgresErrors.constraint(e))) {
+                throw new SubscriptionAlreadyExistsException(request.followerId(), request.followedId(), e);
+            }
+            throw e;
         }
+    }
+
+    @Override
+    public Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(
+            CreateSubscriptionRequest request
+    ) {
+        var entity = mapper.toEntity(request);
+        return jdbcTemplate.query(
+                        CREATE_IF_ABSENT,
+                        ENTITY_MAPPER,
+                        entity.id(),
+                        entity.followerId(),
+                        entity.followedId(),
+                        Timestamp.from(entity.createdAt())
+                )
+                .stream()
+                .findFirst()
+                .map(mapper::toResponse);
     }
 
     @Override
@@ -83,24 +113,5 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
         return Boolean.TRUE.equals(
                 jdbcTemplate.queryForObject(EXISTS, Boolean.class, followerId, followedId)
         );
-    }
-
-    private static RuntimeException translate(
-            CreateSubscriptionRequest request,
-            DataIntegrityViolationException exception
-    ) {
-        var notNullColumn = PostgresErrors.notNullColumn(exception);
-        if (notNullColumn.isPresent()) {
-            return new SubscriptionUserRequiredException(notNullColumn.get(), exception);
-        }
-        return switch (PostgresErrors.constraint(exception)) {
-            case "uq_subscriptions_users" -> new SubscriptionAlreadyExistsException(
-                    request.followerId(), request.followedId(), exception
-            );
-            case "chk_subscriptions_different_users" -> new SubscriptionToSelfException(
-                    request.followerId(), exception
-            );
-            default -> exception;
-        };
     }
 }
