@@ -44,6 +44,12 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             )
             """;
 
+    /** Removes the subscription in one direction. */
+    private static final String DELETE = """
+            DELETE FROM subscriptions
+            WHERE follower_id = ? AND followed_id = ?
+            """;
+
     /** Reads a result set row into {@link SubscriptionRow}. */
     private static final RowMapper<SubscriptionRow> ROW_MAPPER =
             (resultSet, rowNum) -> new SubscriptionRow(
@@ -113,5 +119,10 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
         return Boolean.TRUE.equals(
                 jdbcTemplate.queryForObject(EXISTS, Boolean.class, followerId, followedId)
         );
+    }
+
+    @Override
+    public boolean deleteSubscription(UUID followerId, UUID followedId) {
+        return jdbcTemplate.update(DELETE, followerId, followedId) == 1;
     }
 }
