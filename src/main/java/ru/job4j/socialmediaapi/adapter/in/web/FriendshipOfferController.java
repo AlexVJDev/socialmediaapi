@@ -1,6 +1,7 @@
 package ru.job4j.socialmediaapi.adapter.in.web;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,41 +12,30 @@ import ru.job4j.socialmediaapi.adapter.in.web.dto.CreateFriendshipOfferWebReques
 import ru.job4j.socialmediaapi.adapter.in.web.dto.CreateFriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.adapter.in.web.mapper.FriendshipOfferWebMapper;
 import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult.Created;
 
 @RestController
 @RequestMapping("/api/offer-friendships")
+@RequiredArgsConstructor
 public class FriendshipOfferController {
 
     /** Use case that creates friendship offers. */
     private final CreateFriendshipOfferUseCase createFriendshipOffer;
 
-    /** Maps web DTOs to use case commands and results back. */
+    /** Maps web DTOs to use case requests and results back. */
     private final FriendshipOfferWebMapper mapper;
 
-    public FriendshipOfferController(
-            CreateFriendshipOfferUseCase createFriendshipOffer,
-            FriendshipOfferWebMapper mapper
-    ) {
-        this.createFriendshipOffer = createFriendshipOffer;
-        this.mapper = mapper;
-    }
-
     /**
-     * {@code 201} with the new offer, or {@code 204} without a body
-     * if the offer already waits for a decision.
+     * {@code 201} with the new offer; a repeated offer is answered with {@code 409}
+     * by {@code GlobalExceptionHandler}, with the code of the existing offer's status.
      *
      * @param request sender and recipient of the offer
-     * @return the created offer, or an empty response for a repeated offer
+     * @return the created offer
      */
     @PostMapping("/create")
     public ResponseEntity<CreateFriendshipOfferWebResponse> create(
             @Valid @RequestBody CreateFriendshipOfferWebRequest request
     ) {
-        var result = createFriendshipOffer.create(mapper.toCommand(request));
-        if (result instanceof Created created) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
-        }
-        return ResponseEntity.noContent().build();
+        var result = createFriendshipOffer.create(mapper.toUseCaseRequest(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(result));
     }
 }

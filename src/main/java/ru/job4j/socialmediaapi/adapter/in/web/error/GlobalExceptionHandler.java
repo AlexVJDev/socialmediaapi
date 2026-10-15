@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.job4j.socialmediaapi.adapter.in.web.dto.ErrorResponse;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyPendingException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
@@ -32,17 +34,38 @@ public class GlobalExceptionHandler {
             FriendshipOfferToSelfException.class
     })
     public ResponseEntity<ErrorResponse> handleInvalidRequest() {
-        return response(ErrorCode.INVALID_FRIENDSHIP_OFFER_REQUEST);
+        return ErrorCode.INVALID_FRIENDSHIP_OFFER_REQUEST.response();
+    }
+
+    @ExceptionHandler(FriendshipOfferAlreadyPendingException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyPending() {
+        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_PENDING.response();
     }
 
     @ExceptionHandler(FriendshipOfferAlreadyAcceptedException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyAccepted() {
-        return response(ErrorCode.FRIENDSHIP_OFFER_ALREADY_ACCEPTED);
+        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_ACCEPTED.response();
     }
 
     @ExceptionHandler(FriendshipOfferAlreadyRejectedException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyRejected() {
-        return response(ErrorCode.FRIENDSHIP_OFFER_ALREADY_REJECTED);
+        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_REJECTED.response();
+    }
+
+    /**
+     * The service rethrows the duplicate only when the existing offer could not be read
+     * after the unique key violation (see {@code FriendshipOfferService}): the offer
+     * is there, but its status is unknown. Nothing has changed, so the client gets
+     * {@code 204} without a body; the case is logged because it should not happen.
+     *
+     * @param exception duplicate reported by the repository
+     * @return {@code 204} without a body
+     */
+    @ExceptionHandler(FriendshipOfferAlreadyExistsException.class)
+    public ResponseEntity<Void> handleAlreadyExists(FriendshipOfferAlreadyExistsException exception) {
+        LOG.warn("Friendship offer already exists but its status could not be read: {}",
+                exception.getMessage(), exception);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -57,11 +80,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
         LOG.error("Unexpected database constraint violation: {}",
                 exception.getMostSpecificCause().getMessage(), exception);
-        return response(ErrorCode.INTERNAL_ERROR);
-    }
-
-    private static ResponseEntity<ErrorResponse> response(ErrorCode code) {
-        return ResponseEntity.status(code.status())
-                .body(new ErrorResponse(code.name(), code.message()));
+        return ErrorCode.INTERNAL_ERROR.response();
     }
 }

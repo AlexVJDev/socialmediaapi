@@ -11,7 +11,7 @@ public interface FriendshipOfferRepository {
 
     /**
      * Saves the offer. A duplicate does not abort the caller's transaction:
-     * only the failed insert is rolled back, so the caller may re-read the offer.
+     * only the failed insert is rolled back, so the caller may read the existing offer.
      *
      * @param request offer to save
      * @return the saved offer

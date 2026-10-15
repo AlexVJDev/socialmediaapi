@@ -8,14 +8,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
 import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyPendingException;
 
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -39,46 +41,47 @@ class FriendshipOfferServiceConcurrencyTest {
     private JdbcTemplate jdbcTemplate;
 
     @RepeatedTest(10)
-    @DisplayName("Два одновременных запроса: один Created, второй AlreadyPending, без дубликатов в БД")
+    @DisplayName("Два одновременных запроса: один создаёт заявку, второй получает "
+            + "FriendshipOfferAlreadyPendingException, без дубликатов в БД")
     void whenCreateSameOfferConcurrentlyThenOneCreatedAndOneAlreadyPending() throws Exception {
-        var command = new CreateFriendshipOfferCommand(UUID.randomUUID(), UUID.randomUUID());
+        var useCaseRequest = new CreateFriendshipOfferUseCaseRequest(UUID.randomUUID(), UUID.randomUUID());
         var start = new CountDownLatch(1);
         // ExecutorService is AutoCloseable only since Java 19, the project targets Java 17
-        @SuppressWarnings("resource")
         var executor = Executors.newFixedThreadPool(THREADS);
         try {
             var futures = new ArrayList<Future<CreateFriendshipOfferResult>>();
             for (var i = 0; i < THREADS; i++) {
                 Callable<CreateFriendshipOfferResult> task = () -> {
                     start.await();
-                    return useCase.create(command);
+                    return useCase.create(useCaseRequest);
                 };
                 futures.add(executor.submit(task));
             }
             start.countDown();
 
             var results = new ArrayList<CreateFriendshipOfferResult>();
+            var errors = new ArrayList<Throwable>();
             for (var future : futures) {
-                results.add(future.get(30, TimeUnit.SECONDS));
+                try {
+                    results.add(future.get(30, TimeUnit.SECONDS));
+                } catch (ExecutionException e) {
+                    errors.add(e.getCause());
+                }
             }
 
-            assertThat(results)
-                    .filteredOn(CreateFriendshipOfferResult.Created.class::isInstance)
-                    .hasSize(1);
-            assertThat(results)
-                    .filteredOn(CreateFriendshipOfferResult.AlreadyPending.class::isInstance)
-                    .hasSize(1);
+            assertThat(results).hasSize(1);
+            assertThat(errors).singleElement().isInstanceOf(FriendshipOfferAlreadyPendingException.class);
         } finally {
             executor.shutdownNow();
         }
 
         assertThat(count(
                 "SELECT count(*) FROM friendship_offer WHERE from_user_id = ? AND to_user_id = ?",
-                command.fromUserId(), command.toUserId()
+                useCaseRequest.fromUserId(), useCaseRequest.toUserId()
         )).isOne();
         assertThat(count(
                 "SELECT count(*) FROM subscriptions WHERE follower_id = ? AND followed_id = ?",
-                command.fromUserId(), command.toUserId()
+                useCaseRequest.fromUserId(), useCaseRequest.toUserId()
         )).isOne();
     }
 

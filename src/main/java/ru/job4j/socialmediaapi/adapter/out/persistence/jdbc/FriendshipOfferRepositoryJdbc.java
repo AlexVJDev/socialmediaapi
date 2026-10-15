@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipOfferEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.row.FriendshipOfferRow;
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FriendshipOfferPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
@@ -38,9 +38,9 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
             FOR UPDATE
             """;
 
-    /** Reads a table row into an entity. */
-    private static final RowMapper<FriendshipOfferEntity> ENTITY_MAPPER =
-            (resultSet, rowNum) -> new FriendshipOfferEntity(
+    /** Reads a result set row into {@link FriendshipOfferRow}. */
+    private static final RowMapper<FriendshipOfferRow> ROW_MAPPER =
+            (resultSet, rowNum) -> new FriendshipOfferRow(
                     resultSet.getObject("id", UUID.class),
                     resultSet.getObject("from_user_id", UUID.class),
                     resultSet.getObject("to_user_id", UUID.class),
@@ -52,7 +52,7 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
     /** Executes the native SQL queries. */
     private final JdbcTemplate jdbcTemplate;
 
-    /** Maps port requests/responses to entities and back. */
+    /** Maps port requests/responses to rows and back. */
     private final FriendshipOfferPersistenceMapper mapper;
 
     public FriendshipOfferRepositoryJdbc(
@@ -73,17 +73,17 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
     public CreateFriendshipOfferResponse createFriendshipOffer(
             CreateFriendshipOfferRequest request
     ) {
-        var entity = mapper.toEntity(request);
+        var row = mapper.toRow(request);
         try {
             var saved = jdbcTemplate.queryForObject(
                     CREATE,
-                    ENTITY_MAPPER,
-                    entity.id(),
-                    entity.fromUserId(),
-                    entity.toUserId(),
-                    entity.status(),
-                    Timestamp.from(entity.createdAt()),
-                    Timestamp.from(entity.updatedAt())
+                    ROW_MAPPER,
+                    row.id(),
+                    row.fromUserId(),
+                    row.toUserId(),
+                    row.status(),
+                    Timestamp.from(row.createdAt()),
+                    Timestamp.from(row.updatedAt())
             );
             return mapper.toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
@@ -96,7 +96,7 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
 
     @Override
     public Optional<FindFriendshipOfferResponse> findByUsers(UUID fromUserId, UUID toUserId) {
-        return jdbcTemplate.query(FIND_BY_USERS, ENTITY_MAPPER, fromUserId, toUserId)
+        return jdbcTemplate.query(FIND_BY_USERS, ROW_MAPPER, fromUserId, toUserId)
                 .stream()
                 .findFirst()
                 .map(mapper::toFindResponse);

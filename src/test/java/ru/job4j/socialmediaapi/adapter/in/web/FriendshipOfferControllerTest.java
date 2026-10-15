@@ -19,7 +19,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,28 +99,14 @@ class FriendshipOfferControllerTest {
         assertThat(subscriptions(fromUserId, toUserId)).isOne();
     }
 
-    @Test
-    @DisplayName("Повтор при PENDING: 204 без тела, дубликаты не создаются")
-    void whenRepeatPendingOfferThenNoContent() throws Exception {
-        var fromUserId = UUID.randomUUID();
-        var toUserId = UUID.randomUUID();
-        create(body(fromUserId, toUserId)).andExpect(status().isCreated());
-
-        create(body(fromUserId, toUserId))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
-
-        assertThat(offersFrom(fromUserId)).isOne();
-        assertThat(subscriptions(fromUserId, toUserId)).isOne();
-    }
-
     @ParameterizedTest
     @CsvSource({
+            "PENDING, FRIENDSHIP_OFFER_ALREADY_PENDING",
             "ACCEPTED, FRIENDSHIP_OFFER_ALREADY_ACCEPTED",
             "REJECTED, FRIENDSHIP_OFFER_ALREADY_REJECTED"
     })
-    @DisplayName("Повтор при ACCEPTED/REJECTED: 409 с кодом статуса, данные не меняются")
-    void whenRepeatProcessedOfferThenConflict(String offerStatus, String code) throws Exception {
+    @DisplayName("Повтор: 409 с кодом статуса существующей заявки, данные не меняются")
+    void whenRepeatOfferThenConflict(String offerStatus, String code) throws Exception {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
         create(body(fromUserId, toUserId)).andExpect(status().isCreated());

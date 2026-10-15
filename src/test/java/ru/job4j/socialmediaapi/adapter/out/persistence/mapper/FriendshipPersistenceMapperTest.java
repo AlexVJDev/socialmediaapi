@@ -3,7 +3,7 @@ package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipsEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.row.FriendshipsRow;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository.CreateFriendshipRequest;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipsRepository.CreateFriendshipResponse;
 import ru.job4j.socialmediaapi.domain.friendship.FriendshipStatus;
@@ -14,7 +14,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("Маппер дружбы: преобразование между Request/Response порта и FriendshipsEntity")
+@DisplayName("Маппер дружбы: преобразование между Request/Response порта и FriendshipsRow")
 class FriendshipPersistenceMapperTest {
 
     /** Fixed creation time of the friendship. */
@@ -25,46 +25,46 @@ class FriendshipPersistenceMapperTest {
             Mappers.getMapper(FriendshipPersistenceMapper.class);
 
     @Test
-    @DisplayName("toEntity: статус-enum записывается в Entity строкой через name()")
-    void whenToEntityThenStatusStoredAsName() {
+    @DisplayName("toRow: статус-enum записывается в Row строкой через name()")
+    void whenToRowThenStatusStoredAsName() {
         var request = new CreateFriendshipRequest(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 FriendshipStatus.ACTIVE, CREATED_AT
         );
 
-        var entity = mapper.toEntity(request);
+        var row = mapper.toRow(request);
 
-        assertThat(entity).isEqualTo(new FriendshipsEntity(
+        assertThat(row).isEqualTo(new FriendshipsRow(
                 request.id(), request.firstUserId(), request.secondUserId(),
                 request.friendshipOfferId(), "ACTIVE", CREATED_AT
         ));
     }
 
     @Test
-    @DisplayName("toResponse: строковый статус из Entity преобразуется в enum")
+    @DisplayName("toResponse: строковый статус из Row преобразуется в enum")
     void whenToResponseThenStatusParsedToEnum() {
-        var entity = new FriendshipsEntity(
+        var row = new FriendshipsRow(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 "DELETED", CREATED_AT
         );
 
-        var response = mapper.toResponse(entity);
+        var response = mapper.toResponse(row);
 
         assertThat(response).isEqualTo(new CreateFriendshipResponse(
-                entity.id(), entity.firstUserId(), entity.secondUserId(),
-                entity.friendshipOfferId(), FriendshipStatus.DELETED, CREATED_AT
+                row.id(), row.firstUserId(), row.secondUserId(),
+                row.friendshipOfferId(), FriendshipStatus.DELETED, CREATED_AT
         ));
     }
 
     @Test
     @DisplayName("toResponse: неизвестный статус из БД выбросит IllegalArgumentException")
     void whenToResponseWithUnknownStatusThenThrowException() {
-        var entity = new FriendshipsEntity(
+        var row = new FriendshipsRow(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 "UNKNOWN", CREATED_AT
         );
 
-        assertThatThrownBy(() -> mapper.toResponse(entity))
+        assertThatThrownBy(() -> mapper.toResponse(row))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

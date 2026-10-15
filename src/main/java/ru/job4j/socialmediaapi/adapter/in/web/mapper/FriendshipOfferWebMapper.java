@@ -4,8 +4,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import ru.job4j.socialmediaapi.adapter.in.web.dto.CreateFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.adapter.in.web.dto.CreateFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferCommand;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult.Created;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
@@ -15,7 +15,7 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 @Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface FriendshipOfferWebMapper {
 
-    CreateFriendshipOfferCommand toCommand(CreateFriendshipOfferWebRequest request);
+    CreateFriendshipOfferUseCaseRequest toUseCaseRequest(CreateFriendshipOfferWebRequest request);
 
-    CreateFriendshipOfferWebResponse toResponse(Created result);
+    CreateFriendshipOfferWebResponse toResponse(CreateFriendshipOfferResult result);
 }

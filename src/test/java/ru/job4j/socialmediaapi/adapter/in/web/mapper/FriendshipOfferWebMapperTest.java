@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.adapter.in.web.dto.CreateFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.adapter.in.web.dto.CreateFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferCommand;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult.Created;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
 
 import java.time.Instant;
@@ -25,13 +25,13 @@ class FriendshipOfferWebMapperTest {
             Mappers.getMapper(FriendshipOfferWebMapper.class);
 
     @Test
-    @DisplayName("toCommand: идентификаторы пользователей переносятся в команду")
-    void whenToCommandThenCopyUserIds() {
+    @DisplayName("toUseCaseRequest: идентификаторы пользователей переносятся в запрос use case")
+    void whenToUseCaseRequestThenCopyUserIds() {
         var request = new CreateFriendshipOfferWebRequest(UUID.randomUUID(), UUID.randomUUID());
 
-        var command = mapper.toCommand(request);
+        var useCaseRequest = mapper.toUseCaseRequest(request);
 
-        assertThat(command).isEqualTo(new CreateFriendshipOfferCommand(
+        assertThat(useCaseRequest).isEqualTo(new CreateFriendshipOfferUseCaseRequest(
                 request.fromUserId(), request.toUserId()
         ));
     }
@@ -39,7 +39,7 @@ class FriendshipOfferWebMapperTest {
     @Test
     @DisplayName("toResponse: статус-enum возвращается строкой через name()")
     void whenToResponseThenStatusAsName() {
-        var created = new Created(
+        var created = new CreateFriendshipOfferResult(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 FriendshipOfferStatus.PENDING, CREATED_AT
         );

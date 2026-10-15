@@ -2,7 +2,7 @@ package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
-import ru.job4j.socialmediaapi.adapter.out.persistence.entity.FriendshipOfferEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.row.FriendshipOfferRow;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.FindFriendshipOfferResponse;
@@ -16,9 +16,9 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 @Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface FriendshipOfferPersistenceMapper {
 
-    FriendshipOfferEntity toEntity(CreateFriendshipOfferRequest request);
+    FriendshipOfferRow toRow(CreateFriendshipOfferRequest request);
 
-    CreateFriendshipOfferResponse toResponse(FriendshipOfferEntity entity);
+    CreateFriendshipOfferResponse toResponse(FriendshipOfferRow row);
 
-    FindFriendshipOfferResponse toFindResponse(FriendshipOfferEntity entity);
+    FindFriendshipOfferResponse toFindResponse(FriendshipOfferRow row);
 }

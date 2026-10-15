@@ -4,12 +4,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.job4j.socialmediaapi.application.mapper.FriendshipOfferApplicationMapper;
-import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
 import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferRequest;
@@ -20,6 +23,7 @@ import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.Creat
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyPendingException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferToSelfException;
 
@@ -28,6 +32,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,9 +79,9 @@ class FriendshipOfferServiceTest {
     @Test
     @DisplayName("Заявка самому себе выбросит FriendshipOfferToSelfException без обращения к БД")
     void whenOfferToSelfThenThrowExceptionAndNoRepositoryCalls() {
-        var command = new CreateFriendshipOfferCommand(FROM_USER_ID, FROM_USER_ID);
+        var useCaseRequest = new CreateFriendshipOfferUseCaseRequest(FROM_USER_ID, FROM_USER_ID);
 
-        assertThatThrownBy(() -> service.create(command))
+        assertThatThrownBy(() -> service.create(useCaseRequest))
                 .isInstanceOf(FriendshipOfferToSelfException.class);
         verifyNoInteractions(friendshipOfferRepository, subscriptionRepository);
     }
@@ -84,11 +89,10 @@ class FriendshipOfferServiceTest {
     @Test
     @DisplayName("Заявки нет: создаётся заявка PENDING и подписка инициатора на получателя")
     void whenOfferNotExistsThenCreateOfferAndSubscription() {
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
         when(friendshipOfferRepository.createFriendshipOffer(any()))
                 .thenAnswer(invocation -> saved(invocation.getArgument(0)));
 
-        var result = service.create(command());
+        var result = service.create(useCaseRequest());
 
         var offerCaptor = ArgumentCaptor.forClass(CreateFriendshipOfferRequest.class);
         verify(friendshipOfferRepository).createFriendshipOffer(offerCaptor.capture());
@@ -106,7 +110,7 @@ class FriendshipOfferServiceTest {
         assertThat(subscription.followedId()).isEqualTo(TO_USER_ID);
         assertThat(subscription.createdAt()).isEqualTo(NOW);
 
-        assertThat(result).isEqualTo(new CreateFriendshipOfferResult.Created(
+        assertThat(result).isEqualTo(new CreateFriendshipOfferResult(
                 offer.id(), FROM_USER_ID, TO_USER_ID, FriendshipOfferStatus.PENDING, NOW
         ));
     }
@@ -114,74 +118,53 @@ class FriendshipOfferServiceTest {
     @Test
     @DisplayName("Заявки нет, подписка уже есть (в том числе создана параллельно): заявка всё равно создаётся")
     void whenOfferNotExistsAndSubscriptionExistsThenOfferCreated() {
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
         when(friendshipOfferRepository.createFriendshipOffer(any()))
                 .thenAnswer(invocation -> saved(invocation.getArgument(0)));
         when(subscriptionRepository.createSubscriptionIfAbsent(any())).thenReturn(Optional.empty());
 
-        var result = service.create(command());
+        var result = service.create(useCaseRequest());
 
-        assertThat(result).isInstanceOf(CreateFriendshipOfferResult.Created.class);
+        assertThat(result.fromUserId()).isEqualTo(FROM_USER_ID);
         verify(subscriptionRepository, never()).createSubscription(any());
+        verify(friendshipOfferRepository, never()).findByUsers(any(), any());
     }
 
-    @Test
-    @DisplayName("Повтор при PENDING: AlreadyPending, ничего не создаётся")
-    void whenOfferPendingThenAlreadyPending() {
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
-                .thenReturn(Optional.of(existing(FriendshipOfferStatus.PENDING)));
-
-        var result = service.create(command());
-
-        assertThat(result).isEqualTo(new CreateFriendshipOfferResult.AlreadyPending());
-        verifyNothingCreated();
-    }
-
-    @Test
-    @DisplayName("Повтор при ACCEPTED выбросит FriendshipOfferAlreadyAcceptedException, ничего не создаётся")
-    void whenOfferAcceptedThenThrowException() {
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
-                .thenReturn(Optional.of(existing(FriendshipOfferStatus.ACCEPTED)));
-
-        assertThatThrownBy(() -> service.create(command()))
-                .isInstanceOf(FriendshipOfferAlreadyAcceptedException.class);
-        verifyNothingCreated();
-    }
-
-    @Test
-    @DisplayName("Повтор при REJECTED выбросит FriendshipOfferAlreadyRejectedException, ничего не создаётся")
-    void whenOfferRejectedThenThrowException() {
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
-                .thenReturn(Optional.of(existing(FriendshipOfferStatus.REJECTED)));
-
-        assertThatThrownBy(() -> service.create(command()))
-                .isInstanceOf(FriendshipOfferAlreadyRejectedException.class);
-        verifyNothingCreated();
-    }
-
-    @Test
-    @DisplayName("Гонка: параллельный запрос успел создать заявку (FriendshipOfferAlreadyExistsException), "
-            + "повтор отвечает AlreadyPending без подписки")
-    void whenOfferCreatedConcurrentlyThenAlreadyPending() {
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
-                .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(existing(FriendshipOfferStatus.PENDING)));
+    @ParameterizedTest
+    @MethodSource("existingStatusErrors")
+    @DisplayName("Заявка уже есть (в том числе создана параллельно): исключение по её статусу, подписка не создаётся")
+    void whenOfferAlreadyExistsThenThrowExceptionOfItsStatus(
+            FriendshipOfferStatus status, Class<? extends RuntimeException> expected
+    ) {
         when(friendshipOfferRepository.createFriendshipOffer(any()))
                 .thenThrow(new FriendshipOfferAlreadyExistsException(FROM_USER_ID, TO_USER_ID, null));
+        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
+                .thenReturn(Optional.of(existing(status)));
 
-        var result = service.create(command());
-
-        assertThat(result).isEqualTo(new CreateFriendshipOfferResult.AlreadyPending());
+        assertThatThrownBy(() -> service.create(useCaseRequest())).isInstanceOf(expected);
         verifyNoInteractions(subscriptionRepository);
     }
 
-    private void verifyNothingCreated() {
-        verify(friendshipOfferRepository, never()).createFriendshipOffer(any());
+    @Test
+    @DisplayName("Дубликат по уникальному ключу, но заявка не найдена: пробрасывается исходное исключение")
+    void whenDuplicateButOfferNotFoundThenThrowOriginalException() {
+        var duplicate = new FriendshipOfferAlreadyExistsException(FROM_USER_ID, TO_USER_ID, null);
+        when(friendshipOfferRepository.createFriendshipOffer(any())).thenThrow(duplicate);
+        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.create(useCaseRequest())).isSameAs(duplicate);
         verifyNoInteractions(subscriptionRepository);
     }
 
-    private static CreateFriendshipOfferCommand command() {
-        return new CreateFriendshipOfferCommand(FROM_USER_ID, TO_USER_ID);
+    private static Stream<Arguments> existingStatusErrors() {
+        return Stream.of(
+                Arguments.of(FriendshipOfferStatus.PENDING, FriendshipOfferAlreadyPendingException.class),
+                Arguments.of(FriendshipOfferStatus.ACCEPTED, FriendshipOfferAlreadyAcceptedException.class),
+                Arguments.of(FriendshipOfferStatus.REJECTED, FriendshipOfferAlreadyRejectedException.class)
+        );
+    }
+
+    private static CreateFriendshipOfferUseCaseRequest useCaseRequest() {
+        return new CreateFriendshipOfferUseCaseRequest(FROM_USER_ID, TO_USER_ID);
     }
 
     private static FindFriendshipOfferResponse existing(FriendshipOfferStatus status) {

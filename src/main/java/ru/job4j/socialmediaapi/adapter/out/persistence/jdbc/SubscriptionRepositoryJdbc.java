@@ -4,7 +4,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import ru.job4j.socialmediaapi.adapter.out.persistence.entity.SubscriptionEntity;
+import ru.job4j.socialmediaapi.adapter.out.persistence.row.SubscriptionRow;
 import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.SubscriptionPersistenceMapper;
 import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
 import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
@@ -44,9 +44,9 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
             )
             """;
 
-    /** Reads a table row into an entity. */
-    private static final RowMapper<SubscriptionEntity> ENTITY_MAPPER =
-            (resultSet, rowNum) -> new SubscriptionEntity(
+    /** Reads a result set row into {@link SubscriptionRow}. */
+    private static final RowMapper<SubscriptionRow> ROW_MAPPER =
+            (resultSet, rowNum) -> new SubscriptionRow(
                     resultSet.getObject("id", UUID.class),
                     resultSet.getObject("follower_id", UUID.class),
                     resultSet.getObject("followed_id", UUID.class),
@@ -56,7 +56,7 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
     /** Executes the native SQL queries. */
     private final JdbcTemplate jdbcTemplate;
 
-    /** Maps port requests/responses to entities and back. */
+    /** Maps port requests/responses to rows and back. */
     private final SubscriptionPersistenceMapper mapper;
 
     public SubscriptionRepositoryJdbc(
@@ -71,15 +71,15 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
     public CreateSubscriptionResponse createSubscription(
             CreateSubscriptionRequest request
     ) {
-        var entity = mapper.toEntity(request);
+        var row = mapper.toRow(request);
         try {
             var saved = jdbcTemplate.queryForObject(
                     CREATE,
-                    ENTITY_MAPPER,
-                    entity.id(),
-                    entity.followerId(),
-                    entity.followedId(),
-                    Timestamp.from(entity.createdAt())
+                    ROW_MAPPER,
+                    row.id(),
+                    row.followerId(),
+                    row.followedId(),
+                    Timestamp.from(row.createdAt())
             );
             return mapper.toResponse(saved);
         } catch (DataIntegrityViolationException e) {
@@ -94,14 +94,14 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
     public Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(
             CreateSubscriptionRequest request
     ) {
-        var entity = mapper.toEntity(request);
+        var row = mapper.toRow(request);
         return jdbcTemplate.query(
                         CREATE_IF_ABSENT,
-                        ENTITY_MAPPER,
-                        entity.id(),
-                        entity.followerId(),
-                        entity.followedId(),
-                        Timestamp.from(entity.createdAt())
+                        ROW_MAPPER,
+                        row.id(),
+                        row.followerId(),
+                        row.followedId(),
+                        Timestamp.from(row.createdAt())
                 )
                 .stream()
                 .findFirst()
