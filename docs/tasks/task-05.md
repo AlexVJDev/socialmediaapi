@@ -4,7 +4,7 @@
 
 ## Цель
 
-Открыть use case по HTTP: успешные ответы `201` и `204` и валидация тела, из-за которой возникает часть ошибок `INVALID_FRIENDSHIP_OFFER_REQUEST`.
+Открыть use case по HTTP: успешный ответ `201` и валидация тела, из-за которой возникает часть ошибок `INVALID_FRIENDSHIP_OFFER_REQUEST`. Повтор (`409`) отдаёт обработчик ошибок из задания 06.
 
 ## Контекст
 
@@ -15,14 +15,13 @@
 1. Web-DTO в `adapter.in.web.dto` (records):
    - `CreateFriendshipOfferWebRequest(@NotNull UUID fromUserId, @NotNull UUID toUserId)`;
    - `CreateFriendshipOfferWebResponse(UUID id, UUID fromUserId, UUID toUserId, String status, Instant createdAt)` — ровно поля из контракта (без `updatedAt`).
-2. `adapter.in.web.mapper.FriendshipOfferWebMapper` (MapStruct, `@Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)`): `toCommand(WebRequest)`, `toResponse(Created)`.
+2. `adapter.in.web.mapper.FriendshipOfferWebMapper` (MapStruct, `@Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)`): `toUseCaseRequest(WebRequest)`, `toResponse(CreateFriendshipOfferResult)`.
 3. `FriendshipOfferController`, `@RequestMapping("/api/offer-friendships")`, метод `@PostMapping("/create")` принимает `@Valid @RequestBody`:
-   - `Created` → `ResponseEntity.status(201).body(...)`;
-   - `AlreadyPending` → `ResponseEntity.noContent().build()`.
-   Исключения в контроллере **не ловить** — это задача обработчика из задания 06.
+   - результат → `ResponseEntity.status(201).body(...)`, других веток нет.
+   Исключения в контроллере **не ловить**: повтор (`FriendshipOfferAlready{Pending,Accepted,Rejected}Exception` → `409`) и прочие ошибки — задача обработчика из задания 06.
 4. Юнит-тест маппера `FriendshipOfferWebMapperTest` через `Mappers.getMapper(...)`.
 
 ## Критерии приёмки
 
 - `./mvnw clean compile` без предупреждений MapStruct.
-- Ручная проверка: `./mvnw spring-boot:run`, запрос с двумя разными UUID → `201`, повтор → `204`.
+- Ручная проверка: `./mvnw spring-boot:run`, запрос с двумя разными UUID → `201`, повтор → `409 FRIENDSHIP_OFFER_ALREADY_PENDING` (после задания 06).

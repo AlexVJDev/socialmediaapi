@@ -4,22 +4,25 @@
 
 ## Цель
 
-Выполнить инвариант схемы: «Уникальность заявок и связей сохраняется и при одновременном создании» — и при гонке отвечать по тем же правилам (`204` / `409`), а не `500`.
+Выполнить инвариант схемы: «Уникальность заявок и связей сохраняется и при одновременном создании» — и при гонке отвечать по тем же правилам (`409` с кодом статуса существующей заявки), а не `500`.
 
 ## Контекст
 
-`SELECT ... FOR UPDATE` из задания 03 не помогает, когда строки ещё нет: два параллельных запроса оба увидят «заявки нет», второй `INSERT` упадёт на `uq_friendship_offer_users`, адаптер бросит `FriendshipOfferAlreadyExistsException`, а транзакция PostgreSQL будет прервана — перечитать заявку в ней уже нельзя.
+По заданию 04 сервис сразу делает `INSERT`, без предварительного поиска, поэтому параллельный запрос идёт по тому же пути, что и обычный повтор: второй `INSERT` упадёт на `uq_friendship_offer_users`, адаптер бросит `FriendshipOfferAlreadyExistsException`. Проблема в том, что PostgreSQL после нарушения уникального ключа прерывает всю транзакцию — без дополнительных мер перечитать заявку в ней уже нельзя, и клиент получит `500`.
+
+`SELECT ... FOR UPDATE` из задания 03 здесь не помогает: заблокировать строку, которой ещё нет, нельзя.
 
 ## Что сделать
 
 Выбрать и реализовать один из вариантов, решение описать в Javadoc сервиса:
 
-- **A. `INSERT ... ON CONFLICT DO NOTHING`.** Новый метод порта `Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(...)`: `INSERT ... ON CONFLICT (from_user_id, to_user_id) DO NOTHING RETURNING ...`. Пустой результат → в той же транзакции `findByUsers(...)` (с `FOR UPDATE`) и дальше та же ветка по статусу, что в задании 04. Транзакция не прерывается.
-- **B. Повтор снаружи транзакции.** Перехватывать `FriendshipOfferAlreadyExistsException` вне `@Transactional`-метода (отдельный бин или обёртка) и один раз повторять вызов: во второй попытке заявка найдётся и обработается как `PENDING`/`ACCEPTED`/`REJECTED`.
+- **A. `INSERT ... ON CONFLICT DO NOTHING`.** Новый метод порта `Optional<CreateFriendshipOfferResponse> createFriendshipOfferIfAbsent(...)`: `INSERT ... ON CONFLICT (from_user_id, to_user_id) DO NOTHING RETURNING ...`. Пустой результат → в той же транзакции `findByUsers(...)` (с `FOR UPDATE`) и дальше то же исключение по статусу, что в задании 04. Транзакция не прерывается.
+- **B. Повтор снаружи транзакции.** Перехватывать `FriendshipOfferAlreadyExistsException` вне `@Transactional`-метода (отдельный бин или обёртка) и в новой транзакции только перечитывать заявку (`findByUsers`) и бросать исключение по её статусу (`PENDING`/`ACCEPTED`/`REJECTED`). Повторять сам вызов `create` нельзя: `INSERT` снова упадёт на уникальном ключе и снова прервёт транзакцию.
+- **C. Savepoint в адаптере (выбран).** `FriendshipOfferRepositoryJdbc.createFriendshipOffer` помечен `@Transactional(propagation = NESTED)`: при нарушении уникального ключа откатывается только `INSERT`, транзакция сервиса продолжается, сервис перехватывает `FriendshipOfferAlreadyExistsException`, перечитывает заявку (`findByUsers` с `FOR UPDATE`) и бросает исключение по её статусу (после него транзакция откатывается целиком). Порт и сервис не меняются: гонка и обычный повтор обрабатываются одним и тем же кодом.
 
-Тест: два потока (`ExecutorService` + `CountDownLatch`) одновременно создают заявку Алиса → Борис. Ожидается: один ответ `Created`, второй `AlreadyPending`; в БД одна заявка и одна подписка.
+Тест: два потока (`ExecutorService` + `CountDownLatch`) одновременно создают заявку Алиса → Борис. Ожидается: один вызов возвращает созданную заявку, второй бросает `FriendshipOfferAlreadyPendingException` (`future.get()` → `ExecutionException`, причина — это исключение); в БД одна заявка и одна подписка. Дополнительно — тест адаптера: после дубликата внутри `TransactionTemplate` заявку можно перечитать в той же транзакции.
 
 ## Критерии приёмки
 
 - Тест на гонку стабильно зелёный (прогнать 10+ раз, например `@RepeatedTest(10)`).
-- `FriendshipOfferAlreadyExistsException` не доходит до клиента как `500`.
+- `FriendshipOfferAlreadyExistsException` не доходит до клиента как `500`: при гонке клиент получает `409 FRIENDSHIP_OFFER_ALREADY_PENDING`.

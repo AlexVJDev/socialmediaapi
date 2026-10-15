@@ -8,42 +8,65 @@
 
 ## Контекст
 
-Слои по `CLAUDE.md`: `application.port.in` — входные порты (use case + Command/Result), реализация — сервис в `application`. Сервис зависит только от портов и домена, не от адаптеров и не от `*Entity`.
+Слои по `CLAUDE.md`: `application.port.in` — входные порты (use case + UseCaseRequest/Result), реализация — сервис в `application`. Сервис зависит только от портов и домена, не от адаптеров и не от `*Row`.
 Время и идентификаторы для тестируемости получать извне: `java.time.Clock` (объявить бин в конфигурации, например `Clock.systemUTC()`) и генерация `UUID.randomUUID()` в сервисе.
 
 ## Что сделать
 
 1. `application.port.in.CreateFriendshipOfferUseCase`:
    ```java
-   CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command);
+   CreateFriendshipOfferResult create(CreateFriendshipOfferUseCaseRequest useCaseRequest);
 
-   record CreateFriendshipOfferCommand(UUID fromUserId, UUID toUserId) { }
+   record CreateFriendshipOfferUseCaseRequest(UUID fromUserId, UUID toUserId) { }
    ```
-   Результат должен различать два успешных исхода — `201` (создана) и `204` (уже `PENDING`). Например:
+   Успешный исход у создания один — заявка создана (`201`), поэтому результат — обычный record:
    ```java
-   sealed interface CreateFriendshipOfferResult {
-       record Created(UUID id, UUID fromUserId, UUID toUserId,
-                      FriendshipOfferStatus status, Instant createdAt) implements CreateFriendshipOfferResult { }
-       record AlreadyPending() implements CreateFriendshipOfferResult { }
-   }
+   record CreateFriendshipOfferResult(UUID id, UUID fromUserId, UUID toUserId,
+                                      FriendshipOfferStatus status, Instant createdAt) { }
    ```
+   Повтор — это ошибка, которую бросает сервис (`409`), а не второй вид результата.
 2. `application.FriendshipOfferService implements CreateFriendshipOfferUseCase`, метод `create` помечен `@Transactional`. Алгоритм строго по схеме:
    1. `fromUserId.equals(toUserId)` → `throw new FriendshipOfferToSelfException(fromUserId)` (в БД не ходим);
-   2. `repository.findByUsers(from, to)`:
-      - пусто → `INSERT` заявки со статусом `PENDING` (`createFriendshipOffer`) и подписки Алиса → Борис, **если её ещё нет** → `Created`;
-      - `PENDING` → `AlreadyPending`, ничего не меняется;
-      - `ACCEPTED` → `throw new FriendshipOfferAlreadyAcceptedException(...)`;
-      - `REJECTED` → `throw new FriendshipOfferAlreadyRejectedException(...)`.
+   2. сразу `INSERT` заявки со статусом `PENDING` (`createFriendshipOffer`), **без предварительного поиска**. Уникальность заявки на пару пользователей — инвариант, который обеспечивает уникальный ключ `uq_friendship_offer_users`; схема «найдём, если нет — создадим» дублирует его в коде и оставляет окно для гонки между поиском и вставкой:
+      - вставка прошла → подписка Алиса → Борис, **если её ещё нет** → результат с данными созданной заявки;
+      - `FriendshipOfferAlreadyExistsException` (нарушен уникальный ключ — это повтор) → `repository.findByUsers(from, to)` и исключение по статусу найденной заявки:
+        - `PENDING` → `throw new FriendshipOfferAlreadyPendingException(...)` (из задания 02);
+        - `ACCEPTED` → `throw new FriendshipOfferAlreadyAcceptedException(...)`;
+        - `REJECTED` → `throw new FriendshipOfferAlreadyRejectedException(...)`;
+        - заявка не найдена (такого быть не должно) → пробросить исходное `FriendshipOfferAlreadyExistsException`, отдельную проверку через `orElseThrow` не писать.
+
+      Всё это — один private-метод, который возвращает исключение для `throw`, а не бросает его сам:
+      ```java
+      /**
+      } catch (FriendshipOfferAlreadyExistsException e) {
+          throw alreadyExistsError(offer, e);
+      }
+
+      private RuntimeException alreadyExistsError(FriendshipOffer offer, FriendshipOfferAlreadyExistsException cause) {
+          return friendshipOfferRepository.findByUsers(offer.fromUserId(), offer.toUserId())
+                  .<RuntimeException>map(existing -> switch (existing.status()) {
+                      case PENDING -> new FriendshipOfferAlreadyPendingException(...);
+                      case ACCEPTED -> new FriendshipOfferAlreadyAcceptedException(...);
+                      case REJECTED -> new FriendshipOfferAlreadyRejectedException(...);
+                  })
+                  .orElse(cause);
+      } */
+      ```
+      Явный тип `.<RuntimeException>map(...)` нужен, чтобы `.orElse(cause)` скомпилировался.
+
+      PostgreSQL прерывает транзакцию после нарушения уникального ключа, поэтому `createFriendshipOffer` в адаптере помечается `@Transactional(propagation = NESTED)`: savepoint откатывает только `INSERT`, и в той же транзакции заявку можно перечитать (подробнее — задание 07). После `throw` транзакция сервиса откатывается целиком — ничего не меняется.
    Ветвление по статусу — через `switch` по enum без `default`, чтобы компилятор подсказал при появлении нового статуса.
-3. «Подписка, если её ещё нет»: в PostgreSQL ошибка внутри транзакции её прерывает, поэтому **нельзя** ловить `SubscriptionAlreadyExistsException` и продолжать. Добавить в `SubscriptionRepository` метод `boolean existsSubscription(UUID followerId, UUID followedId)` (реализация `SELECT EXISTS(...)` в `SubscriptionRepositoryJdbc` + тест) и вызывать `createSubscription` только если подписки нет.
-4. Маппинг `CreateFriendshipOfferResponse` (порт out) → `Created` (порт in) — MapStruct-маппер в `application.mapper` (`FriendshipOfferApplicationMapper`, метод `toResult`), не вручную.
+3. «Подписка, если её ещё нет»: в PostgreSQL ошибка внутри транзакции её прерывает, поэтому **нельзя** ловить `SubscriptionAlreadyExistsException` и продолжать. Проверка «сначала `existsSubscription`, потом `createSubscription`» тоже не подходит: между проверкой и вставкой подписку может создать параллельный запрос (например, принятие встречной заявки), и `INSERT` упадёт. Добавить в `SubscriptionRepository` метод `Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(CreateSubscriptionRequest request)`: реализация в `SubscriptionRepositoryJdbc` — `INSERT ... ON CONFLICT (follower_id, followed_id) DO NOTHING RETURNING ...`, пустой результат означает, что подписка уже была (+ тест). Сервис вызывает только его: дубликат подписки — не ошибка, транзакция не прерывается.
+4. Маппинг `CreateFriendshipOfferResponse` (порт out) → `CreateFriendshipOfferResult` (порт in) — MapStruct-маппер в `application.mapper` (`FriendshipOfferApplicationMapper`, метод `toResult`), не вручную.
 5. Юнит-тест `FriendshipOfferServiceTest` (Mockito, без Spring и БД), по тесту на ветку:
    - `from = to` → `FriendshipOfferToSelfException`, репозитории не вызывались;
-   - заявки нет → `Created`, вызваны `createFriendshipOffer` и `createSubscription`;
-   - заявки нет, подписка уже есть → `Created`, `createSubscription` не вызван;
-   - `PENDING` → `AlreadyPending`, ничего не создаётся;
-   - `ACCEPTED` → `FriendshipOfferAlreadyAcceptedException`, ничего не создаётся;
-   - `REJECTED` → `FriendshipOfferAlreadyRejectedException`, ничего не создаётся.
+   - заявки нет → результат с данными заявки, вызваны `createFriendshipOffer` и `createSubscriptionIfAbsent`, `findByUsers` не вызывался;
+   - заявки нет, подписка уже есть (`createSubscriptionIfAbsent` вернул пусто) → заявка создана, `createSubscription` не вызван;
+   - `createFriendshipOffer` бросил `FriendshipOfferAlreadyExistsException`, найдена заявка (параметризованный тест, `@MethodSource` «статус → класс исключения»):
+     - `PENDING` → `FriendshipOfferAlreadyPendingException`, подписка не создаётся;
+     - `ACCEPTED` → `FriendshipOfferAlreadyAcceptedException`, подписка не создаётся;
+     - `REJECTED` → `FriendshipOfferAlreadyRejectedException`, подписка не создаётся;
+   - `createFriendshipOffer` бросил `FriendshipOfferAlreadyExistsException`, заявка не найдена → брошено то же самое исключение (`isSameAs`).
 
 ## Критерии приёмки
 

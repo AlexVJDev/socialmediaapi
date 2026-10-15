@@ -18,7 +18,8 @@
    - конструктор `(UUID friendshipOfferId, UUID fromUserId, UUID toUserId)`;
    - сообщение вида `Offer friendship %s from user %s to user %s is already accepted`.
 3. Создать `FriendshipOfferAlreadyRejectedException` — аналогично, `... is already rejected`.
-4. Исключения не знают об HTTP и кодах ошибок: соответствие «исключение → HTTP-статус и `code`» задаётся в веб-адаптере (задание 06).
+4. Создать `FriendshipOfferAlreadyPendingException` — аналогично, `... already waits for a decision`: повтор заявки, которая ещё ждёт решения (бросается сервисом в задании 04).
+5. Исключения не знают об HTTP и кодах ошибок: соответствие «исключение → HTTP-статус и `code`» задаётся в веб-адаптере (задание 06).
 
 ## Критерии приёмки
 

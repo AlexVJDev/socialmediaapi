@@ -9,7 +9,7 @@
 ## Контекст
 
 Схема: `Api -> DB : найти заявку Алиса -> Борис`. Проверка относится только к этому направлению (встречная заявка Борис → Алиса — отдельная строка, `uq_friendship_offer_users` это допускает).
-Слой порта: `application.port.out.FriendshipOfferRepository` (Request/Response — вложенные records). Адаптер: `FriendshipOfferRepositoryJdbc` (SQL → Entity через `RowMapper` → Response через MapStruct-маппер). Индекс `uq_friendship_offer_users (from_user_id, to_user_id)` уже покрывает поиск.
+Слой порта: `application.port.out.FriendshipOfferRepository` (Request/Response — вложенные records). Адаптер: `FriendshipOfferRepositoryJdbc` (SQL → Row через `RowMapper` → Response через MapStruct-маппер). Индекс `uq_friendship_offer_users (from_user_id, to_user_id)` уже покрывает поиск.
 
 ## Что сделать
 
@@ -25,8 +25,8 @@
    (Если структура совпадёт с `CreateFriendshipOfferResponse` один в один — допустимо переиспользовать его вместо нового record; решение зафиксировать в Javadoc.)
 2. В `FriendshipOfferRepositoryJdbc` реализовать метод:
    - SQL: `SELECT id, from_user_id, to_user_id, status, created_at, updated_at FROM friendship_offer WHERE from_user_id = ? AND to_user_id = ? FOR UPDATE` — `FOR UPDATE` блокирует найденную строку до конца транзакции сервиса, чтобы параллельный `accept`/`reject` не поменял статус между проверкой и ответом;
-   - использовать существующий `ENTITY_MAPPER` и `jdbcTemplate.query(...)` + `stream().findFirst()` (не `queryForObject`, он бросает исключение на пустом результате).
-3. В `FriendshipOfferPersistenceMapper` добавить `FindFriendshipOfferResponse toFindResponse(FriendshipOfferEntity entity)` (enum ↔ `String` MapStruct сделает сам).
+   - использовать существующий `ROW_MAPPER` и `jdbcTemplate.query(...)` + `stream().findFirst()` (не `queryForObject`, он бросает исключение на пустом результате).
+3. В `FriendshipOfferPersistenceMapper` добавить `FindFriendshipOfferResponse toFindResponse(FriendshipOfferRow row)` (enum ↔ `String` MapStruct сделает сам).
 4. Тесты в `FriendshipOfferRepositoryJdbcTest`:
    - заявка не существует → `Optional.empty()`;
    - заявка существует → возвращаются сохранённые данные, включая статус;
