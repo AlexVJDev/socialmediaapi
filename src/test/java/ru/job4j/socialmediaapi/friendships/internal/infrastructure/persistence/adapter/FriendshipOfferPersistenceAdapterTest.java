@@ -15,7 +15,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -27,8 +30,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 @SpringBootTest
-@DisplayName("JDBC-репозиторий заявок в друзья: сохранение в таблицу friendship_offer")
-class FriendshipOfferRepositoryJdbcTest {
+@DisplayName("Persistence-адаптер заявок в друзья: сохранение в таблицу friendship_offer")
+class FriendshipOfferPersistenceAdapterTest {
 
     /** Throwaway PostgreSQL, started and stopped by the {@code @Testcontainers} extension. */
     @SuppressWarnings("unused")
@@ -79,7 +82,7 @@ class FriendshipOfferRepositoryJdbcTest {
 
         var result = repository.createFriendshipOffer(request);
 
-        assertThat(result).isEqualTo(new FriendshipOfferRepository.CreateFriendshipOfferResponse(
+        assertThat(result).isEqualTo(new CreateFriendshipOfferResponse(
                 request.id(), request.fromUserId(), request.toUserId(),
                 request.status(), request.createdAt(), request.updatedAt()
         ));
@@ -99,7 +102,7 @@ class FriendshipOfferRepositoryJdbcTest {
         ))).isInstanceOf(FriendshipOfferAlreadyExistsException.class)
                 .hasCauseInstanceOf(DataIntegrityViolationException.class);
         assertThat(repository.findByUsers(fromUserId, toUserId))
-                .map(FriendshipOfferRepository.FindFriendshipOfferResponse::id)
+                .map(FindFriendshipOfferResponse::id)
                 .contains(existingId);
     }
 
@@ -120,7 +123,7 @@ class FriendshipOfferRepositoryJdbcTest {
         });
 
         assertThat(found)
-                .map(FriendshipOfferRepository.FindFriendshipOfferResponse::id)
+                .map(FindFriendshipOfferResponse::id)
                 .contains(existingId);
     }
 
@@ -153,7 +156,7 @@ class FriendshipOfferRepositoryJdbcTest {
 
         var result = repository.findByUsers(fromUserId, toUserId);
 
-        assertThat(result).contains(new FriendshipOfferRepository.FindFriendshipOfferResponse(
+        assertThat(result).contains(new FindFriendshipOfferResponse(
                 id,
                 fromUserId,
                 toUserId,
@@ -193,17 +196,17 @@ class FriendshipOfferRepositoryJdbcTest {
         var result = repository.findByUsers(fromUserId, toUserId);
 
         assertThat(result)
-                .map(FriendshipOfferRepository.FindFriendshipOfferResponse::status)
+                .map(FindFriendshipOfferResponse::status)
                 .contains(status);
     }
 
-    private FriendshipOfferRepository.CreateFriendshipOfferRequest request(
+    private CreateFriendshipOfferRequest request(
             UUID id,
             UUID fromUserId,
             UUID toUserId
     ) {
         var now = Instant.parse("2026-10-06T10:15:00Z");
-        return new FriendshipOfferRepository.CreateFriendshipOfferRequest(
+        return new CreateFriendshipOfferRequest(
                 id, fromUserId, toUserId, FriendshipOfferStatus.PENDING, now, now
         );
     }

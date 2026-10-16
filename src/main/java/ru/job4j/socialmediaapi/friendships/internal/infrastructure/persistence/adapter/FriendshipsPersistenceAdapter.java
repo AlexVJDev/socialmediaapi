@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.adapter;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -7,13 +8,20 @@ import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.row.FriendshipsRow;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.mapper.FriendshipPersistenceMapper;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipsRepository;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipResponse;
 
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * JDBC implementation of the {@link FriendshipsRepository} port: native SQL over the
+ * {@code friendships} table.
+ */
 @Repository
-public class FriendshipsRepositoryJdbc implements FriendshipsRepository {
+@RequiredArgsConstructor
+public class FriendshipsPersistenceAdapter implements FriendshipsRepository {
 
     /** Inserts a friendship and returns the stored row. */
     private static final String CREATE = """
@@ -42,14 +50,6 @@ public class FriendshipsRepositoryJdbc implements FriendshipsRepository {
 
     /** Maps port requests/responses to rows and back. */
     private final FriendshipPersistenceMapper mapper;
-
-    public FriendshipsRepositoryJdbc(
-            JdbcTemplate jdbcTemplate,
-            FriendshipPersistenceMapper mapper
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.mapper = mapper;
-    }
 
     @Override
     public CreateFriendshipResponse createFriendship(

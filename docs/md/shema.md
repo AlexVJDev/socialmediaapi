@@ -41,3 +41,30 @@ posts/  ‹package-info (@ApplicationModule)›
             ├── mapper/  ‹interface @Mapper›
             └── row/  ‹record›
 ```
+
+## friendships
+
+```text
+friendships/  ‹package-info (@ApplicationModule)›
+└── internal/
+    ├── application/
+    │   ├── exception/  ‹class (исключение)›
+    │   ├── mapper/  ‹interface @Mapper›
+    │   ├── model/  ‹record›
+    │   ├── port/  ‹interface›
+    │   │   └── model/  ‹record›
+    │   └── usecase/  ‹class @Service›
+    ├── domain/
+    │   ├── exception/  ‹class (исключение)›
+    │   └── model/  ‹enum, record›
+    └── infrastructure/
+        ├── persistence/
+        │   ├── adapter/  ‹class @Repository, class›
+        │   ├── mapper/  ‹interface @Mapper›
+        │   └── row/  ‹record›
+        └── web/  ‹class @RestController, class @RestControllerAdvice›
+            ├── error/  ‹enum›
+            ├── mapper/  ‹interface @Mapper›
+            ├── request/  ‹record›
+            └── response/  ‹record›
+```

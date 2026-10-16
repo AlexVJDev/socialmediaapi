@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.friendships.internal.application.service;
+package ru.job4j.socialmediaapi.friendships.internal.application.usecase;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
@@ -7,8 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferResult;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyPendingException;
 
 import java.util.ArrayList;
@@ -25,15 +25,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@DisplayName("Сервис заявок в друзья: одновременное создание одной и той же заявки")
-class FriendshipOfferServiceConcurrencyTest {
+@DisplayName("Сценарий создания заявки в друзья: одновременное создание одной и той же заявки")
+class CreateFriendshipOfferConcurrencyTest {
 
     /** Number of concurrent requests for the same offer. */
     private static final int THREADS = 2;
 
     /** Use case under test, with real transactions. */
     @Autowired
-    private CreateFriendshipOfferUseCase useCase;
+    private CreateFriendshipOffer useCase;
 
     /** Direct access to the database to prepare and check data. */
     @Autowired
@@ -43,7 +43,7 @@ class FriendshipOfferServiceConcurrencyTest {
     @DisplayName("Два одновременных запроса: один создаёт заявку, второй получает "
             + "FriendshipOfferAlreadyPendingException, без дубликатов в БД")
     void whenCreateSameOfferConcurrentlyThenOneCreatedAndOneAlreadyPending() throws Exception {
-        var useCaseRequest = new CreateFriendshipOfferUseCaseRequest(UUID.randomUUID(), UUID.randomUUID());
+        var command = new CreateFriendshipOfferCommand(UUID.randomUUID(), UUID.randomUUID());
         var start = new CountDownLatch(1);
         // shutdownNow() instead of try-with-resources: close() would wait forever for a hung task
         var executor = Executors.newFixedThreadPool(THREADS);
@@ -52,7 +52,7 @@ class FriendshipOfferServiceConcurrencyTest {
             for (var i = 0; i < THREADS; i++) {
                 Callable<CreateFriendshipOfferResult> task = () -> {
                     start.await();
-                    return useCase.create(useCaseRequest);
+                    return useCase.create(command);
                 };
                 futures.add(executor.submit(task));
             }
@@ -76,11 +76,11 @@ class FriendshipOfferServiceConcurrencyTest {
 
         assertThat(count(
                 "SELECT count(*) FROM friendship_offer WHERE from_user_id = ? AND to_user_id = ?",
-                useCaseRequest.fromUserId(), useCaseRequest.toUserId()
+                command.fromUserId(), command.toUserId()
         )).isOne();
         assertThat(count(
                 "SELECT count(*) FROM subscriptions WHERE follower_id = ? AND followed_id = ?",
-                useCaseRequest.fromUserId(), useCaseRequest.toUserId()
+                command.fromUserId(), command.toUserId()
         )).isOne();
     }
 

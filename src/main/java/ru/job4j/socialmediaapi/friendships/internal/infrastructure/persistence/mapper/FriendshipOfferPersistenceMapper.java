@@ -3,9 +3,9 @@ package ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.row.FriendshipOfferRow;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.CreateFriendshipOfferRequest;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.CreateFriendshipOfferResponse;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 

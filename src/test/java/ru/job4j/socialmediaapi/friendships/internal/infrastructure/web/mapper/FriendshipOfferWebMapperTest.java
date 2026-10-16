@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.CreateFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.CreateFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferResult;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
 import java.time.Instant;
@@ -25,13 +25,13 @@ class FriendshipOfferWebMapperTest {
             Mappers.getMapper(FriendshipOfferWebMapper.class);
 
     @Test
-    @DisplayName("toUseCaseRequest: идентификаторы пользователей переносятся в запрос use case")
-    void whenToUseCaseRequestThenCopyUserIds() {
+    @DisplayName("toCommand: идентификаторы пользователей переносятся в команду сценария")
+    void whenToCommandThenCopyUserIds() {
         var request = new CreateFriendshipOfferWebRequest(UUID.randomUUID(), UUID.randomUUID());
 
-        var useCaseRequest = mapper.toUseCaseRequest(request);
+        var command = mapper.toCommand(request);
 
-        assertThat(useCaseRequest).isEqualTo(new CreateFriendshipOfferUseCaseRequest(
+        assertThat(command).isEqualTo(new CreateFriendshipOfferCommand(
                 request.fromUserId(), request.toUserId()
         ));
     }

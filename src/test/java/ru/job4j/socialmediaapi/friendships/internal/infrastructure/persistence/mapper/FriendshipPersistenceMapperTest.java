@@ -4,8 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.row.FriendshipsRow;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipsRepository.CreateFriendshipRequest;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipsRepository.CreateFriendshipResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipResponse;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipStatus;
 
 import java.time.Instant;

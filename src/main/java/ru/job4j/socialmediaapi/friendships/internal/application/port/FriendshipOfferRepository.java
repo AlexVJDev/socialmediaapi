@@ -1,9 +1,10 @@
 package ru.job4j.socialmediaapi.friendships.internal.application.port;
 
-import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,34 +28,4 @@ public interface FriendshipOfferRepository {
      * @return the offer from {@code fromUserId} to {@code toUserId}, or empty if there is none
      */
     Optional<FindFriendshipOfferResponse> findByUsers(UUID fromUserId, UUID toUserId);
-
-    record CreateFriendshipOfferRequest(
-            UUID id,
-            UUID fromUserId,
-            UUID toUserId,
-            FriendshipOfferStatus status,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
-
-    record CreateFriendshipOfferResponse(
-            UUID id,
-            UUID fromUserId,
-            UUID toUserId,
-            FriendshipOfferStatus status,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
-
-    record FindFriendshipOfferResponse(
-            UUID id,
-            UUID fromUserId,
-            UUID toUserId,
-            FriendshipOfferStatus status,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
 }

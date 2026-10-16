@@ -11,7 +11,10 @@ import ru.job4j.socialmediaapi.friendships.internal.application.port.Friendships
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipStatus;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipResponse;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -21,8 +24,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@DisplayName("JDBC-репозиторий дружбы: сохранение в таблицу friendships")
-class FriendshipsRepositoryJdbcTest {
+@DisplayName("Persistence-адаптер дружбы: сохранение в таблицу friendships")
+class FriendshipsPersistenceAdapterTest {
 
     /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
@@ -46,7 +49,7 @@ class FriendshipsRepositoryJdbcTest {
                 request(id, users[0], users[1], offerId)
         );
 
-        var expected = new FriendshipsRepository.CreateFriendshipResponse(
+        var expected = new CreateFriendshipResponse(
                 id, users[0], users[1], offerId, FriendshipStatus.ACTIVE, NOW
         );
         assertThat(result).isEqualTo(expected);
@@ -107,7 +110,7 @@ class FriendshipsRepositoryJdbcTest {
     private UUID acceptedOffer(UUID fromUserId, UUID toUserId) {
         var id = UUID.randomUUID();
         friendshipOfferRepository.createFriendshipOffer(
-                new FriendshipOfferRepository.CreateFriendshipOfferRequest(
+                new CreateFriendshipOfferRequest(
                         id, fromUserId, toUserId,
                         FriendshipOfferStatus.ACCEPTED, NOW, NOW
                 )
@@ -115,13 +118,13 @@ class FriendshipsRepositoryJdbcTest {
         return id;
     }
 
-    private static FriendshipsRepository.CreateFriendshipRequest request(
+    private static CreateFriendshipRequest request(
             UUID id,
             UUID firstUserId,
             UUID secondUserId,
             UUID friendshipOfferId
     ) {
-        return new FriendshipsRepository.CreateFriendshipRequest(
+        return new CreateFriendshipRequest(
                 id, firstUserId, secondUserId, friendshipOfferId,
                 FriendshipStatus.ACTIVE, NOW
         );

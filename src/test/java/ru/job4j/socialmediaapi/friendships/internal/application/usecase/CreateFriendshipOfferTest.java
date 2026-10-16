@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.friendships.internal.application.service;
+package ru.job4j.socialmediaapi.friendships.internal.application.usecase;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,16 +12,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.job4j.socialmediaapi.friendships.internal.application.mapper.FriendshipOfferApplicationMapper;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase.CreateFriendshipOfferUseCaseRequest;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase.CreateFriendshipOfferResult;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferResult;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.CreateFriendshipOfferRequest;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.CreateFriendshipOfferResponse;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyPendingException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferToSelfException;
@@ -42,8 +42,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Сервис заявок в друзья: создание заявки по схеме friendship_transitions.puml")
-class FriendshipOfferServiceTest {
+@DisplayName("Сценарий создания заявки в друзья: создание заявки по схеме friendship_transitions.puml")
+class CreateFriendshipOfferTest {
 
     /** Fixed time returned by the test clock. */
     private static final Instant NOW = Instant.parse("2026-10-12T10:15:00Z");
@@ -62,12 +62,12 @@ class FriendshipOfferServiceTest {
     @Mock
     private Subscriptions subscriptions;
 
-    /** Service under test. */
-    private FriendshipOfferService service;
+    /** Use case under test. */
+    private CreateFriendshipOffer useCase;
 
     @BeforeEach
     void setUp() {
-        service = new FriendshipOfferService(
+        useCase = new CreateFriendshipOffer(
                 friendshipOfferRepository,
                 subscriptions,
                 Mappers.getMapper(FriendshipOfferApplicationMapper.class),
@@ -78,9 +78,9 @@ class FriendshipOfferServiceTest {
     @Test
     @DisplayName("Заявка самому себе выбросит FriendshipOfferToSelfException без обращения к БД")
     void whenOfferToSelfThenThrowExceptionAndNoRepositoryCalls() {
-        var useCaseRequest = new CreateFriendshipOfferUseCaseRequest(FROM_USER_ID, FROM_USER_ID);
+        var command = new CreateFriendshipOfferCommand(FROM_USER_ID, FROM_USER_ID);
 
-        assertThatThrownBy(() -> service.create(useCaseRequest))
+        assertThatThrownBy(() -> useCase.create(command))
                 .isInstanceOf(FriendshipOfferToSelfException.class);
         verifyNoInteractions(friendshipOfferRepository, subscriptions);
     }
@@ -91,7 +91,7 @@ class FriendshipOfferServiceTest {
         when(friendshipOfferRepository.createFriendshipOffer(any()))
                 .thenAnswer(invocation -> saved(invocation.getArgument(0)));
 
-        var result = service.create(useCaseRequest());
+        var result = useCase.create(command());
 
         var offerCaptor = ArgumentCaptor.forClass(CreateFriendshipOfferRequest.class);
         verify(friendshipOfferRepository).createFriendshipOffer(offerCaptor.capture());
@@ -116,7 +116,7 @@ class FriendshipOfferServiceTest {
                 .thenAnswer(invocation -> saved(invocation.getArgument(0)));
         when(subscriptions.subscribeIfAbsent(FROM_USER_ID, TO_USER_ID, NOW)).thenReturn(false);
 
-        var result = service.create(useCaseRequest());
+        var result = useCase.create(command());
 
         assertThat(result.fromUserId()).isEqualTo(FROM_USER_ID);
         verify(friendshipOfferRepository, never()).findByUsers(any(), any());
@@ -133,7 +133,7 @@ class FriendshipOfferServiceTest {
         when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
                 .thenReturn(Optional.of(existing(status)));
 
-        assertThatThrownBy(() -> service.create(useCaseRequest())).isInstanceOf(expected);
+        assertThatThrownBy(() -> useCase.create(command())).isInstanceOf(expected);
         verifyNoInteractions(subscriptions);
     }
 
@@ -144,7 +144,7 @@ class FriendshipOfferServiceTest {
         when(friendshipOfferRepository.createFriendshipOffer(any())).thenThrow(duplicate);
         when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(useCaseRequest())).isSameAs(duplicate);
+        assertThatThrownBy(() -> useCase.create(command())).isSameAs(duplicate);
         verifyNoInteractions(subscriptions);
     }
 
@@ -156,8 +156,8 @@ class FriendshipOfferServiceTest {
         );
     }
 
-    private static CreateFriendshipOfferUseCaseRequest useCaseRequest() {
-        return new CreateFriendshipOfferUseCaseRequest(FROM_USER_ID, TO_USER_ID);
+    private static CreateFriendshipOfferCommand command() {
+        return new CreateFriendshipOfferCommand(FROM_USER_ID, TO_USER_ID);
     }
 
     private static FindFriendshipOfferResponse existing(FriendshipOfferStatus status) {

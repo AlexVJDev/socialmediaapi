@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.CreateFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.CreateFriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.mapper.FriendshipOfferWebMapper;
-import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFriendshipOfferUseCase;
+import ru.job4j.socialmediaapi.friendships.internal.application.usecase.CreateFriendshipOffer;
 
 @RestController
 @RequestMapping("/api/offer-friendships")
@@ -19,14 +19,14 @@ import ru.job4j.socialmediaapi.friendships.internal.application.service.CreateFr
 public class FriendshipOfferController {
 
     /** Use case that creates friendship offers. */
-    private final CreateFriendshipOfferUseCase createFriendshipOffer;
+    private final CreateFriendshipOffer createFriendshipOffer;
 
-    /** Maps web DTOs to use case requests and results back. */
+    /** Maps web DTOs to the scenario command and the result back. */
     private final FriendshipOfferWebMapper mapper;
 
     /**
      * {@code 201} with the new offer; a repeated offer is answered with {@code 409}
-     * by {@code GlobalExceptionHandler}, with the code of the existing offer's status.
+     * by {@code FriendshipOfferExceptionHandler}, with the code of the existing offer's status.
      *
      * @param request sender and recipient of the offer
      * @return the created offer
@@ -35,7 +35,7 @@ public class FriendshipOfferController {
     public ResponseEntity<CreateFriendshipOfferWebResponse> create(
             @Valid @RequestBody CreateFriendshipOfferWebRequest request
     ) {
-        var result = createFriendshipOffer.create(mapper.toUseCaseRequest(request));
+        var result = createFriendshipOffer.create(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(result));
     }
 }

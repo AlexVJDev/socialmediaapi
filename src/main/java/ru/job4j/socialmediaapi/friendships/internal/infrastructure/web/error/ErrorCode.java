@@ -5,7 +5,8 @@ import org.springframework.http.ResponseEntity;
 import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 
 /**
- * Error codes of the API contract: the constant name is the {@code code} of the response body.
+ * Error codes of the friendship offer endpoints: the constant name is the {@code code}
+ * of the response body. The common {@code INTERNAL_ERROR} is in {@code shared.exception}.
  */
 public enum ErrorCode {
 
@@ -28,11 +29,6 @@ public enum ErrorCode {
     FRIENDSHIP_OFFER_ALREADY_REJECTED(
             HttpStatus.CONFLICT,
             "Предложение дружбы уже отклонено"
-    ),
-    /** Unexpected server error; details are logged, not returned to the client. */
-    INTERNAL_ERROR(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "Внутренняя ошибка сервера"
     );
 
     /** HTTP status of the error response. */

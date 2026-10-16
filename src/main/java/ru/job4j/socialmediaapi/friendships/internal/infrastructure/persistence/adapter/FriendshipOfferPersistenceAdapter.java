@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.adapter;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -9,14 +10,22 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.row.FriendshipOfferRow;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.mapper.FriendshipOfferPersistenceMapper;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 
 import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * JDBC implementation of the {@link FriendshipOfferRepository} port: native SQL over the
+ * {@code friendship_offer} table.
+ */
 @Repository
-public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository {
+@RequiredArgsConstructor
+public class FriendshipOfferPersistenceAdapter implements FriendshipOfferRepository {
 
     /** Inserts an offer and returns the stored row. */
     private static final String CREATE = """
@@ -54,14 +63,6 @@ public class FriendshipOfferRepositoryJdbc implements FriendshipOfferRepository 
 
     /** Maps port requests/responses to rows and back. */
     private final FriendshipOfferPersistenceMapper mapper;
-
-    public FriendshipOfferRepositoryJdbc(
-            JdbcTemplate jdbcTemplate,
-            FriendshipOfferPersistenceMapper mapper
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.mapper = mapper;
-    }
 
     /**
      * Runs in a nested transaction (a savepoint inside the caller's one):

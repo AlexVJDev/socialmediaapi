@@ -14,7 +14,7 @@
 | --- | --- | --- | --- | --- |
 | `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) | перенесён |
 | `posts` | Посты и лента подписчика | `{}` | нет | перенесён |
-| `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет | перенесён (шаг 2.1) |
+| `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет | перенесён |
 | `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет | legacy |
 
 Граф зависимостей: `friendships → subscriptions`; циклов нет.
@@ -151,8 +151,12 @@
 Ошибки определяются в слое, которому принадлежит нарушенное правило или
 контракт. Технические ошибки преобразуются на границе адаптера, а ошибки,
 которые должен обрабатывать другой модуль, описываются в публичном `api`.
-HTTP-коды ошибок модуля (`ErrorCode`, обработчик исключений) — в его `infrastructure.web`;
-общий ответ `500 INTERNAL_ERROR` и тело ошибки `{code, message}` — в `shared`.
+HTTP-коды ошибок модуля — в его `infrastructure.web`: обработчик `*ExceptionHandler`
+(`@RestControllerAdvice(assignableTypes = <контроллеры модуля>)`, `@Order(Ordered.HIGHEST_PRECEDENCE)`)
+и перечисление `web.error.ErrorCode`. Обработчик модуля ограничен своими контроллерами, поэтому
+коды одного модуля не достаются эндпоинтам другого. Общий ответ `500 INTERNAL_ERROR` —
+`shared.exception.GlobalExceptionHandler` (`@Order(Ordered.LOWEST_PRECEDENCE)`, срабатывает после
+обработчиков модулей); тело ошибки `{code, message}` — `shared.web.ErrorResponse`.
 
 ## Типовая структура файлов и пакетов
 
@@ -269,7 +273,7 @@ MapStruct-мапперы лежат в `mapper/` своего слоя или а
 | --- | --- |
 | `shared.config` | Сквозная техническая конфигурация (`ClockConfiguration` — бин `Clock`, UTC) |
 | `shared.web` | Общее тело ошибки `ErrorResponse(code, message)` |
-| `shared.exception` | Общий обработчик ошибок (`500 INTERNAL_ERROR`) — появится при переносе `friendships` |
+| `shared.exception` | Общий обработчик ошибок `GlobalExceptionHandler`: непредвиденная `DataIntegrityViolationException` → `500 INTERNAL_ERROR` |
 
 В `shared` запрещены модели хранения, репозитории, контроллеры, задания по расписанию,
 бизнес-порты и их адаптеры. Такой код оформляется отдельным модулем.

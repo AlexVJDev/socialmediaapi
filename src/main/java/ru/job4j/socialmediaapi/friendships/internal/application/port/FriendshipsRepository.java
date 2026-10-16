@@ -1,10 +1,8 @@
 package ru.job4j.socialmediaapi.friendships.internal.application.port;
 
-import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipStatus;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipAlreadyExistsException;
-
-import java.time.Instant;
-import java.util.UUID;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipResponse;
 
 public interface FriendshipsRepository {
 
@@ -18,24 +16,4 @@ public interface FriendshipsRepository {
     CreateFriendshipResponse createFriendship(
             CreateFriendshipRequest request
     );
-
-    record CreateFriendshipRequest(
-            UUID id,
-            UUID firstUserId,
-            UUID secondUserId,
-            UUID friendshipOfferId,
-            FriendshipStatus status,
-            Instant createdAt
-    ) {
-    }
-
-    record CreateFriendshipResponse(
-            UUID id,
-            UUID firstUserId,
-            UUID secondUserId,
-            UUID friendshipOfferId,
-            FriendshipStatus status,
-            Instant createdAt
-    ) {
-    }
 }

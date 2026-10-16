@@ -1,17 +1,20 @@
-package ru.job4j.socialmediaapi.friendships.internal.application.service;
+package ru.job4j.socialmediaapi.friendships.internal.application.usecase;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.job4j.socialmediaapi.friendships.internal.application.mapper.FriendshipOfferApplicationMapper;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferResult;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository.CreateFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOffer;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
-import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyPendingException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
+import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferToSelfException;
 
 import java.time.Clock;
 
@@ -34,7 +37,7 @@ import java.time.Clock;
  */
 @Service
 @RequiredArgsConstructor
-public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
+public class CreateFriendshipOffer {
 
     /** Stores friendship offers. */
     private final FriendshipOfferRepository friendshipOfferRepository;
@@ -42,16 +45,26 @@ public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
     /** Subscribes the sender to the recipient (API of the subscriptions module). */
     private final Subscriptions subscriptions;
 
-    /** Maps use case requests and repository responses to use case results. */
+    /** Maps the domain offer to the port request and the port response to the result. */
     private final FriendshipOfferApplicationMapper mapper;
 
     /** Source of the creation time of offers and subscriptions. */
     private final Clock clock;
 
-    @Override
+    /**
+     * Creates a {@code PENDING} offer friendship and subscribes the sender
+     * to the recipient, if the sender is not subscribed yet.
+     *
+     * @param command sender and recipient of the offer
+     * @return the created offer
+     * @throws FriendshipOfferToSelfException          the user offers friendship to themselves
+     * @throws FriendshipOfferAlreadyPendingException  the offer in the same direction already waits for a decision
+     * @throws FriendshipOfferAlreadyAcceptedException the offer in the same direction is already accepted
+     * @throws FriendshipOfferAlreadyRejectedException the offer in the same direction is already rejected
+     */
     @Transactional
-    public CreateFriendshipOfferResult create(CreateFriendshipOfferUseCaseRequest useCaseRequest) {
-        var offer = FriendshipOffer.create(useCaseRequest.fromUserId(), useCaseRequest.toUserId(), clock.instant());
+    public CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command) {
+        var offer = FriendshipOffer.create(command.fromUserId(), command.toUserId(), clock.instant());
         CreateFriendshipOfferResponse created;
         try {
             created = friendshipOfferRepository.createFriendshipOffer(mapper.toRequest(offer));
