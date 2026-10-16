@@ -24,3 +24,20 @@ subscriptions/  ‹package-info (@ApplicationModule)›
             ├── mapper/  ‹interface @Mapper›
             └── row/  ‹record›
 ```
+
+## posts
+
+```text
+posts/  ‹package-info (@ApplicationModule)›
+└── internal/
+    ├── application/
+    │   └── port/  ‹interface›
+    │       └── model/  ‹record›
+    ├── domain/
+    │   └── model/  ‹enum›
+    └── infrastructure/
+        └── persistence/
+            ├── adapter/  ‹class @Repository›
+            ├── mapper/  ‹interface @Mapper›
+            └── row/  ‹record›
+```

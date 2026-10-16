@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper.FeedPersistenceMapper;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
 import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,7 +20,7 @@ import java.util.UUID;
  */
 @Repository
 @RequiredArgsConstructor
-public class FeedRepositoryJdbc implements FeedRepository {
+public class FeedPersistenceAdapter implements FeedRepository {
 
     /** Selects a page of published posts of the authors the follower is subscribed to. */
     private static final String FIND_FEED = """

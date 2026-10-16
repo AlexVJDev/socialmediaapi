@@ -7,10 +7,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
-import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository.FeedPostResponse;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
-import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.CreatePostRequest;
-import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.DeletePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 
@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Лента: опубликованные посты авторов из подписок читателя, от новых к старым")
-class FeedRepositoryJdbcTest {
+class FeedPersistenceAdapterTest {
 
     /** Base time of posts; later posts are created minutes after it. */
     private static final Instant BASE_TIME = Instant.parse("2026-10-15T10:00:00Z");

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
-import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository.FeedPostResponse;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 
 import java.time.Instant;

@@ -13,7 +13,7 @@
 | Модуль | Ответственность | `allowedDependencies` | Публичный `api` | Статус |
 | --- | --- | --- | --- | --- |
 | `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) | перенесён |
-| `posts` | Посты и лента подписчика | `{}` | нет | перенесён (шаг 2.1) |
+| `posts` | Посты и лента подписчика | `{}` | нет | перенесён |
 | `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет | legacy |
 | `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет | legacy |
 

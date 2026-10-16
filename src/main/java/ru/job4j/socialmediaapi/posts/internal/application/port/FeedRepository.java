@@ -1,8 +1,7 @@
 package ru.job4j.socialmediaapi.posts.internal.application.port;
 
-import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,15 +25,4 @@ public interface FeedRepository {
      * @throws IllegalArgumentException {@code limit} is not positive or {@code offset} is negative
      */
     List<FeedPostResponse> findFeed(UUID followerId, int limit, int offset);
-
-    record FeedPostResponse(
-            UUID id,
-            UUID authorId,
-            String title,
-            String content,
-            PostStatus status,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
 }

@@ -7,6 +7,10 @@ import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper.PostPersistenceMapper;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
 
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -19,7 +23,7 @@ import java.util.UUID;
  */
 @Repository
 @RequiredArgsConstructor
-public class PostRepositoryJdbc implements PostRepository {
+public class PostPersistenceAdapter implements PostRepository {
 
     /** Inserts a post and returns the stored row. */
     private static final String CREATE = """

@@ -9,10 +9,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
-import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.CreatePostRequest;
-import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.DeletePostRequest;
-import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.PostResponse;
-import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.UpdatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 
 import java.sql.Timestamp;
@@ -24,8 +24,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@DisplayName("JDBC-репозиторий публикаций: создание, чтение, изменение и логическое удаление в таблице posts")
-class PostRepositoryJdbcTest {
+@DisplayName("Persistence-адаптер публикаций: создание, чтение, изменение и логическое удаление в таблице posts")
+class PostPersistenceAdapterTest {
 
     /** Fixed creation time of posts. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-15T10:15:00Z");

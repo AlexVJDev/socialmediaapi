@@ -1,8 +1,10 @@
 package ru.job4j.socialmediaapi.posts.internal.application.port;
 
-import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,42 +46,4 @@ public interface PostRepository {
      *         is already deleted or {@code actorId} is not its author
      */
     boolean deletePost(DeletePostRequest request);
-
-    record CreatePostRequest(
-            UUID id,
-            UUID authorId,
-            String title,
-            String content,
-            PostStatus status,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
-
-    record UpdatePostRequest(
-            UUID postId,
-            UUID actorId,
-            String title,
-            String content,
-            Instant updatedAt
-    ) {
-    }
-
-    record DeletePostRequest(
-            UUID postId,
-            UUID actorId,
-            Instant deletedAt
-    ) {
-    }
-
-    record PostResponse(
-            UUID id,
-            UUID authorId,
-            String title,
-            String content,
-            PostStatus status,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
 }
