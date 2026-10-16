@@ -27,7 +27,7 @@
 3. Перевести `fromUserId`, `toUserId`, `id` в запросе и ответе create на `type: string, format: uuid` (примеры — UUID), как в БД.
 4. Обновить `docs/api/friendship-offer-create.md`: типы полей (`string (uuid)`), примеры, таблицу ошибок — с кодами из таблицы выше.
 5. Исправить строку про `ACCEPTED` в «Правилах идемпотентности» `FriendshipRequest.md`: повтор → `409 Conflict`, `FriendshipOfferAlreadyAcceptedException`.
-6. В `docs/md/CLAUDE2.md` заменить пример кода ошибки `OFFER_FRIENDSHIP_ALREADY_REJECTED` на `FRIENDSHIP_OFFER_ALREADY_REJECTED` и убрать из «Known inconsistencies» пункты, которые этим заданием устранены.
+6. В `../CLAUDE2.md` заменить пример кода ошибки `OFFER_FRIENDSHIP_ALREADY_REJECTED` на `FRIENDSHIP_OFFER_ALREADY_REJECTED` и убрать из «Known inconsistencies» пункты, которые этим заданием устранены.
 
 ## Критерии приёмки
 

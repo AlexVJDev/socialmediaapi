@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.config;
+package ru.job4j.socialmediaapi.shared.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

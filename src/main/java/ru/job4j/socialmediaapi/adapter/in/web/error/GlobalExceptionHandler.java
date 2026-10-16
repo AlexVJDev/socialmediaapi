@@ -8,7 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.job4j.socialmediaapi.adapter.in.web.dto.ErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyPendingException;

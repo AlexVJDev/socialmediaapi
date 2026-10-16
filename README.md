@@ -194,7 +194,7 @@ Build an HTML report without failing the build, then open
 ### Test results
 
 Last verified on 2026-10-08 (macOS, Docker 29.7.2, Maven 3.9.16 via the
-wrapper, JDK 25, PostgreSQL `postgres:17` started by Testcontainers).
+wrapper, JDK 21, PostgreSQL `postgres:17` started by Testcontainers).
 
 `FriendshipOfferRepositoryJdbcTest` was run twice in a row; each run is a
 separate Maven invocation with its own fresh PostgreSQL container:

@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.adapter.in.web.dto;
+package ru.job4j.socialmediaapi.shared.web;
 
 public record ErrorResponse(
         String code,

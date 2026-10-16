@@ -1,2 +1,2 @@
-@docs/md/CLAUDE2.md
+@docs/CLAUDE2.md
 @docs/md/current_lesson

@@ -5,6 +5,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5435/social_media}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:password}
+  modulith:
+    detection-strategy: explicitly-annotated
   liquibase:
     change-log: classpath:db/db.changelog-master.yaml
     default-schema: public

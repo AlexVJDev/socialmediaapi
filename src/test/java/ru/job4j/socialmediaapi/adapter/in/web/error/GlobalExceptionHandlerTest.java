@@ -4,7 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import ru.job4j.socialmediaapi.adapter.in.web.dto.ErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
 
 import java.util.UUID;

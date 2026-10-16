@@ -2,7 +2,7 @@ package ru.job4j.socialmediaapi.adapter.in.web.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import ru.job4j.socialmediaapi.adapter.in.web.dto.ErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 
 /**
  * Error codes of the API contract: the constant name is the {@code code} of the response body.

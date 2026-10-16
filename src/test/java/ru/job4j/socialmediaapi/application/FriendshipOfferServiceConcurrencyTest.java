@@ -46,7 +46,7 @@ class FriendshipOfferServiceConcurrencyTest {
     void whenCreateSameOfferConcurrentlyThenOneCreatedAndOneAlreadyPending() throws Exception {
         var useCaseRequest = new CreateFriendshipOfferUseCaseRequest(UUID.randomUUID(), UUID.randomUUID());
         var start = new CountDownLatch(1);
-        // ExecutorService is AutoCloseable only since Java 19, the project targets Java 17
+        // shutdownNow() instead of try-with-resources: close() would wait forever for a hung task
         var executor = Executors.newFixedThreadPool(THREADS);
         try {
             var futures = new ArrayList<Future<CreateFriendshipOfferResult>>();
