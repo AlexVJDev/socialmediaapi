@@ -1,6 +1,6 @@
-package ru.job4j.socialmediaapi.application.port.out;
+package ru.job4j.socialmediaapi.subscriptions.internal.application.port;
 
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.subscriptions.internal.domain.exception.SubscriptionAlreadyExistsException;
 
 import java.time.Instant;
 import java.util.Optional;

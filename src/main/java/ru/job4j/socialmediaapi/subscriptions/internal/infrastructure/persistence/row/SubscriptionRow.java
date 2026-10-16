@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.row;
+package ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.row;
 
 import java.time.Instant;
 import java.util.UUID;

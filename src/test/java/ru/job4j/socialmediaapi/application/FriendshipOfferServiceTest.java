@@ -18,8 +18,7 @@ import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.FindFriendshipOfferResponse;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
@@ -59,9 +58,9 @@ class FriendshipOfferServiceTest {
     @Mock
     private FriendshipOfferRepository friendshipOfferRepository;
 
-    /** Mocked subscription repository. */
+    /** Mocked API of the subscriptions module. */
     @Mock
-    private SubscriptionRepository subscriptionRepository;
+    private Subscriptions subscriptions;
 
     /** Service under test. */
     private FriendshipOfferService service;
@@ -70,7 +69,7 @@ class FriendshipOfferServiceTest {
     void setUp() {
         service = new FriendshipOfferService(
                 friendshipOfferRepository,
-                subscriptionRepository,
+                subscriptions,
                 Mappers.getMapper(FriendshipOfferApplicationMapper.class),
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
@@ -83,7 +82,7 @@ class FriendshipOfferServiceTest {
 
         assertThatThrownBy(() -> service.create(useCaseRequest))
                 .isInstanceOf(FriendshipOfferToSelfException.class);
-        verifyNoInteractions(friendshipOfferRepository, subscriptionRepository);
+        verifyNoInteractions(friendshipOfferRepository, subscriptions);
     }
 
     @Test
@@ -103,12 +102,7 @@ class FriendshipOfferServiceTest {
         assertThat(offer.createdAt()).isEqualTo(NOW);
         assertThat(offer.updatedAt()).isEqualTo(NOW);
 
-        var subscriptionCaptor = ArgumentCaptor.forClass(CreateSubscriptionRequest.class);
-        verify(subscriptionRepository).createSubscriptionIfAbsent(subscriptionCaptor.capture());
-        var subscription = subscriptionCaptor.getValue();
-        assertThat(subscription.followerId()).isEqualTo(FROM_USER_ID);
-        assertThat(subscription.followedId()).isEqualTo(TO_USER_ID);
-        assertThat(subscription.createdAt()).isEqualTo(NOW);
+        verify(subscriptions).subscribeIfAbsent(FROM_USER_ID, TO_USER_ID, NOW);
 
         assertThat(result).isEqualTo(new CreateFriendshipOfferResult(
                 offer.id(), FROM_USER_ID, TO_USER_ID, FriendshipOfferStatus.PENDING, NOW
@@ -120,12 +114,11 @@ class FriendshipOfferServiceTest {
     void whenOfferNotExistsAndSubscriptionExistsThenOfferCreated() {
         when(friendshipOfferRepository.createFriendshipOffer(any()))
                 .thenAnswer(invocation -> saved(invocation.getArgument(0)));
-        when(subscriptionRepository.createSubscriptionIfAbsent(any())).thenReturn(Optional.empty());
+        when(subscriptions.subscribeIfAbsent(FROM_USER_ID, TO_USER_ID, NOW)).thenReturn(false);
 
         var result = service.create(useCaseRequest());
 
         assertThat(result.fromUserId()).isEqualTo(FROM_USER_ID);
-        verify(subscriptionRepository, never()).createSubscription(any());
         verify(friendshipOfferRepository, never()).findByUsers(any(), any());
     }
 
@@ -141,7 +134,7 @@ class FriendshipOfferServiceTest {
                 .thenReturn(Optional.of(existing(status)));
 
         assertThatThrownBy(() -> service.create(useCaseRequest())).isInstanceOf(expected);
-        verifyNoInteractions(subscriptionRepository);
+        verifyNoInteractions(subscriptions);
     }
 
     @Test
@@ -152,7 +145,7 @@ class FriendshipOfferServiceTest {
         when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(useCaseRequest())).isSameAs(duplicate);
-        verifyNoInteractions(subscriptionRepository);
+        verifyNoInteractions(subscriptions);
     }
 
     private static Stream<Arguments> existingStatusErrors() {

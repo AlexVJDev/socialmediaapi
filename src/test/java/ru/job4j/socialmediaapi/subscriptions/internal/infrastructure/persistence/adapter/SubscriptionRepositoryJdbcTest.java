@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
+package ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.adapter;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
+import ru.job4j.socialmediaapi.subscriptions.internal.domain.exception.SubscriptionAlreadyExistsException;
 
 import java.time.Instant;
 import java.util.UUID;

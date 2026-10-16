@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.domain.subscription.exception;
+package ru.job4j.socialmediaapi.subscriptions.internal.domain.exception;
 
 import java.util.UUID;
 

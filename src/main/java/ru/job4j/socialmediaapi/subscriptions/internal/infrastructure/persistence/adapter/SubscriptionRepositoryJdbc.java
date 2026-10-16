@@ -1,13 +1,13 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
+package ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.adapter;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import ru.job4j.socialmediaapi.adapter.out.persistence.row.SubscriptionRow;
-import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.SubscriptionPersistenceMapper;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
-import ru.job4j.socialmediaapi.domain.subscription.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.row.SubscriptionRow;
+import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.mapper.SubscriptionPersistenceMapper;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
+import ru.job4j.socialmediaapi.subscriptions.internal.domain.exception.SubscriptionAlreadyExistsException;
 
 import java.sql.Timestamp;
 import java.util.Optional;

@@ -7,8 +7,7 @@ import ru.job4j.socialmediaapi.application.mapper.FriendshipOfferApplicationMapp
 import ru.job4j.socialmediaapi.application.port.in.CreateFriendshipOfferUseCase;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.application.port.out.FriendshipOfferRepository.CreateFriendshipOfferResponse;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.FriendshipOffer;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyExistsException;
@@ -16,7 +15,6 @@ import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferA
 import ru.job4j.socialmediaapi.domain.friendshipoffer.exception.FriendshipOfferAlreadyRejectedException;
 
 import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Creating an offer friendship, see «1. Создание заявки»
@@ -42,8 +40,8 @@ public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
     /** Stores friendship offers. */
     private final FriendshipOfferRepository friendshipOfferRepository;
 
-    /** Stores the sender's subscription to the recipient.*/
-    private final SubscriptionRepository subscriptionRepository;
+    /** Subscribes the sender to the recipient (API of the subscriptions module). */
+    private final Subscriptions subscriptions;
 
     /** Maps use case requests and repository responses to use case results. */
     private final FriendshipOfferApplicationMapper mapper;
@@ -61,9 +59,7 @@ public class FriendshipOfferService implements CreateFriendshipOfferUseCase {
         } catch (FriendshipOfferAlreadyExistsException e) {
             throw alreadyExistsError(offer, e);
         }
-        subscriptionRepository.createSubscriptionIfAbsent(new CreateSubscriptionRequest(
-                UUID.randomUUID(), offer.fromUserId(), offer.toUserId(), offer.createdAt()
-        ));
+        subscriptions.subscribeIfAbsent(offer.fromUserId(), offer.toUserId(), offer.createdAt());
         return mapper.toResult(created);
     }
 

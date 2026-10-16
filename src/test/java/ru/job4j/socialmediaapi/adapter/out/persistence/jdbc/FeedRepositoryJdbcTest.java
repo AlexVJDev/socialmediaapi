@@ -11,8 +11,7 @@ import ru.job4j.socialmediaapi.application.port.out.FeedRepository.FeedPostRespo
 import ru.job4j.socialmediaapi.application.port.out.PostRepository;
 import ru.job4j.socialmediaapi.application.port.out.PostRepository.CreatePostRequest;
 import ru.job4j.socialmediaapi.application.port.out.PostRepository.DeletePostRequest;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository;
-import ru.job4j.socialmediaapi.application.port.out.SubscriptionRepository.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 import ru.job4j.socialmediaapi.domain.post.PostStatus;
 
 import java.time.Instant;
@@ -23,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Data is prepared through the ports (posts, subscriptions), so the tests check
+ * Data is prepared through the posts port and the subscriptions module API, so the tests check
  * how the feed follows the business process, not only the SQL. Each test uses new
  * user ids: the container is shared and holds the data of other tests.
  */
@@ -46,9 +45,9 @@ class FeedRepositoryJdbcTest {
     @Autowired
     private PostRepository postRepository;
 
-    /** Subscribes and unsubscribes readers. */
+    /** Subscribes and unsubscribes readers (API of the subscriptions module). */
     @Autowired
-    private SubscriptionRepository subscriptionRepository;
+    private Subscriptions subscriptions;
 
     @Test
     @DisplayName("До подписки пост автора отсутствует в ленте читателя")
@@ -80,7 +79,7 @@ class FeedRepositoryJdbcTest {
         var post = post(author, 0);
         subscribe(reader, author);
 
-        subscriptionRepository.deleteSubscription(reader, author);
+        subscriptions.unsubscribe(reader, author);
 
         assertThat(feed(reader)).isEmpty();
         assertThat(postRepository.findPublishedById(post)).isPresent();
@@ -143,7 +142,7 @@ class FeedRepositoryJdbcTest {
         var feed = feed(reader);
 
         assertThat(ids(feed)).containsExactly(newest, middle, oldest);
-        assertThat(feed.get(0)).isEqualTo(new FeedPostResponse(
+        assertThat(feed.getFirst()).isEqualTo(new FeedPostResponse(
                 newest, first, "Заголовок", "Текст",
                 PostStatus.PUBLISHED, BASE_TIME.plusSeconds(120), BASE_TIME.plusSeconds(120)
         ));
@@ -210,9 +209,7 @@ class FeedRepositoryJdbcTest {
     }
 
     private void subscribe(UUID follower, UUID followed) {
-        subscriptionRepository.createSubscription(
-                new CreateSubscriptionRequest(UUID.randomUUID(), follower, followed, BASE_TIME)
-        );
+        assertThat(subscriptions.subscribeIfAbsent(follower, followed, BASE_TIME)).isTrue();
     }
 
     /**
