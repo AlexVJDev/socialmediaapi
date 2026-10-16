@@ -1,7 +1,7 @@
 # Схема пакетов модулей
 
 Генерируется по каждому модулю:
-`python3 -I docs/refactoring-kit/templates/gen-schema.py src/main/java/ru/job4j/socialmediaapi/<module>`
+`python3 -I scripts/gen-schema.py src/main/java/ru/job4j/socialmediaapi/<module>`
 (с `--classes` — со списком классов). Обновляется в той же итерации, что и код.
 Правила размещения — `docs/architecture.md`.
 

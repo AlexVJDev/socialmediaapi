@@ -8,7 +8,7 @@
 
 ## Контекст
 
-Слои по `CLAUDE.md`: `application.port.in` — входные порты (use case + UseCaseRequest/Result), реализация — сервис в `application`. Сервис зависит только от портов и домена, не от адаптеров и не от `*Row`.
+Слои по `../../../../CLAUDE.md`: `application.port.in` — входные порты (use case + UseCaseRequest/Result), реализация — сервис в `application`. Сервис зависит только от портов и домена, не от адаптеров и не от `*Row`.
 Время и идентификаторы для тестируемости получать извне: `java.time.Clock` (объявить бин в конфигурации, например `Clock.systemUTC()`) и генерация `UUID.randomUUID()` в сервисе.
 
 ## Что сделать

@@ -9,7 +9,7 @@
 ## Контекст
 
 Исключения домена лежат в `ru.job4j.socialmediaapi.domain.friendshipoffer.exception`, наследуют `RuntimeException`, сообщение — на английском через `"...".formatted(...)`.
-`FriendshipOfferToSelfException` бросает домен (фабрика `FriendshipOffer.create`) **до** обращения к БД. JDBC-адаптер его не бросает: срабатывание `chk_friendship_offer_different_users` означает ошибку в коде и пробрасывается как `DataIntegrityViolationException` (см. `task_new.md`).
+`FriendshipOfferToSelfException` бросает домен (фабрика `FriendshipOffer.create`) **до** обращения к БД. JDBC-адаптер его не бросает: срабатывание `chk_friendship_offer_different_users` означает ошибку в коде и пробрасывается как `DataIntegrityViolationException` (см. `../task_new.md`).
 
 ## Что сделать
 

@@ -8,7 +8,7 @@
 
 ## Контекст
 
-Контракт — `docs/api/paths/friendship-offer-create.yaml` (после задания 01). Контроллеры — в `adapter.in.web` (образец оформления — `PingController`). Web-мапперы — в `adapter.in.web.mapper` (`*WebMapper`, образец — `docs/md/examples/GoanPineMapper.java` / раздел «Маппинг» в `CLAUDE.md`). В проекте уже подключён `spring-boot-starter-validation`.
+Контракт — `../../../api/paths/friendship-offer-create.yaml` (после задания 01). Контроллеры — в `adapter.in.web` (образец оформления — `PingController`). Web-мапперы — в `adapter.in.web.mapper` (`*WebMapper`, образец — `docs/md/examples/GoanPineMapper.java` / раздел «Маппинг» в `CLAUDE.md`). В проекте уже подключён `spring-boot-starter-validation`.
 
 ## Что сделать
 
