@@ -15,7 +15,7 @@
 | `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) | перенесён |
 | `posts` | Посты и лента подписчика | `{}` | нет | перенесён |
 | `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет | перенесён |
-| `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет | legacy |
+| `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет | перенесён |
 
 Граф зависимостей: `friendships → subscriptions`; циклов нет.
 
@@ -287,4 +287,4 @@ MapStruct-мапперы лежат в `mapper/` своего слоя или а
 через их `api`. Новый код в эти пакеты не добавляется. Список совпадает
 с `LEGACY_PACKAGES` в архитектурном тесте.
 
-- `ru.job4j.socialmediaapi.adapter` (только `PingController`)
+Legacy-пакетов не осталось (`LEGACY_PACKAGES` пуст); раздел и константа удаляются на этапе 4.

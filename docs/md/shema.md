@@ -68,3 +68,12 @@ friendships/  ‹package-info (@ApplicationModule)›
             ├── request/  ‹record›
             └── response/  ‹record›
 ```
+
+## system
+
+```text
+system/  ‹package-info (@ApplicationModule)›
+└── internal/
+    └── infrastructure/
+        └── web/  ‹class @RestController›
+```

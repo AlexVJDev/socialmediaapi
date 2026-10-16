@@ -33,9 +33,7 @@ class ApplicationModulesTest {
      * Packages not yet moved into modules (see «Переходный период» in {@code docs/architecture.md}).
      * TODO удалить после переноса: каждый перенесённый пакет убирать из списка.
      */
-    private static final String[] LEGACY_PACKAGES = {
-            BASE_PACKAGE + ".adapter.."
-    };
+    private static final String[] LEGACY_PACKAGES = {};
 
     /** Production classes of the application, without tests. */
     private static final JavaClasses CLASSES = new ClassFileImporter()
