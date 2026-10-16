@@ -1,6 +1,6 @@
-package ru.job4j.socialmediaapi.application.port.out;
+package ru.job4j.socialmediaapi.posts.internal.application.port;
 
-import ru.job4j.socialmediaapi.domain.post.PostStatus;
+import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 
 import java.time.Instant;
 import java.util.Optional;

@@ -1,12 +1,12 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
+package ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.adapter;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import ru.job4j.socialmediaapi.adapter.out.persistence.mapper.FeedPersistenceMapper;
-import ru.job4j.socialmediaapi.adapter.out.persistence.row.PostRow;
-import ru.job4j.socialmediaapi.application.port.out.FeedRepository;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper.FeedPersistenceMapper;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
+import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
 
 import java.util.List;
 import java.util.UUID;

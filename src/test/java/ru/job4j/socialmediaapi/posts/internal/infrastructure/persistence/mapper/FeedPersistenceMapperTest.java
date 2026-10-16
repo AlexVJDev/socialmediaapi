@@ -1,11 +1,11 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
+package ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import ru.job4j.socialmediaapi.adapter.out.persistence.row.PostRow;
-import ru.job4j.socialmediaapi.application.port.out.FeedRepository.FeedPostResponse;
-import ru.job4j.socialmediaapi.domain.post.PostStatus;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
+import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository.FeedPostResponse;
+import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 
 import java.time.Instant;
 import java.util.UUID;

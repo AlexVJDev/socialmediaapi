@@ -1,4 +1,4 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.jdbc;
+package ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.adapter;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -6,13 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
-import ru.job4j.socialmediaapi.application.port.out.FeedRepository;
-import ru.job4j.socialmediaapi.application.port.out.FeedRepository.FeedPostResponse;
-import ru.job4j.socialmediaapi.application.port.out.PostRepository;
-import ru.job4j.socialmediaapi.application.port.out.PostRepository.CreatePostRequest;
-import ru.job4j.socialmediaapi.application.port.out.PostRepository.DeletePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
+import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository.FeedPostResponse;
+import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
+import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.DeletePostRequest;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
-import ru.job4j.socialmediaapi.domain.post.PostStatus;
+import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 
 import java.time.Instant;
 import java.util.List;

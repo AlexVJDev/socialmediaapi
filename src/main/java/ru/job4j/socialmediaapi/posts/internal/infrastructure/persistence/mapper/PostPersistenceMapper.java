@@ -1,10 +1,10 @@
-package ru.job4j.socialmediaapi.adapter.out.persistence.mapper;
+package ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
-import ru.job4j.socialmediaapi.adapter.out.persistence.row.PostRow;
-import ru.job4j.socialmediaapi.application.port.out.PostRepository.CreatePostRequest;
-import ru.job4j.socialmediaapi.application.port.out.PostRepository.PostResponse;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
+import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository.PostResponse;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
