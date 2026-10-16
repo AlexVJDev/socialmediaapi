@@ -3,19 +3,19 @@ info:
   title: API социальной сети
   version: 1.0.0
 paths:
-  /api/offer-friendships/create:
+  /api/v1/friendship-offer/create:
     $ref: './paths/friendship-offer-create.yaml'
-  /api/offer-friendships/accept:
+  /api/v1/friendship-offer/accept:
     $ref: './paths/friendship-offer-accept.yaml'
-  /api/offer-friendships/reject:
+  /api/v1/friendship-offer/reject:
     $ref: './paths/friendship-offer-reject.yaml'
-  /api/offer-friendships/incoming:
+  /api/v1/friendship-offer/incoming:
     $ref: './paths/friendships-incoming-get.yaml'
-  /api/offer-friendships/outgoing:
+  /api/v1/friendship-offer/outgoing:
     $ref: './paths/friendships-outgoing-get.yaml'
-  /api/friendships:
+  /api/v1/friendships:
     $ref: './paths/friends-get.yaml'
-  /api/subscribes/followers:
+  /api/v1/subscribes/followers:
     $ref: './paths/followers-get.yaml'
-  /api/subscribes:
+  /api/v1/subscribes:
     $ref: './paths/subscribes-get.yaml'

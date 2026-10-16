@@ -22,9 +22,9 @@ import java.time.Clock;
  * Creating an offer friendship, see «1. Создание заявки»
  * in {@code docs/process/friendship_transitions.puml}.
  *
- * <p>The offer is inserted right away, without a preliminary lookup: the uniqueness
- * of an offer per pair of users is guarded by the unique key of the table, so a repeat
- * (sequential or concurrent) fails with {@link FriendshipOfferAlreadyExistsException}.
+ * <p>The offer is inserted right away, without a preliminary lookup: a pair of users has
+ * at most one offer in either direction, guarded by the unique index of the table, so a repeat
+ * or a counter offer (sequential or concurrent) fails with {@link FriendshipOfferAlreadyExistsException}.
  * The repository rolls back only that insert (a savepoint), so the service can read
  * the existing offer and throw the error of its status: {@link FriendshipOfferAlreadyPendingException},
  * {@link FriendshipOfferAlreadyAcceptedException} or {@link FriendshipOfferAlreadyRejectedException};
@@ -58,9 +58,10 @@ public class CreateFriendshipOffer {
      * @param command sender and recipient of the offer
      * @return the created offer
      * @throws FriendshipOfferToSelfException          the user offers friendship to themselves
-     * @throws FriendshipOfferAlreadyPendingException  the offer in the same direction already waits for a decision
-     * @throws FriendshipOfferAlreadyAcceptedException the offer in the same direction is already accepted
-     * @throws FriendshipOfferAlreadyRejectedException the offer in the same direction is already rejected
+     * @throws FriendshipOfferAlreadyPendingException  the offer of this pair (either direction) waits for a decision
+     * @throws FriendshipOfferAlreadyAcceptedException the offer of this pair (either direction) is already accepted
+     * @throws FriendshipOfferAlreadyRejectedException the offer of this pair (either direction) is already rejected
+     * @throws FriendshipOfferAlreadyExistsException   the offer of this pair exists, but could not be read
      */
     @Transactional
     public CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command) {
@@ -76,7 +77,8 @@ public class CreateFriendshipOffer {
     }
 
     /**
-     * Reads the offer that blocked the insert and picks the error of its status;
+     * Reads the offer of the pair that blocked the insert (it may be the counter offer)
+     * and picks the error of its status; the error carries the real direction of that offer;
      * if the offer cannot be read, the original duplicate error is returned.
      *
      * @param offer offer that could not be inserted
@@ -86,7 +88,7 @@ public class CreateFriendshipOffer {
     private RuntimeException alreadyExistsError(
             FriendshipOffer offer, FriendshipOfferAlreadyExistsException cause
     ) {
-        return friendshipOfferRepository.findByUsers(offer.fromUserId(), offer.toUserId())
+        return friendshipOfferRepository.findByPair(offer.fromUserId(), offer.toUserId())
                 .map(existing -> switch (existing.status()) {
                     case PENDING -> new FriendshipOfferAlreadyPendingException(
                             existing.id(), existing.fromUserId(), existing.toUserId()

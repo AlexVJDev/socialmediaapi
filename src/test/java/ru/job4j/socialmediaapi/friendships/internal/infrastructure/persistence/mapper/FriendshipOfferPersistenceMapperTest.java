@@ -7,6 +7,7 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.r
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
 import java.time.Instant;
@@ -98,5 +99,27 @@ class FriendshipOfferPersistenceMapperTest {
 
         assertThatThrownBy(() -> mapper.toFindResponse(row))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("toUpdateResponse: строковый статус из Row преобразуется в enum")
+    void whenToUpdateResponseThenStatusParsedToEnum() {
+        var row = new FriendshipOfferRow(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                "REJECTED", CREATED_AT, UPDATED_AT
+        );
+
+        var response = mapper.toUpdateResponse(row);
+
+        assertThat(response).isEqualTo(new UpdateFriendshipOfferStatusResponse(
+                row.id(), row.fromUserId(), row.toUserId(),
+                FriendshipOfferStatus.REJECTED, CREATED_AT, UPDATED_AT
+        ));
+    }
+
+    @Test
+    @DisplayName("toStatus: статус-enum для SQL-параметра записывается строкой через name()")
+    void whenToStatusThenName() {
+        assertThat(mapper.toStatus(FriendshipOfferStatus.ACCEPTED)).isEqualTo("ACCEPTED");
     }
 }

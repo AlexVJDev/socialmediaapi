@@ -13,71 +13,76 @@ actor "Борис\n(получатель)" as Boris
 participant "Social Media API" as Api
 database "БД" as DB
 
-== 1. Создание заявки: POST /api/offer-friendships/create ==
+== 1. Создание заявки: POST /api/v1/friendship-offer/create ==
 
 Alice -> Api : create(from = Алиса, to = Борис)
-Api -> DB : найти заявку Алиса -> Борис
 
 alt Алиса = Борис
   Api --> Alice : 400 INVALID_FRIENDSHIP_OFFER_REQUEST
-else заявки нет
+else заявки для пары нет (ни Алиса -> Борис, ни Борис -> Алиса)
   group одна транзакция
     Api -> DB : INSERT заявка (PENDING)
     Api -> DB : INSERT подписка Алиса -> Борис\n(если её ещё нет)
   end
   Api --> Alice : 201 Created, status = PENDING
-else повтор: заявка уже PENDING
-  Api --> Alice : 204 No Content\n(ничего не меняется)
-else повтор: заявка уже ACCEPTED или REJECTED
-  Api --> Alice : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED\nили FRIENDSHIP_OFFER_ALREADY_REJECTED
+else заявка для пары уже есть (уникальный ключ пары)
+  Api -> DB : прочитать заявку пары\n(в любом направлении)
+  alt заявка PENDING (повтор или встречная)
+    Api --> Alice : 200 OK, FRIENDSHIP_OFFER_ALREADY_PENDING\n(ничего не меняется)
+  else заявка ACCEPTED или REJECTED
+    Api --> Alice : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED\nили FRIENDSHIP_OFFER_ALREADY_REJECTED
+  end
 end
 
-== 2. Принятие заявки: POST /api/offer-friendships/accept ==
+== 2. Принятие заявки: POST /api/v1/friendship-offer/accept ==
 
-Boris -> Api : accept(offerId)
-Api -> DB : найти заявку по offerId
+Boris -> Api : accept(offerId, actorId = Борис)
 
-alt заявка не найдена
-  Api --> Boris : 404 FRIENDSHIP_OFFER_NOT_FOUND
-else заявка PENDING
-  group одна транзакция (атомарно)
-    Api -> DB : UPDATE заявка -> ACCEPTED
+group одна транзакция (атомарно)
+  Api -> DB : UPDATE заявка -> ACCEPTED\nWHERE id = offerId AND to_user_id = actorId\nAND status = PENDING
+  alt обновлена 1 строка
     Api -> DB : INSERT дружба Алиса <-> Борис
     Api -> DB : INSERT подписка Борис -> Алиса\n(если её ещё нет)
+    Api --> Boris : 200 OK, status = ACCEPTED
+  else 0 строк: прочитать заявку (id, получатель)
+    alt заявки нет или Борис не получатель
+      Api --> Boris : 404 FRIENDSHIP_OFFER_NOT_FOUND
+    else заявка ACCEPTED (в т. ч. повтор)
+      Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED
+    else заявка REJECTED
+      Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_REJECTED
+    end
   end
-  Api --> Boris : 200 OK, status = ACCEPTED
-else повтор: заявка уже ACCEPTED
-  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED
-else заявка REJECTED
-  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_REJECTED
 end
 
-== 3. Отклонение заявки: POST /api/offer-friendships/reject ==
+== 3. Отклонение заявки: POST /api/v1/friendship-offer/reject ==
 
-Boris -> Api : reject(offerId)
-Api -> DB : найти заявку по offerId
+Boris -> Api : reject(offerId, actorId = Борис)
 
-alt заявка не найдена
-  Api --> Boris : 404 FRIENDSHIP_OFFER_NOT_FOUND
-else заявка PENDING
-  Api -> DB : UPDATE заявка -> REJECTED
+Api -> DB : UPDATE заявка -> REJECTED\nWHERE id = offerId AND to_user_id = actorId\nAND status = PENDING
+alt обновлена 1 строка
   note right of DB
     Дружба не создаётся.
     Подписка Алиса -> Борис остаётся.
   end note
   Api --> Boris : 200 OK, status = REJECTED
-else повтор: заявка уже REJECTED
-  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_REJECTED
-else заявка ACCEPTED
-  Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED
+else 0 строк: прочитать заявку (id, получатель)
+  alt заявки нет или Борис не получатель
+    Api --> Boris : 404 FRIENDSHIP_OFFER_NOT_FOUND
+  else заявка REJECTED (в т. ч. повтор)
+    Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_REJECTED
+  else заявка ACCEPTED
+    Api --> Boris : 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED
+  end
 end
 
 legend bottom
 |= Действие |= Инициатор |= Предусловие |= Результат |
-| Создать заявку | Алиса | заявки Алиса -> Борис нет | 201: заявка PENDING + подписка Алиса -> Борис |
-| Создать повторно | Алиса | заявка PENDING | 204: ничего не меняется |
-| Создать повторно | Алиса | заявка ACCEPTED / REJECTED | 409: ничего не меняется |
+| Создать заявку | Алиса | заявки для пары нет | 201: заявка PENDING + подписка Алиса -> Борис |
+| Создать повторно / встречную | Алиса или Борис | заявка пары PENDING | 200 FRIENDSHIP_OFFER_ALREADY_PENDING: ничего не меняется |
+| Создать повторно / встречную | Алиса или Борис | заявка пары ACCEPTED / REJECTED | 409: ничего не меняется |
 | Принять | Борис | заявка PENDING | 200: ACCEPTED + дружба + подписка Борис -> Алиса (атомарно) |
+| Принять / отклонить | не получатель | любая | 404: заявка «не найдена» |
 | Принять повторно | Борис | заявка ACCEPTED | 409: дубликатов нет |
 | Принять отклонённую | Борис | заявка REJECTED | 409: дружба не создаётся |
 | Отклонить | Борис | заявка PENDING | 200: REJECTED, подписка Алисы остаётся |
@@ -85,17 +90,19 @@ legend bottom
 | Отклонить принятую | Борис | заявка ACCEPTED | 409: дружба не отменяется |
 
 **Инварианты**
-  Нельзя отправить заявку себе или создать две активные (PENDING) заявки одной направленности.
+  Нельзя отправить заявку себе. Для пары пользователей — не больше одной заявки в любом направлении.
   Дружба всегда взаимна. Подписки направлены и существуют отдельно от дружбы.
   Принятие меняет статус, создаёт дружбу и обратную подписку атомарно.
   Отклонение не отменяет подписку инициатора. Повторы не создают дубли связей.
-  При одновременных командах проверка статуса и изменение выполняются атомарно:
-  только одно решение меняет PENDING; остальные обрабатываются как повтор или конфликт.
+  Принять или отклонить заявку может только её получатель.
+  При одновременных командах проверка статуса и изменение выполняются одним UPDATE:
+  только одно решение меняет PENDING; остальные получают 409.
   Уникальность заявок и связей сохраняется и при одновременном создании.
 
 **Правило повторной отправки в этой схеме**
   ACCEPTED и REJECTED — конечные состояния, возврата в PENDING нет.
-  Проверка существующей заявки при создании относится к направлению Алиса → Борис.
+  Проверка существующей заявки при создании относится к паре пользователей:
+  встречная заявка Борис → Алиса обрабатывается как повтор заявки Алиса → Борис.
 
   **Вне первого релиза**
   Блокировки, приватные профили, рекомендации и удаление друзей.

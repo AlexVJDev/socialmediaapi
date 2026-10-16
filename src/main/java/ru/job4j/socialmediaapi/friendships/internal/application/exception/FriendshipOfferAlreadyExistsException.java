@@ -3,8 +3,8 @@ package ru.job4j.socialmediaapi.friendships.internal.application.exception;
 import java.util.UUID;
 
 /**
- * Error of the {@code FriendshipOfferRepository} port contract: an offer in the same
- * direction already exists (unique key {@code uq_friendship_offer_users}). Thrown by the
+ * Error of the {@code FriendshipOfferRepository} port contract: an offer for this pair of users
+ * already exists in either direction (unique index {@code uq_friendship_offer_pair}). Thrown by the
  * persistence adapter; not a domain rule, so it lives in {@code application.exception}.
  */
 public class FriendshipOfferAlreadyExistsException extends RuntimeException {

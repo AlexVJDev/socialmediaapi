@@ -1,7 +1,7 @@
 # Схема пакетов модулей
 
 Генерируется по каждому модулю:
-`python3 -I scripts/gen-schema.py src/main/java/ru/job4j/socialmediaapi/<module>`
+`python3 -I docs/md/scripts/gen-schema.py src/main/java/ru/job4j/socialmediaapi/<module>`
 (с `--classes` — со списком классов). Обновляется в той же итерации, что и код.
 Правила размещения — `docs/architecture.md`.
 
@@ -53,10 +53,11 @@ friendships/  ‹package-info (@ApplicationModule)›
     │   ├── model/  ‹record›
     │   ├── port/  ‹interface›
     │   │   └── model/  ‹record›
+    │   ├── service/  ‹class @Component›
     │   └── usecase/  ‹class @Service›
     ├── domain/
     │   ├── exception/  ‹class (исключение)›
-    │   └── model/  ‹enum, record›
+    │   └── model/  ‹record, enum›
     └── infrastructure/
         ├── persistence/
         │   ├── adapter/  ‹class @Repository, class›

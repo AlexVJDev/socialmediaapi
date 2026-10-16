@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.friendships.internal.infrastructure.web;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,11 +26,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@DisplayName("POST /api/offer-friendships/create: ответы и ошибки по схеме friendship_transitions.puml")
+@DisplayName("POST /api/v1/friendship-offer/{create,accept,reject}: ответы и ошибки по friendship_transitions.puml")
 class FriendshipOfferControllerTest {
 
+    /** Base URL of the friendship offer endpoints. */
+    private static final String BASE = "/api/v1/friendship-offer";
+
     /** URL of the create offer endpoint. */
-    private static final String CREATE = "/api/offer-friendships/create";
+    private static final String CREATE = BASE + "/create";
 
     /** MockMvc to call the API without a running server. */
     @Autowired
@@ -99,13 +103,65 @@ class FriendshipOfferControllerTest {
         assertThat(subscriptions(fromUserId, toUserId)).isOne();
     }
 
+    @Test
+    @DisplayName("Повтор заявки в статусе PENDING: 200 FRIENDSHIP_OFFER_ALREADY_PENDING, данные не меняются")
+    void whenRepeatPendingOfferThenOkWithPendingCode() throws Exception {
+        var fromUserId = UUID.randomUUID();
+        var toUserId = UUID.randomUUID();
+        create(body(fromUserId, toUserId)).andExpect(status().isCreated());
+
+        expectError(create(body(fromUserId, toUserId)), 200, "FRIENDSHIP_OFFER_ALREADY_PENDING");
+
+        assertThat(offersFrom(fromUserId)).isOne();
+        assertThat(offerStatus(fromUserId, toUserId)).isEqualTo("PENDING");
+        assertThat(subscriptions(fromUserId, toUserId)).isOne();
+    }
+
+    @Test
+    @DisplayName("Встречная заявка при PENDING: 200 FRIENDSHIP_OFFER_ALREADY_PENDING, "
+            + "заявка пары одна, подписки получателя на инициатора нет")
+    void whenCounterOfferPendingThenOkWithPendingCode() throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        create(body(aliceId, borisId)).andExpect(status().isCreated());
+
+        expectError(create(body(borisId, aliceId)), 200, "FRIENDSHIP_OFFER_ALREADY_PENDING");
+
+        assertThat(offersFrom(aliceId)).isOne();
+        assertThat(offersFrom(borisId)).isZero();
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo("PENDING");
+        assertThat(subscriptions(aliceId, borisId)).isOne();
+        assertThat(subscriptions(borisId, aliceId)).isZero();
+    }
+
     @ParameterizedTest
     @CsvSource({
-            "PENDING, FRIENDSHIP_OFFER_ALREADY_PENDING",
             "ACCEPTED, FRIENDSHIP_OFFER_ALREADY_ACCEPTED",
             "REJECTED, FRIENDSHIP_OFFER_ALREADY_REJECTED"
     })
-    @DisplayName("Повтор: 409 с кодом статуса существующей заявки, данные не меняются")
+    @DisplayName("Встречная заявка при ACCEPTED/REJECTED: 409 с кодом статуса заявки пары, данные не меняются")
+    void whenCounterOfferDecidedThenConflict(String offerStatus, String code) throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        create(body(aliceId, borisId)).andExpect(status().isCreated());
+        jdbcTemplate.update(
+                "UPDATE friendship_offer SET status = ? WHERE from_user_id = ? AND to_user_id = ?",
+                offerStatus, aliceId, borisId
+        );
+
+        expectError(create(body(borisId, aliceId)), 409, code);
+
+        assertThat(offersFrom(borisId)).isZero();
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo(offerStatus);
+        assertThat(subscriptions(borisId, aliceId)).isZero();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "ACCEPTED, FRIENDSHIP_OFFER_ALREADY_ACCEPTED",
+            "REJECTED, FRIENDSHIP_OFFER_ALREADY_REJECTED"
+    })
+    @DisplayName("Повтор ACCEPTED/REJECTED: 409 с кодом статуса существующей заявки, данные не меняются")
     void whenRepeatOfferThenConflict(String offerStatus, String code) throws Exception {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
@@ -120,6 +176,159 @@ class FriendshipOfferControllerTest {
         assertThat(offersFrom(fromUserId)).isOne();
         assertThat(offerStatus(fromUserId, toUserId)).isEqualTo(offerStatus);
         assertThat(subscriptions(fromUserId, toUserId)).isOne();
+    }
+
+    @Test
+    @DisplayName("accept PENDING получателем: 200, ACCEPTED, дружба в каноническом порядке и взаимные подписки")
+    void whenAcceptPendingThenOkFriendshipAndMutualSubscriptions() throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        var offerId = createOffer(aliceId, borisId);
+
+        decide("accept", decideBody(offerId, borisId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(offerId.toString()))
+                .andExpect(jsonPath("$.fromUserId").value(aliceId.toString()))
+                .andExpect(jsonPath("$.toUserId").value(borisId.toString()))
+                .andExpect(jsonPath("$.status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.acceptedAt").isNotEmpty())
+                .andExpect(jsonPath("$.rejectedAt").doesNotExist());
+
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo("ACCEPTED");
+        assertThat(friendshipsOf(offerId)).isOne();
+        assertThat(count("""
+                SELECT count(*) FROM friendships
+                WHERE friendship_offer_id = ? AND status = 'ACTIVE' AND first_user_id < second_user_id
+                  AND ((first_user_id = ? AND second_user_id = ?) OR (first_user_id = ? AND second_user_id = ?))
+                """, offerId, aliceId, borisId, borisId, aliceId)).isOne();
+        assertThat(subscriptions(aliceId, borisId)).isOne();
+        assertThat(subscriptions(borisId, aliceId)).isOne();
+    }
+
+    @Test
+    @DisplayName("reject PENDING получателем: 200, REJECTED; дружбы нет, подписка отправителя осталась, обратной нет")
+    void whenRejectPendingThenOkAndNoFriendship() throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        var offerId = createOffer(aliceId, borisId);
+
+        decide("reject", decideBody(offerId, borisId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(offerId.toString()))
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectedAt").isNotEmpty())
+                .andExpect(jsonPath("$.acceptedAt").doesNotExist());
+
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo("REJECTED");
+        assertThat(friendshipsOf(offerId)).isZero();
+        assertThat(subscriptions(aliceId, borisId)).isOne();
+        assertThat(subscriptions(borisId, aliceId)).isZero();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"accept, sender", "accept, stranger", "reject, sender", "reject, stranger"})
+    @DisplayName("accept/reject не получателем: 404 FRIENDSHIP_OFFER_NOT_FOUND, данные не меняются")
+    void whenDecideByNotRecipientThenNotFound(String action, String actor) throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        var offerId = createOffer(aliceId, borisId);
+        var actorId = "sender".equals(actor) ? aliceId : UUID.randomUUID();
+
+        expectError(decide(action, decideBody(offerId, actorId)), 404, "FRIENDSHIP_OFFER_NOT_FOUND");
+
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo("PENDING");
+        assertThat(friendshipsOf(offerId)).isZero();
+        assertThat(subscriptions(borisId, aliceId)).isZero();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"accept", "reject"})
+    @DisplayName("accept/reject несуществующей заявки: 404 FRIENDSHIP_OFFER_NOT_FOUND")
+    void whenDecideMissingOfferThenNotFound(String action) throws Exception {
+        expectError(
+                decide(action, decideBody(UUID.randomUUID(), UUID.randomUUID())),
+                404, "FRIENDSHIP_OFFER_NOT_FOUND"
+        );
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "accept, accept, FRIENDSHIP_OFFER_ALREADY_ACCEPTED, ACCEPTED, 1",
+            "accept, reject, FRIENDSHIP_OFFER_ALREADY_ACCEPTED, ACCEPTED, 1",
+            "reject, accept, FRIENDSHIP_OFFER_ALREADY_REJECTED, REJECTED, 0",
+            "reject, reject, FRIENDSHIP_OFFER_ALREADY_REJECTED, REJECTED, 0"
+    })
+    @DisplayName("Повторное или перекрёстное решение: 409 с кодом текущего статуса, данные и дубликаты не меняются")
+    void whenDecideDecidedOfferThenConflict(
+            String first, String second, String code, String offerStatus, int friendships
+    ) throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        var offerId = createOffer(aliceId, borisId);
+        decide(first, decideBody(offerId, borisId)).andExpect(status().isOk());
+
+        expectError(decide(second, decideBody(offerId, borisId)), 409, code);
+
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo(offerStatus);
+        assertThat(friendshipsOf(offerId)).isEqualTo(friendships);
+        assertThat(subscriptions(aliceId, borisId)).isOne();
+        assertThat(subscriptions(borisId, aliceId)).isEqualTo(friendships);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "accept | {\"actorId\":\"%2$s\"}",
+            "accept | {\"offerId\":\"%1$s\"}",
+            "reject | {\"offerId\":\"42\",\"actorId\":\"%2$s\"}",
+            "reject | {not json"
+    })
+    @DisplayName("accept/reject с некорректным телом: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    void whenDecideWithInvalidBodyThenBadRequest(String action, String template) throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        var offerId = createOffer(aliceId, borisId);
+
+        expectError(
+                decide(action, template.formatted(offerId, borisId)),
+                400, "INVALID_FRIENDSHIP_OFFER_REQUEST"
+        );
+        assertThat(offerStatus(aliceId, borisId)).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("После accept встречная заявка Борис -> Алиса: 409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED")
+    void whenCounterOfferAfterAcceptThenConflict() throws Exception {
+        var aliceId = UUID.randomUUID();
+        var borisId = UUID.randomUUID();
+        var offerId = createOffer(aliceId, borisId);
+        decide("accept", decideBody(offerId, borisId)).andExpect(status().isOk());
+
+        expectError(create(body(borisId, aliceId)), 409, "FRIENDSHIP_OFFER_ALREADY_ACCEPTED");
+
+        assertThat(offersFrom(borisId)).isZero();
+        assertThat(friendshipsOf(offerId)).isOne();
+    }
+
+    private UUID createOffer(UUID fromUserId, UUID toUserId) throws Exception {
+        var json = create(body(fromUserId, toUserId))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(JsonPath.read(json, "$.id"));
+    }
+
+    private ResultActions decide(String action, String json) throws Exception {
+        return mockMvc.perform(post(BASE + "/" + action)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json));
+    }
+
+    private static String decideBody(UUID offerId, UUID actorId) {
+        return "{\"offerId\":\"%s\",\"actorId\":\"%s\"}".formatted(offerId, actorId);
+    }
+
+    private int friendshipsOf(UUID offerId) {
+        return count("SELECT count(*) FROM friendships WHERE friendship_offer_id = ?", offerId);
     }
 
     private ResultActions create(String json) throws Exception {

@@ -119,7 +119,7 @@ class CreateFriendshipOfferTest {
         var result = useCase.create(command());
 
         assertThat(result.fromUserId()).isEqualTo(FROM_USER_ID);
-        verify(friendshipOfferRepository, never()).findByUsers(any(), any());
+        verify(friendshipOfferRepository, never()).findByPair(any(), any());
     }
 
     @ParameterizedTest
@@ -130,10 +130,29 @@ class CreateFriendshipOfferTest {
     ) {
         when(friendshipOfferRepository.createFriendshipOffer(any()))
                 .thenThrow(new FriendshipOfferAlreadyExistsException(FROM_USER_ID, TO_USER_ID, null));
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID))
+        when(friendshipOfferRepository.findByPair(FROM_USER_ID, TO_USER_ID))
                 .thenReturn(Optional.of(existing(status)));
 
         assertThatThrownBy(() -> useCase.create(command())).isInstanceOf(expected);
+        verifyNoInteractions(subscriptions);
+    }
+
+    @Test
+    @DisplayName("Встречная заявка уже есть и ждёт решения: FriendshipOfferAlreadyPendingException "
+            + "с направлением существующей заявки, подписка не создаётся")
+    void whenCounterOfferPendingThenThrowAlreadyPendingWithItsDirection() {
+        var counterId = UUID.randomUUID();
+        when(friendshipOfferRepository.createFriendshipOffer(any()))
+                .thenThrow(new FriendshipOfferAlreadyExistsException(FROM_USER_ID, TO_USER_ID, null));
+        when(friendshipOfferRepository.findByPair(FROM_USER_ID, TO_USER_ID))
+                .thenReturn(Optional.of(new FindFriendshipOfferResponse(
+                        counterId, TO_USER_ID, FROM_USER_ID, FriendshipOfferStatus.PENDING, NOW, NOW
+                )));
+
+        assertThatThrownBy(() -> useCase.create(command()))
+                .isInstanceOf(FriendshipOfferAlreadyPendingException.class)
+                .hasMessage("Offer friendship %s from user %s to user %s already waits for a decision"
+                        .formatted(counterId, TO_USER_ID, FROM_USER_ID));
         verifyNoInteractions(subscriptions);
     }
 
@@ -142,7 +161,7 @@ class CreateFriendshipOfferTest {
     void whenDuplicateButOfferNotFoundThenThrowOriginalException() {
         var duplicate = new FriendshipOfferAlreadyExistsException(FROM_USER_ID, TO_USER_ID, null);
         when(friendshipOfferRepository.createFriendshipOffer(any())).thenThrow(duplicate);
-        when(friendshipOfferRepository.findByUsers(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
+        when(friendshipOfferRepository.findByPair(FROM_USER_ID, TO_USER_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.create(command())).isSameAs(duplicate);
         verifyNoInteractions(subscriptions);

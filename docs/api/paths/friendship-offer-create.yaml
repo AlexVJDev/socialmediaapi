@@ -54,8 +54,26 @@ post:
                 type: string
                 format: date-time
                 example: '2026-09-22T10:15:00Z'
-    '204':
-      description: Предложение дружбы уже существует и находится в статусе 'PENDING'
+    '200':
+      description: >-
+        Предложение дружбы между этими пользователями уже существует и находится в статусе 'PENDING'
+        (в том же направлении или встречное), либо заявка пары есть, но её статус не удалось прочитать.
+        Ничего не создаётся и не меняется
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                enum: [FRIENDSHIP_OFFER_ALREADY_PENDING]
+                example: FRIENDSHIP_OFFER_ALREADY_PENDING
+              message:
+                type: string
+                example: Предложение дружбы уже отправлено
     '400':
       description: >-
         Некорректный запрос: тело не читается, отсутствует `fromUserId` или `toUserId`,
@@ -92,7 +110,9 @@ post:
                 type: string
                 example: Пользователь-инициатор или пользователь-получатель не найден
     '409':
-      description: Предложение дружбы уже существует и его статус отличен от 'PENDING' ('ACCEPTED' или 'REJECTED')
+      description: >-
+        Предложение дружбы между этими пользователями (в том же направлении или встречное) уже существует
+        и его статус отличен от 'PENDING' ('ACCEPTED' или 'REJECTED')
       content:
         application/json:
           schema:

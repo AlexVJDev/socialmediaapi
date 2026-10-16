@@ -14,6 +14,8 @@ import ru.job4j.socialmediaapi.friendships.internal.application.exception.Friend
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusRequest;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -38,13 +40,36 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
                       status, created_at, updated_at
             """;
 
-    /** Selects the offer for the pair and locks it until the end of the transaction. */
-    private static final String FIND_BY_USERS = """
+    /** Selects the offer of the pair in either direction and locks it until the end of the transaction. */
+    private static final String FIND_BY_PAIR = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
             FROM friendship_offer
-            WHERE from_user_id = ? AND to_user_id = ?
+            WHERE (from_user_id = ? AND to_user_id = ?)
+               OR (from_user_id = ? AND to_user_id = ?)
             FOR UPDATE
+            """;
+
+    /**
+     * Changes the status of a {@code PENDING} offer of the given recipient and returns the stored row.
+     * A concurrent decision waits for the row lock of the first one and, after its commit,
+     * re-checks the {@code WHERE} on the new row version: {@code status = 'PENDING'} is false
+     * by then, so it updates nothing.
+     */
+    private static final String UPDATE_STATUS_IF_PENDING = """
+            UPDATE friendship_offer
+            SET status = ?, updated_at = ?
+            WHERE id = ? AND to_user_id = ? AND status = 'PENDING'
+            RETURNING id, from_user_id, to_user_id,
+                      status, created_at, updated_at
+            """;
+
+    /** Selects the offer of the recipient; no lock: the row is only read to choose the error. */
+    private static final String FIND_BY_ID_AND_RECIPIENT = """
+            SELECT id, from_user_id, to_user_id,
+                   status, created_at, updated_at
+            FROM friendship_offer
+            WHERE id = ? AND to_user_id = ?
             """;
 
     /** Reads a result set row into {@link FriendshipOfferRow}. */
@@ -88,7 +113,7 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
             );
             return mapper.toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
-            if ("uq_friendship_offer_users".equals(PostgresErrors.constraint(ex))) {
+            if ("uq_friendship_offer_pair".equals(PostgresErrors.constraint(ex))) {
                 throw new FriendshipOfferAlreadyExistsException(request.fromUserId(), request.toUserId(), ex);
             }
             throw ex;
@@ -96,8 +121,33 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
     }
 
     @Override
-    public Optional<FindFriendshipOfferResponse> findByUsers(UUID fromUserId, UUID toUserId) {
-        return jdbcTemplate.query(FIND_BY_USERS, ROW_MAPPER, fromUserId, toUserId)
+    public Optional<FindFriendshipOfferResponse> findByPair(UUID userA, UUID userB) {
+        return jdbcTemplate.query(FIND_BY_PAIR, ROW_MAPPER, userA, userB, userB, userA)
+                .stream()
+                .findFirst()
+                .map(mapper::toFindResponse);
+    }
+
+    @Override
+    public Optional<UpdateFriendshipOfferStatusResponse> updateStatusIfPending(
+            UpdateFriendshipOfferStatusRequest request
+    ) {
+        return jdbcTemplate.query(
+                        UPDATE_STATUS_IF_PENDING,
+                        ROW_MAPPER,
+                        mapper.toStatus(request.status()),
+                        Timestamp.from(request.updatedAt()),
+                        request.offerId(),
+                        request.actorId()
+                )
+                .stream()
+                .findFirst()
+                .map(mapper::toUpdateResponse);
+    }
+
+    @Override
+    public Optional<FindFriendshipOfferResponse> findByIdAndRecipient(UUID offerId, UUID recipientId) {
+        return jdbcTemplate.query(FIND_BY_ID_AND_RECIPIENT, ROW_MAPPER, offerId, recipientId)
                 .stream()
                 .findFirst()
                 .map(mapper::toFindResponse);

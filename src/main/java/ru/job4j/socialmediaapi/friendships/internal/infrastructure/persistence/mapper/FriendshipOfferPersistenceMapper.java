@@ -6,6 +6,8 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.r
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
+import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
@@ -21,4 +23,14 @@ public interface FriendshipOfferPersistenceMapper {
     CreateFriendshipOfferResponse toResponse(FriendshipOfferRow row);
 
     FindFriendshipOfferResponse toFindResponse(FriendshipOfferRow row);
+
+    UpdateFriendshipOfferStatusResponse toUpdateResponse(FriendshipOfferRow row);
+
+    /**
+     * @param status status of the offer
+     * @return the status as stored in the {@code status} column
+     */
+    default String toStatus(FriendshipOfferStatus status) {
+        return status.name();
+    }
 }

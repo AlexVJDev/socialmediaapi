@@ -1,32 +1,55 @@
 # Таблица переходов `FriendshipOffer`
 
 Этот документ описывает переходы заявки в друзья для команд `friendshipOffer`, `acceptFriendship` и `rejectFriendship`.
+HTTP-коды — по контракту `../api/openapi.yaml`, последовательность вызовов — `friendship_transitions.puml`.
 
 ## Переходы состояний
 
 | Команда | Исходное состояние | Новое состояние | Изменение подписки | Изменение дружбы | Результат повторного вызова |
 | --- | --- | --- | --- | --- | --- |
-| `friendshipOffer` | Заявка не существует | `PENDING` | Инициатор подписывается на получателя | Без изменений | `409 Conflict`, `FriendshipOfferAlreadyPendingException`, состояние не изменяется |
-| `acceptFriendship` | `PENDING` | `ACCEPTED` | Получатель подписывается на инициатора, если обратной подписки ещё нет | Между инициатором и получателем создаётся двусторонняя дружба | `204 No Content`, состояние не изменяется |
-| `rejectFriendship` | `PENDING` | `REJECTED` | Без изменений: инициатор остаётся подписанным на получателя | Без изменений: дружба не создаётся | `204 No Content`, состояние не изменяется |
-| `friendshipOffer` | `PENDING` | `PENDING` | Без изменений: инициатор уже подписан на получателя | Без изменений | `409 Conflict`, `FriendshipOfferAlreadyPendingException`, состояние не изменяется |
+| `friendshipOffer` | Заявки для пары нет | `PENDING` | Инициатор подписывается на получателя | Без изменений | `200 OK` (`FRIENDSHIP_OFFER_ALREADY_PENDING`, `FriendshipOfferAlreadyPendingException`), состояние не изменяется |
+| `acceptFriendship` | `PENDING` | `ACCEPTED` | Получатель подписывается на инициатора, если обратной подписки ещё нет | Между инициатором и получателем создаётся двусторонняя дружба | `409 Conflict` (`FRIENDSHIP_OFFER_ALREADY_ACCEPTED`), состояние не изменяется |
+| `rejectFriendship` | `PENDING` | `REJECTED` | Без изменений: инициатор остаётся подписанным на получателя | Без изменений: дружба не создаётся | `409 Conflict` (`FRIENDSHIP_OFFER_ALREADY_REJECTED`), состояние не изменяется |
+| `friendshipOffer` | `PENDING` | `PENDING` | Без изменений: инициатор уже подписан на получателя | Без изменений | `200 OK` (`FRIENDSHIP_OFFER_ALREADY_PENDING`, `FriendshipOfferAlreadyPendingException`), состояние не изменяется |
 | `friendshipOffer` | `ACCEPTED` | `ACCEPTED` | Без изменений: принятую заявку нельзя вернуть в состояние `PENDING` | Без изменений: дружба уже существует | `409 Conflict`, `FriendshipOfferAlreadyAcceptedException`, состояние не изменяется |
 | `friendshipOffer` | `REJECTED` | `REJECTED` | Без изменений: отклонённую заявку нельзя вернуть в состояние `PENDING` | Без изменений | `409 Conflict`, `FriendshipOfferAlreadyRejectedException`, состояние не изменяется |
-| `acceptFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: обратная подписка уже существует или должна была быть создана | Без изменений: дружба уже существует | `204 No Content`, состояние не изменяется |
-| `rejectFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений: уже созданная дружба не отменяется командой отклонения | `409 Conflict`, `RejectFriendshipAlreadyAcceptedException`, состояние не изменяется |
-| `acceptFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений: отклонённая заявка при повторном принятии не создаёт дружбу | `409 Conflict`, `AcceptedFriendshipAlreadyreRejectedException`, состояние не изменяется |
-| `rejectFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений: дружба не была создана | `204 No Content`, состояние не изменяется |
+| `acceptFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений: обратная подписка уже существует | Без изменений: дружба уже существует | `409 Conflict`, `FriendshipOfferAlreadyAcceptedException`, состояние не изменяется |
+| `rejectFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений: уже созданная дружба не отменяется командой отклонения | `409 Conflict`, `FriendshipOfferAlreadyAcceptedException`, состояние не изменяется |
+| `acceptFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений: отклонённая заявка при повторном принятии не создаёт дружбу | `409 Conflict`, `FriendshipOfferAlreadyRejectedException`, состояние не изменяется |
+| `rejectFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений: дружба не была создана | `409 Conflict`, `FriendshipOfferAlreadyRejectedException`, состояние не изменяется |
+
+## Пара пользователей и встречные заявки
+
+- Для пары пользователей существует не больше одной заявки **в любом направлении**: это обеспечивает уникальный
+  ключ пары в БД (`LEAST(from_user_id, to_user_id)`, `GREATEST(from_user_id, to_user_id)`).
+- Встречная заявка (Борис → Алиса при существующей Алиса → Борис) обрабатывается так же, как повторная:
+  новая заявка не создаётся, ответ выбирается по статусу существующей заявки пары (`PENDING` → `200`,
+  `ACCEPTED` / `REJECTED` → `409`). Подписка Бориса на Алису при этом не создаётся.
+- Поэтому принятие заявки не может встретить уже существующую дружбу этой пары.
+
+## Кто выполняет команду
+
+- `friendshipOffer` — инициатор (`fromUserId`).
+- `acceptFriendship` и `rejectFriendship` — только получатель (`actorId` = `toUserId`). До подключения
+  аутентификации (Keycloak) `actorId` передаётся в теле запроса.
+- Если команду выполняет не получатель, заявка считается не найденной (`404 FRIENDSHIP_OFFER_NOT_FOUND`):
+  существование чужой заявки не раскрывается.
 
 ## Правила идемпотентности
 
 - Повторный вызов команды не должен создавать дубликаты заявок, подписок или связей дружбы.
-- Для `acceptFriendship` и `rejectFriendship`: если целевое состояние уже достигнуто, система возвращает `204 No Content` и не изменяет данные.
-- Повторный вызов `friendshipOffer` не создаёт вторую заявку (уникальность обеспечивает уникальный ключ БД) и возвращает `409 Conflict` с исключением по статусу существующей заявки:
-  - `PENDING` — `FriendshipOfferAlreadyPendingException` (`FRIENDSHIP_OFFER_ALREADY_PENDING`), потому что заявка уже ожидает решения;
-  - `ACCEPTED` — `FriendshipOfferAlreadyAcceptedException` (`FRIENDSHIP_OFFER_ALREADY_ACCEPTED`), потому что принятую заявку нельзя вернуть в состояние `PENDING`;
-  - `REJECTED` — `FriendshipOfferAlreadyRejectedException` (`FRIENDSHIP_OFFER_ALREADY_REJECTED`), потому что отклонённую заявку нельзя вернуть в состояние `PENDING`.
+- Для `acceptFriendship` и `rejectFriendship`: если заявка уже не `PENDING` (в том числе при повторе),
+  система возвращает `409 Conflict` с кодом текущего статуса и не изменяет данные.
+- Повторный или встречный вызов `friendshipOffer` не создаёт вторую заявку (уникальность обеспечивает
+  уникальный ключ пары) и бросает исключение по статусу существующей заявки:
+  - `PENDING` — `FriendshipOfferAlreadyPendingException` → `200 OK` с телом `{"code": "FRIENDSHIP_OFFER_ALREADY_PENDING", "message": "Предложение дружбы уже отправлено"}`: заявка уже ожидает решения, ничего не меняется;
+  - статус существующей заявки прочитать не удалось — `FriendshipOfferAlreadyExistsException` (WARN в лог) → тот же `200 OK` с `FRIENDSHIP_OFFER_ALREADY_PENDING`: заявка существует, ничего не меняется;
+  - `ACCEPTED` — `FriendshipOfferAlreadyAcceptedException` → `409 Conflict` (`FRIENDSHIP_OFFER_ALREADY_ACCEPTED`), потому что принятую заявку нельзя вернуть в состояние `PENDING`;
+  - `REJECTED` — `FriendshipOfferAlreadyRejectedException` → `409 Conflict` (`FRIENDSHIP_OFFER_ALREADY_REJECTED`), потому что отклонённую заявку нельзя вернуть в состояние `PENDING`.
 - Отклонение заявки не отменяет подписку инициатора на получателя.
 - Принятие заявки атомарно создаёт дружбу и обратную подписку.
+- При одновременных `acceptFriendship` и `rejectFriendship` одной заявки статус меняет ровно одна команда
+  (проверка статуса и изменение — один `UPDATE ... WHERE status = 'PENDING'`), вторая получает `409`.
 
 ## Ошибочные случаи
 
@@ -34,15 +57,40 @@
 
 | Случай | Команда | Исходное состояние | Новое состояние | Изменение подписки | Изменение дружбы | Исключение |
 | --- | --- | --- | --- | --- | --- | --- |
-| Пользователь предлагает дружбу самому себе | `friendshipOffer` | Заявка не существует | Без изменений | Без изменений | Без изменений | `FriendshipOfferToSelfException` |
-| Заявка для принятия не найдена | `acceptFriendship` | Заявка не существует | Без изменений | Без изменений | Без изменений | `FriendshipRequestNotFoundException` |
-| Заявка для отклонения не найдена | `rejectFriendship` | Заявка не существует | Без изменений | Без изменений | Без изменений | `FriendshipRequestNotFoundException` |
-| Повторное предложение, заявка ждёт решения | `friendshipOffer` | `PENDING` | `PENDING` | Без изменений | Без изменений | `FriendshipOfferAlreadyPendingException` |
-| Повторное предложение после принятия | `friendshipOffer` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений | `FriendshipOfferAlreadyAcceptedException` |
-| Повторное предложение после отклонения | `friendshipOffer` | `REJECTED` | `REJECTED` | Без изменений | Без изменений | `FriendshipOfferAlreadyRejectedException` |
+| Пользователь предлагает дружбу самому себе | `friendshipOffer` | Заявки нет | Без изменений | Без изменений | Без изменений | `FriendshipOfferToSelfException` |
+| Заявка для принятия не найдена или действует не получатель | `acceptFriendship` | Заявки нет / любое | Без изменений | Без изменений | Без изменений | `FriendshipRequestNotFoundException` |
+| Заявка для отклонения не найдена или действует не получатель | `rejectFriendship` | Заявки нет / любое | Без изменений | Без изменений | Без изменений | `FriendshipRequestNotFoundException` |
+| Повторное или встречное предложение, заявка ждёт решения | `friendshipOffer` | `PENDING` | `PENDING` | Без изменений | Без изменений | `FriendshipOfferAlreadyPendingException` |
+| Повторное или встречное предложение после принятия | `friendshipOffer` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений | `FriendshipOfferAlreadyAcceptedException` |
+| Повторное или встречное предложение после отклонения | `friendshipOffer` | `REJECTED` | `REJECTED` | Без изменений | Без изменений | `FriendshipOfferAlreadyRejectedException` |
+| Принятие или отклонение уже принятой заявки | `acceptFriendship`, `rejectFriendship` | `ACCEPTED` | `ACCEPTED` | Без изменений | Без изменений | `FriendshipOfferAlreadyAcceptedException` |
+| Принятие или отклонение уже отклонённой заявки | `acceptFriendship`, `rejectFriendship` | `REJECTED` | `REJECTED` | Без изменений | Без изменений | `FriendshipOfferAlreadyRejectedException` |
+
+## Обоснование решений
+
+- **Повтор или встречная заявка при `PENDING` → `200 OK` с телом `FRIENDSHIP_OFFER_ALREADY_PENDING`, а не `204`.**
+  Нужно передать клиенту код и сообщение, но у `204 No Content` тела не бывает (RFC 9110, §15.3.5): Tomcat его
+  отбрасывает, клиент получил бы пустой ответ (MockMvc тело при этом видит — тест прошёл бы, а реальный клиент нет).
+  Статус успешный: клиент не ошибся и ничего не изменилось. Так же отвечает редкий случай «заявка пары есть,
+  но её статус прочитать не удалось» (`FriendshipOfferAlreadyExistsException`, WARN в лог).
+- **Встречная заявка обрабатывается как повторная.** Две встречные заявки дали бы при принятии обеих вторую
+  дружбу той же пары (нарушение `uq_friendships_users`). Одна заявка на пару (уникальный индекс
+  `uq_friendship_offer_pair`, changeset `009`) исключает это без проверок в коде, и при принятии дружба пары
+  никогда уже не существует.
+- **`actorId` в теле `accept`/`reject`.** Аутентификации (Keycloak) пока нет, а без `actorId` принять чужую заявку
+  мог бы кто угодно. Проверка «действует получатель» — в `WHERE` того же `UPDATE` (как `actorId` у постов).
+  Не получатель получает `404`, а не `403`: существование чужой заявки не раскрывается. После подключения
+  Keycloak `actorId` берётся из токена, поле из тела удаляется.
+- **Повтор `accept`/`reject` → `409`, а не `204`.** Источник истины для HTTP — контракт OpenAPI; повтор
+  не меняет данные и сообщает текущий статус.
+- **`acceptedAt` / `rejectedAt` в ответе — `updated_at` заявки** (время смены статуса): отдельные колонки
+  и миграция не нужны.
+- **Без check-then-act.** Статус и получатель проверяются одним `UPDATE ... WHERE status = 'PENDING'`;
+  заявка читается только после неудачного `UPDATE`, чтобы выбрать `404` или `409`. Поэтому из одновременных
+  решений по одной заявке выигрывает ровно одно.
 
 ## Повторное предложение дружбы после отклонения
 
-После перехода в состояние `REJECTED` повторный вызов `friendshipOffer` не создаёт новую заявку и завершается конфликтом.
+После перехода в состояние `REJECTED` повторный (или встречный) вызов `friendshipOffer` не создаёт новую заявку и завершается конфликтом.
 
 Если продукт должен разрешать повторное предложение через некоторое время, потребуется отдельное бизнес-правило. Такое правило должно явно описывать, когда отклонённую заявку можно заменить новой, например после окончания периода ожидания.

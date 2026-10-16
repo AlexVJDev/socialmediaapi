@@ -7,7 +7,7 @@
 ## HTTP-запрос
 
 ```http
-GET /api/subscribes/followers?userId=2
+GET /api/v1/subscribes/followers?userId=2
 Accept: application/json
 ```
 

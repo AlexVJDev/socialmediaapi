@@ -4,11 +4,11 @@
 Используется для docs/md/shema.md (запуск из корня проекта).
 
 Использование:
-    python3 -I scripts/gen-schema.py <путь к пакету модуля>            # только папки + типы классов
-    python3 -I scripts/gen-schema.py <путь к пакету модуля> --classes  # + каждый класс отдельно (для анализа)
+    python3 -I docs/md/scripts/gen-schema.py <путь к пакету модуля>            # только папки + типы классов
+    python3 -I docs/md/scripts/gen-schema.py <путь к пакету модуля> --classes  # + каждый класс отдельно (для анализа)
 
 Пример:
-    python3 -I scripts/gen-schema.py src/main/java/ru/job4j/socialmediaapi/friendships
+    python3 -I docs/md/scripts/gen-schema.py src/main/java/ru/job4j/socialmediaapi/friendships
 """
 import os, re, sys
 root = sys.argv[1]
@@ -63,23 +63,33 @@ def short(i):
     if "[@" in i: base+=" "+i[i.index("["):]
     return base
 out=[]
+def tag(d):
+    # типы классов самой папки; ‹пустая папка›, если .java нет и во вложенных
+    files=sorted(f for f in os.listdir(d) if f.endswith(".java"))
+    c=Counter(short(info(os.path.join(d,f))) for f in files)
+    empty=not any(f.endswith(".java") for _,_,fs in os.walk(d) for f in fs)
+    desc=", ".join(k for k,_ in c.most_common())
+    return "  ‹пустая папка›" if empty else ("  ‹"+desc+"›" if desc else "")
+def classes(d, prefix):
+    # с --classes: каждый класс папки отдельной строкой перед её подпапками
+    if not WITH_CLASSES:
+        return
+    files=sorted(f for f in os.listdir(d) if f.endswith(".java"))
+    subdirs=[e for e in os.listdir(d) if os.path.isdir(os.path.join(d,e))]
+    for j,f in enumerate(files):
+        lf = j==len(files)-1 and not subdirs
+        out.append(prefix+("└── " if lf else "├── ")+f[:-5]+"  ‹"+info(os.path.join(d,f))+"›")
 def walk(d, prefix=""):
     dirs=sorted(e for e in os.listdir(d) if os.path.isdir(os.path.join(d,e)))
     for idx,name in enumerate(dirs):
         last=idx==len(dirs)-1
         sub=os.path.join(d,name)
-        files=sorted(f for f in os.listdir(sub) if f.endswith(".java"))
-        c=Counter(short(info(os.path.join(sub,f))) for f in files)
-        empty=not any(f.endswith(".java") for _,_,fs in os.walk(sub) for f in fs)
-        desc=", ".join(k for k,_ in c.most_common())
-        tag="  ‹пустая папка›" if empty else ("  ‹"+desc+"›" if desc else "")
-        out.append(prefix+("└── " if last else "├── ")+name+"/"+tag)
+        out.append(prefix+("└── " if last else "├── ")+name+"/"+tag(sub))
         child=prefix+("    " if last else "│   ")
-        if WITH_CLASSES:
-            subdirs=[e for e in os.listdir(sub) if os.path.isdir(os.path.join(sub,e))]
-            for j,f in enumerate(files):
-                lf = j==len(files)-1 and not subdirs
-                out.append(child+("└── " if lf else "├── ")+f[:-5]+"  ‹"+info(os.path.join(sub,f))+"›")
+        classes(sub, child)
         walk(sub, child)
+# корневая строка — сам пакет модуля (package-info с @ApplicationModule и прочие его классы)
+out.append(os.path.basename(os.path.normpath(root))+"/"+tag(root))
+classes(root, "")
 walk(root)
 print("\n".join(out))

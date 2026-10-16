@@ -1,5 +1,7 @@
 package ru.job4j.socialmediaapi.friendships.internal.domain.model;
 
+import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
+import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferToSelfException;
 
 import java.time.Instant;
@@ -52,5 +54,44 @@ public record FriendshipOffer(
         return new FriendshipOffer(
                 UUID.randomUUID(), fromUserId, toUserId, FriendshipOfferStatus.PENDING, now, now
         );
+    }
+
+    /**
+     * Accepts the offer: {@code PENDING → ACCEPTED}.
+     *
+     * @param now time of the decision
+     * @return the accepted offer; this one is not changed
+     * @throws FriendshipOfferAlreadyAcceptedException the offer is already accepted
+     * @throws FriendshipOfferAlreadyRejectedException the offer is already rejected
+     */
+    public FriendshipOffer accept(Instant now) {
+        return decide(FriendshipOfferStatus.ACCEPTED, now);
+    }
+
+    /**
+     * Rejects the offer: {@code PENDING → REJECTED}.
+     *
+     * @param now time of the decision
+     * @return the rejected offer; this one is not changed
+     * @throws FriendshipOfferAlreadyAcceptedException the offer is already accepted
+     * @throws FriendshipOfferAlreadyRejectedException the offer is already rejected
+     */
+    public FriendshipOffer reject(Instant now) {
+        return decide(FriendshipOfferStatus.REJECTED, now);
+    }
+
+    /**
+     * Only a {@code PENDING} offer can be decided: {@code ACCEPTED} and {@code REJECTED} are final.
+     *
+     * @param decision new status
+     * @param now      time of the decision
+     * @return the offer with the new status and {@code updatedAt = now}
+     */
+    private FriendshipOffer decide(FriendshipOfferStatus decision, Instant now) {
+        return switch (status) {
+            case PENDING -> new FriendshipOffer(id, fromUserId, toUserId, decision, createdAt, now);
+            case ACCEPTED -> throw new FriendshipOfferAlreadyAcceptedException(id, fromUserId, toUserId);
+            case REJECTED -> throw new FriendshipOfferAlreadyRejectedException(id, fromUserId, toUserId);
+        };
     }
 }

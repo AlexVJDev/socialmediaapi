@@ -100,7 +100,9 @@ class FeedPersistenceAdapterTest {
     }
 
     @Test
-    @DisplayName("Взаимные подписки (как после принятия дружбы): каждый видит посты другого, но не свои")
+    // SQL of the feed for two mutual subscriptions; the friendship process itself (accept creates them)
+    // is checked end to end by FriendshipFeedTest in the root test package.
+    @DisplayName("Взаимные подписки (их создаёт принятие дружбы): каждый видит посты другого, но не свои")
     void whenMutualSubscriptionsThenEachSeesPostsOfTheOther() {
         var alice = UUID.randomUUID();
         var bob = UUID.randomUUID();

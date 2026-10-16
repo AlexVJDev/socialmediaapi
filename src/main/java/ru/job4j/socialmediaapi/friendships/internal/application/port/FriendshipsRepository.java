@@ -8,6 +8,9 @@ public interface FriendshipsRepository {
 
     /**
      * Saves the friendship of two users stored in canonical order.
+     * A pair of users has at most one offer, so accepting it cannot meet an existing
+     * friendship of the pair: a duplicate here is a data error, the caller does not
+     * catch it and its transaction is rolled back.
      *
      * @param request friendship to save
      * @return the saved friendship
