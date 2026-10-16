@@ -34,9 +34,7 @@ class ApplicationModulesTest {
      * TODO удалить после переноса: каждый перенесённый пакет убирать из списка.
      */
     private static final String[] LEGACY_PACKAGES = {
-            BASE_PACKAGE + ".adapter..",
-            BASE_PACKAGE + ".application..",
-            BASE_PACKAGE + ".domain.."
+            BASE_PACKAGE + ".adapter.."
     };
 
     /** Production classes of the application, without tests. */

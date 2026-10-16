@@ -49,7 +49,7 @@ docker compose --profile tools run --rm openapi-validator   # validate the OpenA
 
 Схема пакетов модулей — `docs/md/shema.md`; генерируется `python3 -I docs/refactoring-kit/templates/gen-schema.py <путь к модулю>`.
 
-**Рефакторинг.** Идёт по `refactoring-kit/02-refactoring-guide.md`; инвентаризация и карта модулей — `docs/refactoring/inventory.md`; итерации называются `Modulith-N` (коммиты делает пользователь). Legacy-пакеты: `adapter`, `application`, `domain` — описание ниже (раздел Architecture) относится к ним и обновляется по мере переноса. Новый код в них не добавляется; к модулям они обращаются только через `api`.
+**Рефакторинг.** Идёт по `refactoring-kit/02-refactoring-guide.md`; инвентаризация и карта модулей — `docs/refactoring/inventory.md`; итерации называются `Modulith-N` (коммиты делает пользователь). Legacy-пакеты: только `adapter` (в нём остался `adapter.in.web.PingController`, переедет в модуль `system`). Код заявок и дружбы перенесён в модуль `friendships` (шаг 2.1): `friendships/internal/{domain/{model,exception}, application/{service (CreateFriendshipOfferUseCase + FriendshipOfferService), mapper, port}, infrastructure/{web (+ request, response, mapper, error — пока там же `GlobalExceptionHandler` и `ErrorCode`), persistence/{adapter, row, mapper}}}`. Раздел Architecture ниже ещё описывает классы по старым пакетам (`adapter.*`, `application.*`, `domain.*`); соответствие — в `docs/refactoring/inventory.md`, раздел 7; он будет переписан после шага 2.2. Новый код в них не добавляется; к модулям они обращаются только через `api`.
 
 ## Architecture
 
