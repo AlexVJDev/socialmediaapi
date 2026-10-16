@@ -3,8 +3,8 @@ package ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistenc
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.row.SubscriptionRow;
-import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository.CreateSubscriptionRequest;
-import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
 
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 

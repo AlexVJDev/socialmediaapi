@@ -9,7 +9,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
-import ru.job4j.socialmediaapi.subscriptions.internal.domain.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@DisplayName("JDBC-репозиторий подписок: сохранение в таблицу subscriptions")
-class SubscriptionRepositoryJdbcTest {
+@DisplayName("Persistence-адаптер подписок: сохранение в таблицу subscriptions")
+class SubscriptionPersistenceAdapterTest {
 
     /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");
@@ -44,7 +46,7 @@ class SubscriptionRepositoryJdbcTest {
                 request(id, followerId, followedId)
         );
 
-        var expected = new SubscriptionRepository.CreateSubscriptionResponse(
+        var expected = new CreateSubscriptionResponse(
                 id, followerId, followedId, NOW
         );
         assertThat(result).isEqualTo(expected);
@@ -95,7 +97,7 @@ class SubscriptionRepositoryJdbcTest {
 
         var result = repository.createSubscriptionIfAbsent(request(id, followerId, followedId));
 
-        assertThat(result).contains(new SubscriptionRepository.CreateSubscriptionResponse(
+        assertThat(result).contains(new CreateSubscriptionResponse(
                 id, followerId, followedId, NOW
         ));
     }
@@ -185,12 +187,12 @@ class SubscriptionRepositoryJdbcTest {
         assertThat(repository.existsSubscription(followerId, followedId)).isTrue();
     }
 
-    private static SubscriptionRepository.CreateSubscriptionRequest request(
+    private static CreateSubscriptionRequest request(
             UUID id,
             UUID followerId,
             UUID followedId
     ) {
-        return new SubscriptionRepository.CreateSubscriptionRequest(
+        return new CreateSubscriptionRequest(
                 id, followerId, followedId, NOW
         );
     }

@@ -12,7 +12,7 @@
 
 | Модуль | Ответственность | `allowedDependencies` | Публичный `api` | Статус |
 | --- | --- | --- | --- | --- |
-| `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) | перенесён (шаг 2.1) |
+| `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) | перенесён |
 | `posts` | Посты и лента подписчика | `{}` | нет | legacy |
 | `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет | legacy |
 | `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет | legacy |
@@ -130,8 +130,9 @@
 - **Нет check-then-act.** Запись не предваряется чтением, решающим, писать ли:
   уникальность — ключом в `INSERT`, владелец и состояние — в `WHERE` того же
   `UPDATE` / `DELETE`.
-- Адаптер переводит в доменное исключение только нарушение уникального ключа
-  (`*AlreadyExistsException`), различая его по имени констрейнта. Прочие
+- Адаптер переводит в ошибку контракта порта только нарушение уникального ключа
+  (`*AlreadyExistsException` в `application.exception`: это не нарушение доменного
+  правила, а ответ хранилища «запись уже есть»), различая его по имени констрейнта. Прочие
   `DataIntegrityViolationException` пробрасываются как есть → `500 INTERNAL_ERROR`.
 - Разбор ошибки PostgreSQL (`PostgresErrors`) — копия в `persistence.adapter` каждого
   модуля, которому она нужна. Перенос в `shared` — отдельным решением, если копий станет много.

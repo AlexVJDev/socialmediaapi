@@ -1,8 +1,9 @@
 package ru.job4j.socialmediaapi.subscriptions.internal.application.port;
 
-import ru.job4j.socialmediaapi.subscriptions.internal.domain.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,20 +53,4 @@ public interface SubscriptionRepository {
      *         {@code false} if there was nothing to remove
      */
     boolean deleteSubscription(UUID followerId, UUID followedId);
-
-    record CreateSubscriptionRequest(
-            UUID id,
-            UUID followerId,
-            UUID followedId,
-            Instant createdAt
-    ) {
-    }
-
-    record CreateSubscriptionResponse(
-            UUID id,
-            UUID followerId,
-            UUID followedId,
-            Instant createdAt
-    ) {
-    }
 }

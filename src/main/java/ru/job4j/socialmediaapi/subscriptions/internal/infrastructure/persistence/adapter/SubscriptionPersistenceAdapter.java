@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.adapter;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -7,14 +8,21 @@ import org.springframework.stereotype.Repository;
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.row.SubscriptionRow;
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.mapper.SubscriptionPersistenceMapper;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
-import ru.job4j.socialmediaapi.subscriptions.internal.domain.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
 
 import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * JDBC implementation of the {@link SubscriptionRepository} port: native SQL over the
+ * {@code subscriptions} table.
+ */
 @Repository
-public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
+@RequiredArgsConstructor
+public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
 
     /** Inserts a subscription and returns the stored row. */
     private static final String CREATE = """
@@ -64,14 +72,6 @@ public class SubscriptionRepositoryJdbc implements SubscriptionRepository {
 
     /** Maps port requests/responses to rows and back. */
     private final SubscriptionPersistenceMapper mapper;
-
-    public SubscriptionRepositoryJdbc(
-            JdbcTemplate jdbcTemplate,
-            SubscriptionPersistenceMapper mapper
-    ) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.mapper = mapper;
-    }
 
     @Override
     public CreateSubscriptionResponse createSubscription(
