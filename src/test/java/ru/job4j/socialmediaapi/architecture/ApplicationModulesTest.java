@@ -29,12 +29,6 @@ class ApplicationModulesTest {
     /** Base package of the application: business modules are its direct subpackages. */
     private static final String BASE_PACKAGE = SocialMediaApiApplication.class.getPackageName();
 
-    /**
-     * Packages not yet moved into modules (see «Переходный период» in {@code docs/architecture.md}).
-     * TODO удалить после переноса: каждый перенесённый пакет убирать из списка.
-     */
-    private static final String[] LEGACY_PACKAGES = {};
-
     /** Production classes of the application, without tests. */
     private static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -51,7 +45,6 @@ class ApplicationModulesTest {
     void verifiesLayerDependenciesInAllModules() {
         var rule = layeredArchitecture()
                 .consideringOnlyDependenciesInLayers()
-                .withOptionalLayers(true)
                 .layer("Domain").definedBy(BASE_PACKAGE + ".*.internal.domain..")
                 .layer("Application").definedBy(BASE_PACKAGE + ".*.internal.application..")
                 .layer("Infrastructure").definedBy(BASE_PACKAGE + ".*.internal.infrastructure..")
@@ -73,9 +66,7 @@ class ApplicationModulesTest {
     void persistenceRowsBelongToPersistence() {
         var rule = classes().that().haveSimpleNameEndingWith("Row")
                 .and().resideOutsideOfPackage(BASE_PACKAGE + ".shared..")
-                .and().resideOutsideOfPackages(LEGACY_PACKAGES)
                 .should().resideInAPackage(BASE_PACKAGE + ".*.internal.infrastructure.persistence.row")
-                .allowEmptyShould(true)
                 .as("""
                     Правило размещения моделей хранения:
                       Классы *Row (записи, повторяющие строку таблицы) должны находиться
@@ -91,9 +82,7 @@ class ApplicationModulesTest {
         var rule = classes().that().areAnnotatedWith(Controller.class)
                 .or().areMetaAnnotatedWith(Controller.class)
                 .and().resideOutsideOfPackage(BASE_PACKAGE + ".shared..")
-                .and().resideOutsideOfPackages(LEGACY_PACKAGES)
                 .should().resideInAPackage(BASE_PACKAGE + ".*.internal.infrastructure.web..")
-                .allowEmptyShould(true)
                 .as("""
                     Правило размещения контроллеров:
                       Классы с @Controller или его составными аннотациями, включая @RestController,
@@ -108,14 +97,12 @@ class ApplicationModulesTest {
     void moduleClassesBelongToArchitecturalLayers() {
         var rule = classes().that().resideInAPackage(BASE_PACKAGE + ".*..")
                 .and().resideOutsideOfPackage(BASE_PACKAGE + ".shared..")
-                .and().resideOutsideOfPackages(LEGACY_PACKAGES)
                 .and().doNotHaveSimpleName("package-info")
                 .should().resideInAnyPackage(
                         BASE_PACKAGE + ".*.api..",
                         BASE_PACKAGE + ".*.internal.domain..",
                         BASE_PACKAGE + ".*.internal.application..",
                         BASE_PACKAGE + ".*.internal.infrastructure..")
-                .allowEmptyShould(true)
                 .as("""
                     Правило размещения классов бизнес-модулей:
                       Каждый класс должен находиться в api, internal.domain,
@@ -132,7 +119,6 @@ class ApplicationModulesTest {
                         BASE_PACKAGE + ".*.internal.domain..", BASE_PACKAGE + ".*.api..",
                         BASE_PACKAGE + ".shared.exception", "java..", "lombok..")
                 .andShould().onlyDependOnClassesThat().resideOutsideOfPackage("java.sql..")
-                .allowEmptyShould(true)
                 .as("""
                     Правило зависимостей domain:
                       Разрешены domain, публичный api, общие ошибки, стандартные типы Java и Lombok.
@@ -150,7 +136,6 @@ class ApplicationModulesTest {
                         BASE_PACKAGE + ".*.api..", BASE_PACKAGE + ".shared.exception", "java..", "lombok..",
                         "org.springframework.modulith..", "com.fasterxml.jackson.annotation..")
                 .andShould().onlyDependOnClassesThat().resideOutsideOfPackage("java.sql..")
-                .allowEmptyShould(true)
                 .as("""
                     Правило зависимостей публичного api:
                       Разрешены публичные API, общие ошибки, стандартные типы Java,
@@ -167,7 +152,6 @@ class ApplicationModulesTest {
                 .should().dependOnClassesThat().resideInAnyPackage(
                         BASE_PACKAGE + ".*.internal.infrastructure.persistence..",
                         BASE_PACKAGE + ".*.internal.application.port")
-                .allowEmptyShould(true)
                 .as("""
                     Правило зависимостей web-адаптеров:
                       Контроллеры и остальные web-адаптеры обращаются к прикладным сценариям.
@@ -185,13 +169,27 @@ class ApplicationModulesTest {
                         "java.sql..", "org.postgresql..", "org.springframework.jdbc..",
                         "org.springframework.dao..", "org.springframework.web..",
                         "org.springframework.http..", "jakarta.servlet..")
-                .allowEmptyShould(true)
                 .as("""
                     Правило технических зависимостей application:
                       Хранение и внешние вызовы выполняются через прикладные порты.
                       Прямые зависимости от JDBC, драйвера PostgreSQL, исключений Spring DAO
                       и HTTP запрещены.
                       Публичные API других модулей разрешены в рамках allowedDependencies.""");
+
+        assertNoViolations(rule);
+    }
+
+    @Test
+    @DisplayName("Общее ядро shared не зависит от бизнес-модулей")
+    void sharedDoesNotDependOnModules() {
+        var rule = noClasses().that().resideInAPackage(BASE_PACKAGE + ".shared..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        BASE_PACKAGE + ".*.api..",
+                        BASE_PACKAGE + ".*.internal..")
+                .as("""
+                    Правило зависимостей shared:
+                      shared — техническое ядро без бизнес-логики.
+                      Зависимости от api и internal бизнес-модулей запрещены.""");
 
         assertNoViolations(rule);
     }

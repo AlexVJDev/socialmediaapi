@@ -77,3 +77,12 @@ system/  ‹package-info (@ApplicationModule)›
     └── infrastructure/
         └── web/  ‹class @RestController›
 ```
+
+## shared
+
+```text
+shared/  ‹не модуль Modulith: техническое ядро›
+├── config/  ‹class @Configuration›
+├── exception/  ‹class @RestControllerAdvice›
+└── web/  ‹record›
+```

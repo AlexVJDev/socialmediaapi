@@ -33,9 +33,9 @@ docker compose --profile tools run --rm openapi-validator   # validate the OpenA
 - Changesets already applied to the local `docker compose` DB must not be edited (Liquibase fails on the checksum); if one was edited, the local schema has to be reset by the user (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;` or `docker compose down -v`).
 - If the project is also open in VS Code, its Java extension compiles into the same `../target/classes` and breaks Maven builds ("Unresolved compilation problems"); build from a copy of the project or ask the user to close it there.
 
-## Модульный монолит (рефакторинг идёт)
+## Модульный монолит
 
-Приложение переводится в модульный монолит на Spring Modulith (`spring-modulith-starter-core` 2.1.1, BOM в `../pom.xml`). Модули — прямые подпакеты `ru.job4j.socialmediaapi` с `@ApplicationModule` в `package-info.java` (`spring.modulith.detection-strategy: explicitly-annotated` в `application.yml`). Модули: `subscriptions`, `posts` (посты и лента), `friendships` (заявки и дружба, `allowedDependencies = "subscriptions::api"`), `system` (`/api/ping`). Допустимые межмодульные зависимости объявлены в `allowedDependencies`; новую зависимость нужно прописать там. Архитектурный стиль: DDD + гексагональная структура.
+Приложение — модульный монолит на Spring Modulith (`spring-modulith-starter-core` 2.1.1, BOM в `../pom.xml`). Модули — прямые подпакеты `ru.job4j.socialmediaapi` с `@ApplicationModule` в `package-info.java` (`spring.modulith.detection-strategy: explicitly-annotated` в `application.yml`). Модули: `subscriptions`, `posts` (посты и лента), `friendships` (заявки и дружба, `allowedDependencies = "subscriptions::api"`), `system` (`/api/ping`). Допустимые межмодульные зависимости объявлены в `allowedDependencies`; новую зависимость нужно прописать там. Архитектурный стиль: DDD + гексагональная структура.
 
 **Обязательно прочитай `architecture.md` перед изменением структуры модулей.** Кратко:
 - `<module>/api` — публичный контракт (интерфейсы, модели, события, ошибки); другие модули обращаются только к нему.
@@ -49,7 +49,7 @@ docker compose --profile tools run --rm openapi-validator   # validate the OpenA
 
 Схема пакетов модулей — `docs/md/shema.md`; генерируется `python3 -I docs/refactoring-kit/templates/gen-schema.py <путь к модулю>`.
 
-**Рефакторинг.** Идёт по `refactoring-kit/02-refactoring-guide.md`; инвентаризация и карта модулей — `docs/refactoring/inventory.md`; итерации называются `Modulith-N` (коммиты делает пользователь). Legacy-пакетов не осталось (`LEGACY_PACKAGES` в `ApplicationModulesTest` пуст); дальше — разбор `shared` и завершение (этапы 3–4).
+**История перехода.** Проект переведён в модульный монолит 2026-10-16 по `refactoring-kit/02-refactoring-guide.md` (итерации `Modulith-N`); инвентаризация, карта модулей и принятые решения — `refactoring/inventory.md`. Legacy-пакетов нет; новый код кладётся только в модули или (технический) в `shared`.
 
 ## Architecture
 

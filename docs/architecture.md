@@ -10,12 +10,12 @@
 
 ## Модули
 
-| Модуль | Ответственность | `allowedDependencies` | Публичный `api` | Статус |
-| --- | --- | --- | --- | --- |
-| `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) | перенесён |
-| `posts` | Посты и лента подписчика | `{}` | нет | перенесён |
-| `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет | перенесён |
-| `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет | перенесён |
+| Модуль | Ответственность | `allowedDependencies` | Публичный `api` |
+| --- | --- | --- | --- |
+| `subscriptions` | Подписки читателя на автора | `{}` | `Subscriptions` (`subscribeIfAbsent`, `unsubscribe`) |
+| `posts` | Посты и лента подписчика | `{}` | нет |
+| `friendships` | Заявки в друзья и дружба | `subscriptions::api` | нет |
+| `system` | Служебные эндпоинты (`/api/ping`) | `{}` | нет |
 
 Граф зависимостей: `friendships → subscriptions`; циклов нет.
 
@@ -256,6 +256,7 @@ MapStruct-мапперы лежат в `mapper/` своего слоя или а
 | `publicApiDoesNotExposeImplementation` | `api` не зависит от `internal`, моделей хранения, HTTP |
 | `webAdaptersUseApplicationScenarios` | web не обращается к persistence и `application.port` |
 | `applicationUsesPortsForTechnicalOperations` | application не зависит от JDBC, драйвера PostgreSQL, Spring DAO, HTTP |
+| `sharedDoesNotDependOnModules` | `shared` не зависит от `api` и `internal` бизнес-модулей |
 
 Правила применяются ко всем модулям одинаково; персональные исключения для классов
 и слоёв в тесте не используются. При добавлении модуля отдельный архитектурный тест
@@ -267,6 +268,7 @@ MapStruct-мапперы лежат в `mapper/` своего слоя или а
 ## Общее ядро `shared`
 
 `shared` — не модуль Modulith, а общее техническое ядро. Оно не зависит от бизнес-модулей
+(проверяет `sharedDoesNotDependOnModules`)
 и не содержит бизнес-логики.
 
 | Пакет | Содержимое |
@@ -277,14 +279,3 @@ MapStruct-мапперы лежат в `mapper/` своего слоя или а
 
 В `shared` запрещены модели хранения, репозитории, контроллеры, задания по расписанию,
 бизнес-порты и их адаптеры. Такой код оформляется отдельным модулем.
-
-## Переходный период
-
-Удалить раздел после завершения рефакторинга (`docs/refactoring-kit/02-refactoring-guide.md`,
-этап 4).
-
-Код в legacy-пакетах ниже ещё не перенесён в модули. Он обращается к модулям только
-через их `api`. Новый код в эти пакеты не добавляется. Список совпадает
-с `LEGACY_PACKAGES` в архитектурном тесте.
-
-Legacy-пакетов не осталось (`LEGACY_PACKAGES` пуст); раздел и константа удаляются на этапе 4.
