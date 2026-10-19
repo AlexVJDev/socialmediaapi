@@ -1,15 +1,15 @@
-# Задание 05. Интеграционный тест `PostRepositoryJdbcTest`
+# Задание 05. Интеграционный тест `PostPersistenceAdapterTest`
 
 **Пункт задания:** 7 (первая часть; в задании — `JdbcPostRepositoryTest`).
 **Зависит от:** задания 04.
 
 ## Цель
 
-Проверить `PostRepositoryJdbc` на настоящем PostgreSQL: SQL, миграции `007`/`008`, ограничения таблицы и правило «менять может только автор».
+Проверить `PostPersistenceAdapter` на настоящем PostgreSQL: SQL, миграции `007`/`008`, ограничения таблицы и правило «менять может только автор».
 
 ## Контекст
 
-- Образец — `SubscriptionRepositoryJdbcTest`: `@SpringBootTest` + `@Import(TestcontainersConfiguration.class)`, порт `@Autowired`, `JdbcTemplate` — для подготовки и проверки данных напрямую. Docker должен быть запущен; H2 не используем.
+- Тест лежит в том же пакете, что и адаптер (`posts.internal.infrastructure.persistence.adapter` под `src/test`). Образец — `SubscriptionPersistenceAdapterTest`: `@SpringBootTest` + `@Import(TestcontainersConfiguration.class)`, порт `@Autowired`, `JdbcTemplate` — только чтобы прочитать сохранённую строку или нарочно нарушить ограничение таблицы. Docker должен быть запущен; H2 не используем.
 - Контейнер общий для всех тестов: в каждом тесте — новые `UUID.randomUUID()`, чтобы тесты не зависели друг от друга.
 - Время — фиксированные `Instant` (`NOW`, `NOW.plusSeconds(...)`), не `Instant.now()`.
 
@@ -38,5 +38,5 @@
 
 ## Критерии приёмки
 
-- `./mvnw test -Dtest=PostRepositoryJdbcTest` зелёный.
+- `./mvnw test -Dtest=PostPersistenceAdapterTest` зелёный.
 - Каждый отказ (чужой автор, удалённая запись) проверяет ещё и то, что данные в БД не изменились.

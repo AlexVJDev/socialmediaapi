@@ -1,4 +1,4 @@
-# Задание 08. Интеграционный тест `FeedRepositoryJdbcTest` и связь процессов
+# Задание 08. Интеграционный тест `FeedPersistenceAdapterTest` и связь процессов
 
 **Пункты задания:** 7 (вторая часть; в задании — `JdbcFeedRepositoryTest`), 8.
 **Зависит от:** заданий 06–07.
@@ -9,8 +9,8 @@
 
 ## Контекст
 
-- Образец оформления — `SubscriptionRepositoryJdbcTest`: `@SpringBootTest` + `@Import(TestcontainersConfiguration.class)`.
-- Данные готовить **через порты**: `PostRepository.createPost` / `deletePost`, `SubscriptionRepository.createSubscription` / `deleteSubscription`. Так тест проверяет связь процессов, а не только SQL. `JdbcTemplate` — только там, где порта нет (например, выставить одинаковый `created_at`).
+- Тест — в пакете `posts.internal.infrastructure.persistence.adapter` под `src/test`. Образец оформления — `SubscriptionPersistenceAdapterTest`: `@SpringBootTest` + `@Import(TestcontainersConfiguration.class)`.
+- Данные готовить **через порты**: `PostRepository.createPost` / `deletePost` и API модуля подписок `Subscriptions.subscribeIfAbsent` / `unsubscribe` (порт `SubscriptionRepository` — внутренний для модуля `subscriptions`, из `posts` к нему обращаться нельзя). Так тест проверяет связь процессов, а не только SQL. `JdbcTemplate` — только там, где порта нет (например, выставить одинаковый `created_at`).
 - Новые `UUID.randomUUID()` в каждом тесте: контейнер общий, в БД лежат данные других тестов.
 
 ## Сценарии
@@ -18,9 +18,9 @@
 Связь процессов (пункт 8):
 - **до подписки**: автор опубликовал пост, читатель не подписан → лента читателя пуста;
 - **после подписки**: читатель подписался → пост появился в ленте;
-- **после отписки**: `deleteSubscription` → пост исчез из ленты (публикация при этом осталась — `findPublishedById` её находит);
+- **после отписки**: `unsubscribe` → пост исчез из ленты (публикация при этом осталась — `findPublishedById` её находит);
 - **`DELETED` исключены**: читатель подписан, автор удалил пост (`deletePost`) → поста в ленте нет, остальные посты автора на месте;
-- **дружба = взаимные подписки**: две встречные подписки (так их создаёт процесс принятия заявки, который ещё не реализован) → каждый видит посты другого, свои — нет. Когда появится accept, заменить подготовку на вызов use case.
+- **дружба = взаимные подписки**: две встречные подписки (так их создаёт процесс принятия заявки) → каждый видит посты другого, свои — нет. Сквозная проверка через настоящий accept/reject по HTTP — `FriendshipFeedTest` (корневой пакет тестов).
 
 Содержимое и порядок (пункт 6):
 - в ленте только посты авторов, на которых подписан читатель: посты постороннего автора не попадают;
@@ -32,5 +32,5 @@
 
 ## Критерии приёмки
 
-- `./mvnw test -Dtest=FeedRepositoryJdbcTest` зелёный; `./mvnw verify` зелёный целиком (JaCoCo + Checkstyle).
+- `./mvnw test -Dtest=FeedPersistenceAdapterTest` зелёный; `./mvnw verify` зелёный целиком (JaCoCo + Checkstyle).
 - Сценарии «до подписки / после подписки / после отписки / `DELETED`» — отдельные тесты с понятными `@DisplayName` на русском: именно они связывают SQL с бизнес-процессом.

@@ -15,7 +15,7 @@
 
 ## Что сделать
 
-1. В `SubscriptionRepository`:
+1. В порт `SubscriptionRepository` (`subscriptions.internal.application.port`):
    ```java
    /**
     * Removes the subscription of the follower to the followed user.
@@ -25,18 +25,19 @@
     */
    boolean deleteSubscription(UUID followerId, UUID followedId);
    ```
-2. В `SubscriptionRepositoryJdbc`:
+2. В `SubscriptionPersistenceAdapter` (`subscriptions.internal.infrastructure.persistence.adapter`):
    ```sql
    DELETE FROM subscriptions WHERE follower_id = ? AND followed_id = ?
    ```
    `jdbcTemplate.update(...) == 1`.
-3. Тесты в `SubscriptionRepositoryJdbcTest`:
+3. Тесты в `SubscriptionPersistenceAdapterTest`:
    - существующая подписка → `true`, строки нет;
    - подписки нет → `false`;
    - удаляется только направление follower → followed: встречная подписка остаётся;
    - после отписки можно подписаться снова (`createSubscription` не падает на уникальном ключе).
-4. Попутно (по замечанию с ревью про check-then-act): `existsSubscription` никем не вызывается — решить, удалять ли его вместе с тестами. Если оставляем — в Javadoc предупредить, что его нельзя использовать как проверку перед записью.
+4. После перехода на модули тот же метод доступен другим модулям через API: `subscriptions.api.Subscriptions.unsubscribe` (реализация — `SubscriptionsService`, вызывает `deleteSubscription` в транзакции вызывающего).
+5. Попутно (по замечанию с ревью про check-then-act): `existsSubscription` никем не вызывается — решить, удалять ли его вместе с тестами. Если оставляем — в Javadoc предупредить, что его нельзя использовать как проверку перед записью.
 
 ## Критерии приёмки
 
-- `./mvnw test -Dtest=SubscriptionRepositoryJdbcTest` зелёный.
+- `./mvnw test -Dtest=SubscriptionPersistenceAdapterTest` зелёный.

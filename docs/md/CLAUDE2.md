@@ -92,7 +92,7 @@ Modules under `ru.job4j.socialmediaapi` (rules — `../architecture.md`, package
   - `500 INTERNAL_ERROR` (returned by `shared.exception.GlobalExceptionHandler`) is not described in the OpenAPI contract.
   - `404 USER_NOT_FOUND` is in the contract, but there is no users table or user lookup yet.
   - `SubscriptionToSelfException` exists but is not thrown anywhere yet.
-  - Posts and the feed have no endpoints in `api` yet; the job4j task names (`PostEntity`, `JdbcPostRepositoryTest`, `JdbcFeedRepositoryTest`) are mapped to the project names (`PostRow`, `PostRepositoryJdbcTest`, `FeedRepositoryJdbcTest`) in `task/41215`; after the modular refactoring these tests are `PostPersistenceAdapterTest` / `FeedPersistenceAdapterTest` in module `posts`.
+  - Posts and the feed have no endpoints in `api` yet; the job4j task names (`PostEntity`, `JdbcPostRepositoryTest`, `JdbcFeedRepositoryTest`) are mapped to the project names (`PostRow`, `PostPersistenceAdapterTest`, `FeedPersistenceAdapterTest` in module `posts`) in `task/41215` (`README.md` and `task-01..08.md` use the current names).
   - Treat `../api/openapi.yaml` and its path files as the source of truth for the HTTP layer.
 - Documentation (`..`) is written in Russian.
 

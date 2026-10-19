@@ -22,10 +22,11 @@
 - В ленту не входят удалённые публикации и публикации авторов, на которых читатель не подписан. Собственные посты читателя тоже не входят: подписки на себя запрещены (`chk_subscriptions_different_users`).
 - `FeedRepository` отделён от `PostRepository`: тот работает с одной публикацией, этот — строит список.
 - Индексы: `idx_subscriptions_follower` (уже есть) и `idx_posts_author_created` (задание 02).
+- Запрос читает таблицу `subscriptions` модуля `subscriptions` — задокументированное исключение из правила «только через API модуля» (`../../../architecture.md`): лента строится одним `JOIN`, а не сборкой из двух модулей в памяти.
 
 ## Что сделать
 
-1. `application.port.out.FeedRepository`:
+1. `posts.internal.application.port.FeedRepository`:
    ```java
    public interface FeedRepository {
 
@@ -34,13 +35,15 @@
         * ...
         */
        List<FeedPostResponse> findFeed(UUID followerId, int limit, int offset);
-
-       record FeedPostResponse(UUID id, UUID authorId, String title, String content,
-                               PostStatus status, Instant createdAt, Instant updatedAt) { }
    }
    ```
-   (Если совпадает с `PostRepository.FindPostResponse` — можно переиспользовать, решение — в Javadoc.)
-2. `adapter.out.persistence.jdbc.FeedRepositoryJdbc implements FeedRepository`:
+   Модель — отдельный record в `application.port.model`:
+   ```java
+   public record FeedPostResponse(UUID id, UUID authorId, String title, String content,
+                                  PostStatus status, Instant createdAt, Instant updatedAt) { }
+   ```
+   Поля совпадают с `PostResponse`, но у ленты свой тип: порты не зависят друг от друга.
+2. `posts.internal.infrastructure.persistence.adapter.FeedPersistenceAdapter implements FeedRepository`:
    ```sql
    SELECT p.id, p.author_id, p.title, p.content, p.status, p.created_at, p.updated_at
    FROM subscriptions s
@@ -50,7 +53,7 @@
    ORDER BY p.created_at DESC, p.id DESC
    LIMIT ? OFFSET ?
    ```
-   - `RowMapper<PostRow>` — своя константа `ROW_MAPPER` в `FeedRepositoryJdbc`, как в остальных адаптерах (колонки те же, что в `PostRepositoryJdbc`); маппинг `PostRow` → `FeedPostResponse` — метод MapStruct-маппера (`FeedPersistenceMapper` или `PostPersistenceMapper.toFeedResponse`), не вручную.
+   - `RowMapper<PostRow>` — своя константа `ROW_MAPPER` в `FeedPersistenceAdapter`, как в остальных адаптерах (колонки те же, что в `PostPersistenceAdapter`); маппинг `PostRow` → `FeedPostResponse` — `infrastructure.persistence.mapper.FeedPersistenceMapper.toResponse` (MapStruct, только Row → Response), не вручную. Юнит-тест — `FeedPersistenceMapperTest`.
    - `id DESC` — второй ключ сортировки: у нескольких публикаций может совпасть `created_at`, без него порядок внутри одинакового времени не определён и страницы могут «перемешиваться».
    - Аргументы: `limit > 0`, `offset >= 0`, иначе `IllegalArgumentException` до обращения к БД (PostgreSQL на отрицательные значения ответит ошибкой синтаксиса выполнения, лучше упасть явно). Верхнюю границу `limit` (например, 100) задаст будущий REST-слой.
 3. **Документация** ограничений — новый файл `../../../process/Feed.md` (на русском):
