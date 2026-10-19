@@ -17,3 +17,12 @@ databaseChangeLog:
   - include:
       file: changes/006-create-subscriptions-indexes.sql
       relativeToChangelogFile: true
+  - include:
+      file: changes/007-create-posts.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changes/008-create-posts-indexes.sql
+      relativeToChangelogFile: true
+  - include:
+      file: changes/009-friendship-offer-unique-pair.sql
+      relativeToChangelogFile: true
