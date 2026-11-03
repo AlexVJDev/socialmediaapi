@@ -19,3 +19,7 @@ paths:
     $ref: './paths/followers-get.yaml'
   /api/v1/subscribes:
     $ref: './paths/subscribes-get.yaml'
+  /api/v1/posts/{postId}:
+    $ref: './paths/post-get.yaml'
+  /api/v1/feed:
+    $ref: './paths/feed-get.yaml'

@@ -228,3 +228,71 @@ Stop:
 ```text
 Ctrl + C
 ```
+
+## Reading posts and the feed
+
+Two read-only endpoints of the `posts` module (contract:
+[post-get.yaml](docs/api/paths/post-get.yaml), [feed-get.yaml](docs/api/paths/feed-get.yaml)):
+
+- `GET /api/v1/posts/{postId}` — a published post; `404 POST_NOT_FOUND` if it
+  does not exist or is deleted.
+- `GET /api/v1/feed?followerId=...&limit=...` — published posts of the authors
+  the reader is subscribed to, newest first. `limit` is 1..100 (default 20).
+  The next page is requested with `afterCreatedAt` and `afterId` copied from
+  `next` of the previous response; `next: null` means there are no more posts.
+
+There is no endpoint that creates posts yet, so add test data to the local
+database first (the app must have been started once, so Liquibase created the
+tables). A reader `…0001` subscribed to an author `…0002` with 15 posts
+(`Post 1` … `Post 15`, one per hour on 2026-11-01, `Post 15` is the newest):
+```shell
+docker compose exec -T postgres psql -U postgres -d social_media <<'SQL'
+INSERT INTO subscriptions (id, follower_id, followed_id, created_at)
+VALUES (gen_random_uuid(),
+        '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000002', now());
+INSERT INTO posts (id, author_id, title, content, status, created_at, updated_at)
+SELECT ('bbbbbbbb-0000-0000-0000-' || lpad(n::TEXT, 12, '0'))::UUID,
+       '00000000-0000-0000-0000-000000000002',
+       'Post ' || n,
+       'Text of post ' || n,
+       'PUBLISHED',
+       TIMESTAMPTZ '2026-11-01T00:00:00Z' + make_interval(hours => n),
+       TIMESTAMPTZ '2026-11-01T00:00:00Z' + make_interval(hours => n)
+FROM generate_series(1, 15) n;
+SQL
+```
+For a large data set (2 million posts, reader `55555555-5555-5555-5555-555555555555`)
+use `src/main/resources/db/changes/0091-sql-examples.sql` instead (see the
+comments at the top of that file).
+
+Then, with the application running (`./mvnw spring-boot:run`):
+
+1. Get a post by id:
+   ```shell
+   curl -s http://localhost:8080/api/v1/posts/bbbbbbbb-0000-0000-0000-000000000015
+   ```
+   ```json
+   {"id":"bbbbbbbb-0000-0000-0000-000000000015","authorId":"00000000-0000-0000-0000-000000000002",
+    "title":"Post 15","content":"Text of post 15","status":"PUBLISHED",
+    "createdAt":"2026-11-01T15:00:00Z","updatedAt":"2026-11-01T15:00:00Z"}
+   ```
+
+2. First page of the feed, ten posts per page:
+   ```shell
+   curl -s "http://localhost:8080/api/v1/feed?followerId=00000000-0000-0000-0000-000000000001&limit=10"
+   ```
+   Returns the posts `Post 15` … `Post 6` (newest first) and
+   `"next":{"createdAt":"2026-11-01T06:00:00Z","id":"bbbbbbbb-0000-0000-0000-000000000006"}`.
+
+3. Next page — the cursor is the `next` of the previous response:
+   ```shell
+   curl -s "http://localhost:8080/api/v1/feed?followerId=00000000-0000-0000-0000-000000000001&limit=10&afterCreatedAt=2026-11-01T06:00:00Z&afterId=bbbbbbbb-0000-0000-0000-000000000006"
+   ```
+   Returns the remaining posts `Post 5` … `Post 1` and `"next":null` — the feed
+   has no more posts.
+
+Errors use the `{code, message}` body: a missing post gives
+`404 POST_NOT_FOUND`; an id that is not a UUID, a missing `followerId`, a
+`limit` outside 1..100 or only one of `afterCreatedAt`/`afterId` gives
+`400 INVALID_POST_REQUEST`.

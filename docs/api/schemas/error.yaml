@@ -1,0 +1,8 @@
+type: object
+description: Тело ответа с ошибкой
+required: [code, message]
+properties:
+  code:
+    type: string
+  message:
+    type: string

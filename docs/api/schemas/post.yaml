@@ -1,0 +1,30 @@
+type: object
+description: Опубликованный пост
+required: [id, authorId, title, content, status, createdAt, updatedAt]
+properties:
+  id:
+    type: string
+    format: uuid
+    example: 7d1f3c2a-5b6e-4f80-9a1b-2c3d4e5f6a7b
+  authorId:
+    type: string
+    format: uuid
+    example: 22222222-2222-2222-2222-222222222222
+  title:
+    type: string
+    example: Пост 1
+  content:
+    type: string
+    example: Текст поста
+  status:
+    type: string
+    enum: [PUBLISHED]
+    example: PUBLISHED
+  createdAt:
+    type: string
+    format: date-time
+    example: '2026-10-15T10:00:00.123456Z'
+  updatedAt:
+    type: string
+    format: date-time
+    example: '2026-10-15T10:00:00.123456Z'
