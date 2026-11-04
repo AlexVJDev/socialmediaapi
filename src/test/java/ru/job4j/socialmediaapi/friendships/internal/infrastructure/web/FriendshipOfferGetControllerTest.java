@@ -7,13 +7,19 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,8 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The database is shared with other tests: offers created here through the API are the newest ones
- * (other tests create offers with the current time too, but before or after this test, not during it).
+ * The database is shared with other tests, and some of them store offers with fixed dates
+ * (e.g. {@code 2026-10-06}) that can be later than the clock of the machine running the build.
+ * So the application clock of this test is shifted to {@link #FUTURE}: offers created here through
+ * the API are the newest ones on any machine.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -34,6 +42,9 @@ class FriendshipOfferGetControllerTest {
 
     /** Base URL of the friendship offer endpoints. */
     private static final String BASE = "/api/v1/friendship-offer";
+
+    /** Time the application clock of this test starts from: later than any offer of other tests. */
+    private static final Instant FUTURE = Instant.parse("3000-01-01T00:00:00Z");
 
     /** MockMvc to call the API without a running server. */
     @Autowired
@@ -141,6 +152,20 @@ class FriendshipOfferGetControllerTest {
     @DisplayName("Некорректные параметры страницы: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
     void whenInvalidPageParamsThenBadRequest(String query) throws Exception {
         expectError(mockMvc.perform(get(BASE + "?" + query)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+    }
+
+    /** Replaces the application clock with a ticking one shifted to {@link #FUTURE}. */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FutureClockConfiguration {
+
+        /**
+         * @return clock ticking from {@link #FUTURE}: offers created one after another get growing times
+         */
+        @Bean
+        @Primary
+        Clock futureClock() {
+            return Clock.offset(Clock.systemUTC(), Duration.between(Instant.now(), FUTURE));
+        }
     }
 
     private UUID createOffer(UUID fromUserId, UUID toUserId) throws Exception {
