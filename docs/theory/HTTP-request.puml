@@ -1,0 +1,21 @@
+@startuml
+actor Клиент
+participant "Встроенный веб-сервер" as Server
+participant DispatcherServlet as Dispatcher
+participant HandlerMapping as Mapping
+participant "HttpMessageConverter\n(Jackson)" as Converter
+participant Controller
+
+Клиент -> Server : HTTP-запрос
+Server -> Dispatcher : передать запрос
+Dispatcher -> Mapping : найти обработчик
+Mapping --> Dispatcher : метод контроллера
+Dispatcher -> Converter : JSON → request DTO
+Converter --> Dispatcher : Java-объект
+Dispatcher -> Controller : вызвать метод
+Controller --> Dispatcher : response DTO
+Dispatcher -> Converter : response DTO → JSON
+Converter --> Dispatcher : JSON
+Dispatcher --> Server : HTTP-ответ
+Server --> Клиент : статус, заголовки, JSON
+@enduml

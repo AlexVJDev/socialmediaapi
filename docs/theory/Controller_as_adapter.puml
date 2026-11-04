@@ -1,0 +1,15 @@
+@startuml
+skinparam componentStyle rectangle
+
+component "Controller\nHTTP и DTO" as Controller
+component "Service\nсценарий и транзакция" as Service
+component "Repository\nдоступ к данным" as Repository
+database PostgreSQL
+
+Controller --> Service : команда процесса
+Service --> Repository : чтение и сохранение
+Repository --> PostgreSQL : SQL
+PostgreSQL --> Repository : данные
+Repository --> Service : доменные объекты
+Service --> Controller : результат процесса
+@enduml
