@@ -1,7 +1,8 @@
 post:
   tags:
-    - Friendship
+    - FriendshipOffer
   summary: Принять предложение дружбы
+  operationId: acceptFriendshipOffer
   requestBody:
     required: true
     content:

@@ -1,7 +1,8 @@
 post:
   tags:
-    - Friendship
+    - FriendshipOffer
   summary: Отклонить предложение дружбы
+  operationId: rejectFriendshipOffer
   requestBody:
     required: true
     content:

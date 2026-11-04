@@ -1,7 +1,8 @@
 get:
   tags:
-    - Friendship
+    - FriendshipOffer
   summary: Получить входящие предложения дружбы
+  operationId: getIncomingFriendshipOffers
   parameters:
     - name: userId
       in: query

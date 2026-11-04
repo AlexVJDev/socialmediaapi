@@ -14,10 +14,14 @@ import ru.job4j.socialmediaapi.friendships.internal.application.exception.Friend
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferPageResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -70,6 +74,39 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
                    status, created_at, updated_at
             FROM friendship_offer
             WHERE id = ? AND to_user_id = ?
+            """;
+
+    /** Selects the offer by id; no lock: the row is only read. */
+    private static final String FIND_BY_ID = """
+            SELECT id, from_user_id, to_user_id,
+                   status, created_at, updated_at
+            FROM friendship_offer
+            WHERE id = ?
+            """;
+
+    /**
+     * First page of all offers, newest first. Parameter: number of rows to read.
+     * The order follows the index {@code idx_friendship_offer_created}.
+     */
+    private static final String FIND_FIRST_PAGE = """
+            SELECT id, from_user_id, to_user_id,
+                   status, created_at, updated_at
+            FROM friendship_offer
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """;
+
+    /**
+     * Page of the offers after the cursor. Parameters: cursor {@code created_at}, cursor {@code id},
+     * number of rows to read. The row comparison becomes an index condition.
+     */
+    private static final String FIND_PAGE_AFTER = """
+            SELECT id, from_user_id, to_user_id,
+                   status, created_at, updated_at
+            FROM friendship_offer
+            WHERE (created_at, id) < (?, ?)
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
             """;
 
     /** Reads a result set row into {@link FriendshipOfferRow}. */
@@ -151,5 +188,61 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
                 .stream()
                 .findFirst()
                 .map(mapper::toFindResponse);
+    }
+
+    @Override
+    public Optional<FindFriendshipOfferResponse> findById(UUID offerId) {
+        return jdbcTemplate.query(FIND_BY_ID, ROW_MAPPER, offerId)
+                .stream()
+                .findFirst()
+                .map(mapper::toFindResponse);
+    }
+
+    @Override
+    public FriendshipOfferPageResponse findPage(int limit) {
+        checkLimit(limit);
+        return findPage(limit, FIND_FIRST_PAGE, limit + 1);
+    }
+
+    @Override
+    public FriendshipOfferPageResponse findPageAfter(FriendshipOfferCursor after, int limit) {
+        Objects.requireNonNull(after, "after");
+        checkLimit(limit);
+        return findPage(limit, FIND_PAGE_AFTER, Timestamp.from(after.createdAt()), after.id(), limit + 1);
+    }
+
+    /**
+     * Reads up to {@code limit + 1} rows: the extra row is not returned,
+     * it only means that there is a next page.
+     *
+     * @param limit maximum number of offers on the page
+     * @param sql   query of the page
+     * @param args  query parameters
+     * @return the page with the cursor of the next page, if there is one
+     */
+    private FriendshipOfferPageResponse findPage(int limit, String sql, Object... args) {
+        var rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
+        var hasNext = rows.size() > limit;
+        List<FriendshipOfferRow> pageRows = hasNext ? rows.subList(0, limit) : rows;
+        var next = hasNext
+                ? Optional.of(mapper.toCursor(pageRows.getLast()))
+                : Optional.<FriendshipOfferCursor>empty();
+        return new FriendshipOfferPageResponse(
+                pageRows.stream().map(mapper::toFindResponse).toList(),
+                next
+        );
+    }
+
+    /**
+     * Rejects a page size the repository does not serve, before the query.
+     *
+     * @param limit requested page size
+     * @throws IllegalArgumentException {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
+     */
+    private static void checkLimit(int limit) {
+        if (limit < 1 || limit > MAX_LIMIT) {
+            throw new IllegalArgumentException(
+                    "Page limit must be from 1 to %d, got %d".formatted(MAX_LIMIT, limit));
+        }
     }
 }

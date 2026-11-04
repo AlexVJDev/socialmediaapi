@@ -1,0 +1,41 @@
+get:
+  tags:
+    - FriendshipOffer
+  summary: Получить предложение дружбы по идентификатору
+  operationId: getFriendshipOffer
+  description: >-
+    Заявка в любом статусе. Чтение доступно без проверки участника заявки, пока не подключена
+    аутентификация (Keycloak).
+  parameters:
+    - name: offerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44
+  responses:
+    '200':
+      description: Предложение дружбы
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/friendship-offer.yaml'
+    '400':
+      description: Идентификатор не является UUID
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/error.yaml'
+          example:
+            code: INVALID_FRIENDSHIP_OFFER_REQUEST
+            message: Некорректное тело запроса, отсутствуют обязательные поля или пользователь предлагает дружбу самому себе
+    '404':
+      description: Предложения дружбы с таким идентификатором нет
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/error.yaml'
+          example:
+            code: FRIENDSHIP_OFFER_NOT_FOUND
+            message: Предложение дружбы не найдено

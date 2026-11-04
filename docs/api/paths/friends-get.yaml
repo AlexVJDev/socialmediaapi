@@ -2,6 +2,7 @@ get:
   tags:
     - Friendship
   summary: Получить список друзей
+  operationId: getFriends
   parameters:
     - name: userId
       in: query

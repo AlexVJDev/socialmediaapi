@@ -1,7 +1,8 @@
 post:
   tags:
-    - Friendship
+    - FriendshipOffer
   summary: Создать предложение дружбы
+  operationId: createFriendshipOffer
   requestBody:
     required: true
     content:

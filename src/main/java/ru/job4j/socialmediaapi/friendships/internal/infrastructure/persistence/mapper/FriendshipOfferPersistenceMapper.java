@@ -6,6 +6,7 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.r
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
@@ -25,6 +26,12 @@ public interface FriendshipOfferPersistenceMapper {
     FindFriendshipOfferResponse toFindResponse(FriendshipOfferRow row);
 
     UpdateFriendshipOfferStatusResponse toUpdateResponse(FriendshipOfferRow row);
+
+    /**
+     * @param row offer of a page
+     * @return its position in the order of all offers: {@code created_at} and {@code id}
+     */
+    FriendshipOfferCursor toCursor(FriendshipOfferRow row);
 
     /**
      * @param status status of the offer

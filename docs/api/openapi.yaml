@@ -3,6 +3,10 @@ info:
   title: API социальной сети
   version: 1.0.0
 paths:
+  /api/v1/friendship-offer:
+    $ref: './paths/friendship-offers-get.yaml'
+  /api/v1/friendship-offer/{offerId}:
+    $ref: './paths/friendship-offer-get.yaml'
   /api/v1/friendship-offer/create:
     $ref: './paths/friendship-offer-create.yaml'
   /api/v1/friendship-offer/accept:

@@ -1,0 +1,73 @@
+get:
+  tags:
+    - FriendshipOffer
+  summary: Получить страницу всех предложений дружбы
+  operationId: getFriendshipOffers
+  description: >-
+    Все заявки в любом статусе, от новых к старым (`createdAt DESC, id DESC`). Страницы читаются
+    по курсору, как лента: первая — без `afterCreatedAt`/`afterId`, следующая — с
+    `afterCreatedAt = next.createdAt` и `afterId = next.id` из предыдущего ответа.
+    `next: null` — заявок больше нет. Чтение доступно без проверки пользователя, пока не подключена
+    аутентификация (Keycloak).
+  parameters:
+    - name: limit
+      in: query
+      required: false
+      description: Размер страницы
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    - name: afterCreatedAt
+      in: query
+      required: false
+      description: '`next.createdAt` предыдущей страницы; задаётся вместе с `afterId`'
+      schema:
+        type: string
+        format: date-time
+      example: '2026-09-22T10:15:00.123456Z'
+    - name: afterId
+      in: query
+      required: false
+      description: '`next.id` предыдущей страницы; задаётся вместе с `afterCreatedAt`'
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: Страница заявок (может быть пустой)
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [offers, next]
+            properties:
+              offers:
+                type: array
+                items:
+                  $ref: '../schemas/friendship-offer.yaml'
+              next:
+                type: object
+                nullable: true
+                description: Курсор следующей страницы — позиция последней заявки; `null`, если заявок больше нет
+                required: [createdAt, id]
+                properties:
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: '2026-09-22T10:15:00.123456Z'
+                  id:
+                    type: string
+                    format: uuid
+    '400':
+      description: >-
+        Некорректные параметры: `limit` вне 1..100 или не число, `afterCreatedAt` не дата-время,
+        `afterId` не UUID, задана только одна часть курсора
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/error.yaml'
+          example:
+            code: INVALID_FRIENDSHIP_OFFER_REQUEST
+            message: Некорректное тело запроса, отсутствуют обязательные поля или пользователь предлагает дружбу самому себе

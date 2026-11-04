@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -19,13 +20,19 @@ import ru.job4j.socialmediaapi.friendships.internal.application.exception.Friend
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferPageResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -310,6 +317,133 @@ class FriendshipOfferPersistenceAdapterTest {
         assertThat(repository.findByIdAndRecipient(offer.id(), offer.fromUserId())).isEmpty();
         assertThat(repository.findByIdAndRecipient(offer.id(), UUID.randomUUID())).isEmpty();
         assertThat(repository.findByIdAndRecipient(UUID.randomUUID(), offer.toUserId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findById: заявка читается в любом статусе со всеми полями")
+    void whenFindByIdThenReturnOfferInAnyStatus() {
+        var created = repository.createFriendshipOffer(
+                request(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
+        repository.updateStatusIfPending(new UpdateFriendshipOfferStatusRequest(
+                created.id(), created.toUserId(), FriendshipOfferStatus.ACCEPTED, DECIDED_AT));
+
+        var found = repository.findById(created.id());
+
+        assertThat(found).contains(new FindFriendshipOfferResponse(
+                created.id(), created.fromUserId(), created.toUserId(),
+                FriendshipOfferStatus.ACCEPTED, created.createdAt(), DECIDED_AT
+        ));
+    }
+
+    @Test
+    @DisplayName("findById: несуществующая заявка — пустой результат")
+    void whenFindByUnknownIdThenEmpty() {
+        assertThat(repository.findById(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findPage: первая страница — самые новые заявки, next указывает на последнюю заявку страницы")
+    void whenFindFirstPageThenNewestOffers() {
+        var newest = offerAt(Instant.parse("9000-01-01T00:00:00Z"));
+
+        var page = repository.findPage(1);
+
+        assertThat(page.offers()).containsExactly(newest);
+        assertThat(page.next()).contains(cursorOf(newest));
+    }
+
+    @Test
+    @DisplayName("Страницы по курсору: 5 заявок по 2 идут от новых к старым без повторов и пропусков")
+    void whenPagedByCursorThenNewestFirstWithoutGaps() {
+        var window = window();
+        var offers = new ArrayList<FindFriendshipOfferResponse>();
+        for (int i = 1; i <= 5; i++) {
+            offers.add(offerAt(window.plusSeconds(i)));
+        }
+        var start = new FriendshipOfferCursor(window.plusSeconds(6), UUID.randomUUID());
+
+        var first = repository.findPageAfter(start, 2);
+        var second = repository.findPageAfter(first.next().orElseThrow(), 2);
+        var third = repository.findPageAfter(second.next().orElseThrow(), 2);
+
+        assertThat(first.offers()).containsExactly(offers.get(4), offers.get(3));
+        assertThat(first.next()).contains(cursorOf(offers.get(3)));
+        assertThat(second.offers()).containsExactly(offers.get(2), offers.get(1));
+        assertThat(third.offers()).first().isEqualTo(offers.get(0));
+    }
+
+    @Test
+    @DisplayName("Заявки с одинаковым created_at идут по id DESC (как сравнивает PostgreSQL), курсор не теряет ни одну")
+    void whenSameCreatedAtThenOrderedByIdDescAcrossPages() {
+        var createdAt = window();
+        var offers = List.of(offerAt(createdAt), offerAt(createdAt), offerAt(createdAt));
+        var expected = offers.stream()
+                .sorted(Comparator.comparing((FindFriendshipOfferResponse o) -> o.id().toString()).reversed())
+                .toList();
+        var start = new FriendshipOfferCursor(createdAt.plusSeconds(1), UUID.randomUUID());
+
+        var first = repository.findPageAfter(start, 2);
+        var second = repository.findPageAfter(first.next().orElseThrow(), 2);
+
+        assertThat(first.offers()).containsExactly(expected.get(0), expected.get(1));
+        assertThat(second.offers()).first().isEqualTo(expected.get(2));
+    }
+
+    @Test
+    @DisplayName("Конец списка: на последней странице next пуст, в том числе когда заявок ровно limit")
+    void whenNoMoreOffersThenNextIsEmpty() {
+        var oldest = offerAt(Instant.parse("1971-01-01T00:00:01Z"));
+        var older = offerAt(Instant.parse("1971-01-01T00:00:00Z"));
+        var start = new FriendshipOfferCursor(Instant.parse("1971-01-01T00:00:02Z"), UUID.randomUUID());
+
+        var exactlyLimit = repository.findPageAfter(start, 2);
+        var oneByOne = repository.findPageAfter(start, 1);
+
+        assertThat(exactlyLimit).isEqualTo(new FriendshipOfferPageResponse(List.of(oldest, older), Optional.empty()));
+        assertThat(oneByOne.offers()).containsExactly(oldest);
+        assertThat(oneByOne.next()).contains(cursorOf(oldest));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, FriendshipOfferRepository.MAX_LIMIT + 1})
+    @DisplayName("limit вне 1..MAX_LIMIT: IllegalArgumentException до запроса")
+    void whenLimitOutOfRangeThenIllegalArgument(int limit) {
+        var after = new FriendshipOfferCursor(Instant.now(), UUID.randomUUID());
+
+        assertThatThrownBy(() -> repository.findPage(limit)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> repository.findPageAfter(after, limit)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("findPageAfter без курсора: NullPointerException")
+    void whenAfterIsNullThenNullPointer() {
+        assertThatThrownBy(() -> repository.findPageAfter(null, 1)).isInstanceOf(NullPointerException.class);
+    }
+
+    /**
+     * @return start of a time range of one test, far in the future: no other offer falls into it
+     */
+    private static Instant window() {
+        return Instant.parse("2900-01-01T00:00:00Z")
+                .plusSeconds(ThreadLocalRandom.current().nextLong(1_000_000_000L) * 10);
+    }
+
+    /**
+     * Creates a {@code PENDING} offer of two new users through the port.
+     *
+     * @param createdAt time of creation (whole seconds: the column keeps microseconds)
+     * @return the offer as read by {@code findById}
+     */
+    private FindFriendshipOfferResponse offerAt(Instant createdAt) {
+        var created = repository.createFriendshipOffer(new CreateFriendshipOfferRequest(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                FriendshipOfferStatus.PENDING, createdAt, createdAt
+        ));
+        return repository.findById(created.id()).orElseThrow();
+    }
+
+    private static FriendshipOfferCursor cursorOf(FindFriendshipOfferResponse offer) {
+        return new FriendshipOfferCursor(offer.createdAt(), offer.id());
     }
 
     private CreateFriendshipOfferRequest request(

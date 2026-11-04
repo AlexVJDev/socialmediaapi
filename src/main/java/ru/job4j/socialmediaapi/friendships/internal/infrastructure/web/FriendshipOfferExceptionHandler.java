@@ -1,5 +1,6 @@
 package ru.job4j.socialmediaapi.friendships.internal.infrastructure.web;
 
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -9,10 +10,13 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.error.ErrorCode;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.IncompleteFriendshipOfferCursorException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyPendingException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferToSelfException;
@@ -31,16 +35,28 @@ public class FriendshipOfferExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(FriendshipOfferExceptionHandler.class);
 
     /**
-     * An unreadable or invalid body of /api/v1/friendship-offer/* (create, accept, reject):
-     * one INVALID_FRIENDSHIP_OFFER_REQUEST code for all of them. Other modules map their
-     * own request bodies: this handler is limited to {@link FriendshipOfferController}.
+     * An invalid request of /api/v1/friendship-offer[/*]: one INVALID_FRIENDSHIP_OFFER_REQUEST code
+     * for all of them. Other modules map their own requests: this handler is limited
+     * to {@link FriendshipOfferController}.
+     * <ul>
+     *     <li>body of create, accept, reject: unreadable, invalid or an offer to oneself;</li>
+     *     <li>path and query parameters of the GET endpoints: of a wrong type
+     *     ({@link MethodArgumentTypeMismatchException}, e.g. an id that is not a UUID), out of the
+     *     contract limits ({@code limit} outside 1..100: {@link HandlerMethodValidationException}
+     *     of Spring MVC or {@link ConstraintViolationException} of the {@code @Validated} interface),
+     *     only one part of the page cursor.</li>
+     * </ul>
      *
      * @return {@code 400} with the INVALID_FRIENDSHIP_OFFER_REQUEST error body
      */
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
             HttpMessageNotReadableException.class,
-            FriendshipOfferToSelfException.class
+            FriendshipOfferToSelfException.class,
+            MethodArgumentTypeMismatchException.class,
+            HandlerMethodValidationException.class,
+            ConstraintViolationException.class,
+            IncompleteFriendshipOfferCursorException.class
     })
     public ResponseEntity<ErrorResponse> handleInvalidRequest() {
         return ErrorCode.INVALID_FRIENDSHIP_OFFER_REQUEST.response();
@@ -58,8 +74,8 @@ public class FriendshipOfferExceptionHandler {
     }
 
     /**
-     * Accept/reject of an offer that does not exist or whose recipient is not the actor:
-     * the offer of someone else is not disclosed.
+     * Accept/reject of an offer that does not exist or whose recipient is not the actor
+     * (the offer of someone else is not disclosed); reading an offer that does not exist.
      *
      * @return {@code 404} with the FRIENDSHIP_OFFER_NOT_FOUND error body
      */
