@@ -49,7 +49,7 @@ post:
                 example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
               status:
                 type: string
-                enum: [PENDING, ACCEPTED, REJECTED]
+                enum: [PENDING]
                 example: PENDING
               createdAt:
                 type: string
@@ -83,33 +83,19 @@ post:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                example: INVALID_FRIENDSHIP_OFFER_REQUEST
-              message:
-                type: string
-                example: Некорректное тело запроса, отсутствуют обязательные поля или пользователь предлагает дружбу самому себе
+            $ref: '../schemas/error.yaml'
+          example:
+            code: INVALID_FRIENDSHIP_OFFER_REQUEST
+            message: Некорректное тело или параметры запроса
     '404':
       description: Пользователь не найден
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                example: USER_NOT_FOUND
-              message:
-                type: string
-                example: Пользователь-инициатор или пользователь-получатель не найден
+            $ref: '../schemas/error.yaml'
+          example:
+            code: USER_NOT_FOUND
+            message: Пользователь-инициатор или пользователь-получатель не найден
     '409':
       description: >-
         Предложение дружбы между этими пользователями (в том же направлении или встречное) уже существует
@@ -117,15 +103,13 @@ post:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                enum: [FRIENDSHIP_OFFER_ALREADY_ACCEPTED, FRIENDSHIP_OFFER_ALREADY_REJECTED]
-                example: FRIENDSHIP_OFFER_ALREADY_REJECTED
-              message:
-                type: string
-                example: Предложение дружбы уже обработано и не может быть создано повторно
+            $ref: '../schemas/error.yaml'
+          examples:
+            accepted:
+              value:
+                code: FRIENDSHIP_OFFER_ALREADY_ACCEPTED
+                message: Предложение дружбы уже принято
+            rejected:
+              value:
+                code: FRIENDSHIP_OFFER_ALREADY_REJECTED
+                message: Предложение дружбы уже отклонено

@@ -55,7 +55,7 @@ post:
                 example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
               status:
                 type: string
-                enum: [PENDING, ACCEPTED, REJECTED]
+                enum: [REJECTED]
                 example: REJECTED
               createdAt:
                 type: string
@@ -73,17 +73,10 @@ post:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                example: INVALID_FRIENDSHIP_OFFER_REQUEST
-              message:
-                type: string
-                example: Некорректное тело запроса или отсутствуют обязательные поля
+            $ref: '../schemas/error.yaml'
+          example:
+            code: INVALID_FRIENDSHIP_OFFER_REQUEST
+            message: Некорректное тело или параметры запроса
     '404':
       description: >-
         Предложение дружбы не найдено: его нет или `actorId` не является его получателем
@@ -91,17 +84,10 @@ post:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                example: FRIENDSHIP_OFFER_NOT_FOUND
-              message:
-                type: string
-                example: Предложение дружбы не найдено
+            $ref: '../schemas/error.yaml'
+          example:
+            code: FRIENDSHIP_OFFER_NOT_FOUND
+            message: Предложение дружбы не найдено
     '409':
       description: >-
         Предложение дружбы нельзя отклонить, так как его статус отличен от 'PENDING' ('ACCEPTED' или 'REJECTED');
@@ -109,15 +95,13 @@ post:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                enum: [FRIENDSHIP_OFFER_ALREADY_ACCEPTED, FRIENDSHIP_OFFER_ALREADY_REJECTED]
-                example: FRIENDSHIP_OFFER_ALREADY_ACCEPTED
-              message:
-                type: string
-                example: Предложение дружбы уже принято
+            $ref: '../schemas/error.yaml'
+          examples:
+            accepted:
+              value:
+                code: FRIENDSHIP_OFFER_ALREADY_ACCEPTED
+                message: Предложение дружбы уже принято
+            rejected:
+              value:
+                code: FRIENDSHIP_OFFER_ALREADY_REJECTED
+                message: Предложение дружбы уже отклонено

@@ -12,6 +12,7 @@ properties:
     example: 22222222-2222-2222-2222-222222222222
   title:
     type: string
+    maxLength: 255
     example: Пост 1
   content:
     type: string

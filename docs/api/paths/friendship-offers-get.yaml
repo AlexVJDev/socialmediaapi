@@ -70,4 +70,4 @@ get:
             $ref: '../schemas/error.yaml'
           example:
             code: INVALID_FRIENDSHIP_OFFER_REQUEST
-            message: Некорректное тело запроса, отсутствуют обязательные поля или пользователь предлагает дружбу самому себе
+            message: Некорректное тело или параметры запроса

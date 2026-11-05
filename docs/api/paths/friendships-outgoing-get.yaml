@@ -43,30 +43,16 @@ get:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                example: INVALID_USER_ID
-              message:
-                type: string
-                example: Некорректный или отсутствующий параметр userId
+            $ref: '../schemas/error.yaml'
+          example:
+            code: INVALID_USER_ID
+            message: Некорректный или отсутствующий параметр userId
     '404':
       description: Пользователь не найден
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - code
-              - message
-            properties:
-              code:
-                type: string
-                example: USER_NOT_FOUND
-              message:
-                type: string
-                example: Пользователь не найден
+            $ref: '../schemas/error.yaml'
+          example:
+            code: USER_NOT_FOUND
+            message: Пользователь не найден

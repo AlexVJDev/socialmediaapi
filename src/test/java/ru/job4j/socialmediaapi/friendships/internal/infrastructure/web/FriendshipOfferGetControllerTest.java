@@ -23,6 +23,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -115,6 +117,22 @@ class FriendshipOfferGetControllerTest {
     }
 
     @Test
+    @DisplayName("Границы limit: 1 и 100 допустимы")
+    void whenLimitOnBoundsThenOk() throws Exception {
+        createOffer(UUID.randomUUID(), UUID.randomUUID());
+        createOffer(UUID.randomUUID(), UUID.randomUUID());
+
+        mockMvc.perform(get(BASE).param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.offers.length()").value(1))
+                .andExpect(jsonPath("$.next").isNotEmpty());
+        mockMvc.perform(get(BASE).param("limit", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.offers.length()").value(lessThanOrEqualTo(100)))
+                .andExpect(jsonPath("$.offers.length()").value(greaterThanOrEqualTo(2)));
+    }
+
+    @Test
     @DisplayName("Без limit страница содержит не больше 20 заявок (значение по умолчанию из контракта)")
     void whenNoLimitThenDefaultLimit() throws Exception {
         for (int i = 0; i < 21; i++) {
@@ -156,9 +174,9 @@ class FriendshipOfferGetControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 INVALID_USER_ID по контракту")
     void whenUserIdMissingOrNotUuidThenBadRequest(String path) throws Exception {
-        expectError(mockMvc.perform(get(BASE + path)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(mockMvc.perform(get(BASE + path)), 400, "INVALID_USER_ID");
     }
 
     @ParameterizedTest

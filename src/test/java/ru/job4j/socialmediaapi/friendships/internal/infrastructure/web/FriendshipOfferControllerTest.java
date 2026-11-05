@@ -4,7 +4,9 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -15,8 +17,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,29 +47,30 @@ class FriendshipOfferControllerTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Test
-    @DisplayName("Без toUserId: 400 INVALID_FRIENDSHIP_OFFER_REQUEST, заявка не создаётся")
-    void whenToUserIdMissingThenBadRequest() throws Exception {
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', value = {
+            "нет toUserId                | {\"fromUserId\":\"%1$s\"}",
+            "нет fromUserId              | {\"toUserId\":\"%2$s\"}",
+            "нет обоих полей             | {}",
+            "toUserId null               | {\"fromUserId\":\"%1$s\",\"toUserId\":null}",
+            "fromUserId null             | {\"fromUserId\":null,\"toUserId\":\"%2$s\"}",
+            "fromUserId не UUID          | {\"fromUserId\":\"42\",\"toUserId\":\"%2$s\"}",
+            "toUserId не UUID            | {\"fromUserId\":\"%1$s\",\"toUserId\":\"not-a-uuid\"}",
+            "toUserId пустая строка      | {\"fromUserId\":\"%1$s\",\"toUserId\":\"\"}",
+            "toUserId UUID без дефисов   | {\"fromUserId\":\"%1$s\",\"toUserId\":\"0b6f3c9e6a1d4c2e9f5a2d7b8e1c4a01\"}",
+            "toUserId число, не строка   | {\"fromUserId\":\"%1$s\",\"toUserId\":123}"
+    })
+    @DisplayName("create с отсутствующим, null или не UUID полем: 400 INVALID_FRIENDSHIP_OFFER_REQUEST, "
+            + "заявка и подписка не создаются")
+    void whenCreateWithInvalidIdsThenBadRequest(String situation, String template) throws Exception {
         var fromUserId = UUID.randomUUID();
-
-        expectError(
-                create("{\"fromUserId\":\"%s\"}".formatted(fromUserId)),
-                400, "INVALID_FRIENDSHIP_OFFER_REQUEST"
-        );
-        assertThat(offersFrom(fromUserId)).isZero();
-        assertThat(subscriptionsOf(fromUserId)).isZero();
-    }
-
-    @Test
-    @DisplayName("fromUserId не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
-    void whenFromUserIdNotUuidThenBadRequest() throws Exception {
         var toUserId = UUID.randomUUID();
 
-        expectError(
-                create("{\"fromUserId\":\"42\",\"toUserId\":\"%s\"}".formatted(toUserId)),
-                400, "INVALID_FRIENDSHIP_OFFER_REQUEST"
-        );
+        expectError(create(template.formatted(fromUserId, toUserId)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+
+        assertThat(offersFrom(fromUserId)).isZero();
         assertThat(offersTo(toUserId)).isZero();
+        assertThat(subscriptionsOf(fromUserId)).isZero();
     }
 
     @Test
@@ -276,15 +281,11 @@ class FriendshipOfferControllerTest {
         assertThat(subscriptions(borisId, aliceId)).isEqualTo(friendships);
     }
 
-    @ParameterizedTest
-    @CsvSource(delimiter = '|', value = {
-            "accept | {\"actorId\":\"%2$s\"}",
-            "accept | {\"offerId\":\"%1$s\"}",
-            "reject | {\"offerId\":\"42\",\"actorId\":\"%2$s\"}",
-            "reject | {not json"
-    })
-    @DisplayName("accept/reject с некорректным телом: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
-    void whenDecideWithInvalidBodyThenBadRequest(String action, String template) throws Exception {
+    @ParameterizedTest(name = "{0}: {1}")
+    @MethodSource("invalidDecideBodies")
+    @DisplayName("accept/reject с отсутствующим, null или не UUID полем: 400 INVALID_FRIENDSHIP_OFFER_REQUEST, "
+            + "заявка остаётся PENDING, дружба и обратная подписка не создаются")
+    void whenDecideWithInvalidBodyThenBadRequest(String action, String situation, String template) throws Exception {
         var aliceId = UUID.randomUUID();
         var borisId = UUID.randomUUID();
         var offerId = createOffer(aliceId, borisId);
@@ -294,6 +295,32 @@ class FriendshipOfferControllerTest {
                 400, "INVALID_FRIENDSHIP_OFFER_REQUEST"
         );
         assertThat(offerStatus(aliceId, borisId)).isEqualTo("PENDING");
+        assertThat(friendshipsOf(offerId)).isZero();
+        assertThat(subscriptions(borisId, aliceId)).isZero();
+    }
+
+    /**
+     * Each invalid body for both accept and reject; {@code %1$s} is the offer id, {@code %2$s} the recipient.
+     *
+     * @return action, situation and body template
+     */
+    private static Stream<Arguments> invalidDecideBodies() {
+        List<String[]> bodies = List.of(
+                new String[] {"нет actorId", "{\"offerId\":\"%1$s\"}"},
+                new String[] {"нет offerId", "{\"actorId\":\"%2$s\"}"},
+                new String[] {"нет обоих полей", "{}"},
+                new String[] {"offerId null", "{\"offerId\":null,\"actorId\":\"%2$s\"}"},
+                new String[] {"actorId null", "{\"offerId\":\"%1$s\",\"actorId\":null}"},
+                new String[] {"offerId не UUID", "{\"offerId\":\"42\",\"actorId\":\"%2$s\"}"},
+                new String[] {"actorId не UUID", "{\"offerId\":\"%1$s\",\"actorId\":\"not-a-uuid\"}"},
+                new String[] {"actorId пустая строка", "{\"offerId\":\"%1$s\",\"actorId\":\"\"}"},
+                new String[] {"offerId UUID без дефисов",
+                        "{\"offerId\":\"9c4e1b773f2a4d6c8b0e1a5f7d2c3e44\",\"actorId\":\"%2$s\"}"},
+                new String[] {"actorId число, не строка", "{\"offerId\":\"%1$s\",\"actorId\":123}"},
+                new String[] {"тело не JSON", "{not json"}
+        );
+        return Stream.of("accept", "reject")
+                .flatMap(action -> bodies.stream().map(body -> Arguments.of(action, body[0], body[1])));
     }
 
     @Test

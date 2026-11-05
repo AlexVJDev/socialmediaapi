@@ -2,6 +2,8 @@ package ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.mapper;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.AcceptFriendshipOfferCommand;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.FriendshipOfferCursorResult;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Web-маппер заявок в друзья: преобразование между web-DTO и входным портом")
 class FriendshipOfferWebMapperTest {
@@ -103,6 +106,33 @@ class FriendshipOfferWebMapperTest {
                 result.id(), result.fromUserId(), result.toUserId(),
                 RejectFriendshipOfferWebResponse.StatusEnum.REJECTED, CREATED_AT, DECIDED_AT
         ));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = FriendshipOfferStatus.class, names = "PENDING", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("toResponse create: статус, кроме PENDING, запрещён контрактом — IllegalArgumentException")
+    void whenCreateResultNotPendingThenException(FriendshipOfferStatus status) {
+        var created = new CreateFriendshipOfferResult(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), status, CREATED_AT
+        );
+
+        assertThatThrownBy(() -> mapper.toResponse(created)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = FriendshipOfferStatus.class, names = "ACCEPTED", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("toAcceptResponse: статус, кроме ACCEPTED, запрещён контрактом — IllegalArgumentException")
+    void whenAcceptResultNotAcceptedThenException(FriendshipOfferStatus status) {
+        assertThatThrownBy(() -> mapper.toAcceptResponse(decision(status)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = FriendshipOfferStatus.class, names = "REJECTED", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("toRejectResponse: статус, кроме REJECTED, запрещён контрактом — IllegalArgumentException")
+    void whenRejectResultNotRejectedThenException(FriendshipOfferStatus status) {
+        assertThatThrownBy(() -> mapper.toRejectResponse(decision(status)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

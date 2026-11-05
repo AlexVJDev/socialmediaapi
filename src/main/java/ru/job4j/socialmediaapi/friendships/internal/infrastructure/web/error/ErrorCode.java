@@ -10,10 +10,15 @@ import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
  */
 public enum ErrorCode {
 
-    /** Invalid request body, missing required fields or an offer to oneself. */
+    /** Invalid body or parameters: unreadable, missing or invalid fields, an offer to oneself, a bad query. */
     INVALID_FRIENDSHIP_OFFER_REQUEST(
             HttpStatus.BAD_REQUEST,
-            "Некорректное тело запроса, отсутствуют обязательные поля или пользователь предлагает дружбу самому себе"
+            "Некорректное тело или параметры запроса"
+    ),
+    /** The {@code userId} query parameter of incoming/outgoing offers is missing or not a UUID. */
+    INVALID_USER_ID(
+            HttpStatus.BAD_REQUEST,
+            "Некорректный или отсутствующий параметр userId"
     ),
     /**
      * The offer of this pair of users (in either direction) already waits for a decision.

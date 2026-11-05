@@ -175,6 +175,55 @@ class PostControllerTest {
                 400, "INVALID_POST_REQUEST");
     }
 
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {
+            "followerId=42",
+            "followerId=00000000-0000-0000-0000-000000000001&afterCreatedAt=2026-10-15T10:00:00Z",
+            "followerId=00000000-0000-0000-0000-000000000001"
+                    + "&afterCreatedAt=yesterday&afterId=00000000-0000-0000-0000-000000000002",
+            "followerId=00000000-0000-0000-0000-000000000001&afterCreatedAt=2026-10-15T10:00:00Z&afterId=42"
+    })
+    @DisplayName("followerId не UUID, курсор только из afterCreatedAt, afterCreatedAt не дата-время, "
+            + "afterId не UUID: 400 INVALID_POST_REQUEST")
+    void whenFeedParamInvalidThenBadRequest(String query) throws Exception {
+        expectError(mockMvc.perform(get("/api/v1/feed?" + query)), 400, "INVALID_POST_REQUEST");
+    }
+
+    @Test
+    @DisplayName("Границы limit: 1 и 100 допустимы")
+    void whenLimitOnBoundsThenOk() throws Exception {
+        var reader = UUID.randomUUID();
+        var author = UUID.randomUUID();
+        post(author, 0);
+        post(author, 1);
+        subscriptions.subscribeIfAbsent(reader, author, BASE_TIME);
+
+        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()).param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts.length()").value(1))
+                .andExpect(jsonPath("$.next").isNotEmpty());
+        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()).param("limit", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts.length()").value(2))
+                .andExpect(jsonPath("$.next").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("Без limit в ленте не больше 20 постов (значение по умолчанию из контракта)")
+    void whenNoLimitThenDefaultLimit() throws Exception {
+        var reader = UUID.randomUUID();
+        var author = UUID.randomUUID();
+        for (int i = 0; i < 21; i++) {
+            post(author, i);
+        }
+        subscriptions.subscribeIfAbsent(reader, author, BASE_TIME);
+
+        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts.length()").value(20))
+                .andExpect(jsonPath("$.next").isNotEmpty());
+    }
+
     private UUID post(UUID author, int minutes) {
         var time = BASE_TIME.plusSeconds(60L * minutes);
         return postRepository.createPost(new CreatePostRequest(
