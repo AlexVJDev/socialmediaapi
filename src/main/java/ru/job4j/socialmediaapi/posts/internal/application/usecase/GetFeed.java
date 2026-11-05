@@ -40,7 +40,7 @@ public class GetFeed {
         if (command.afterCreatedAt() == null && command.afterId() == null) {
             return mapper.toResult(feedRepository.findFeed(command.followerId(), command.limit()));
         }
-        var after = new FeedCursor(command.afterCreatedAt(), command.afterId());
+        FeedCursor after = new FeedCursor(command.afterCreatedAt(), command.afterId());
         return mapper.toResult(feedRepository.findFeedAfter(command.followerId(), after, command.limit()));
     }
 }

@@ -55,9 +55,9 @@ public class FriendshipsPersistenceAdapter implements FriendshipsRepository {
     public CreateFriendshipResponse createFriendship(
             CreateFriendshipRequest request
     ) {
-        var row = mapper.toRow(request);
+        FriendshipsRow row = mapper.toRow(request);
         try {
-            var saved = jdbcTemplate.queryForObject(
+            FriendshipsRow saved = jdbcTemplate.queryForObject(
                     CREATE,
                     ROW_MAPPER,
                     row.id(),

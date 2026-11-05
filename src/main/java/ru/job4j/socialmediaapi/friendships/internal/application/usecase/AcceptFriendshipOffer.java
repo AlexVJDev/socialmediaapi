@@ -17,8 +17,10 @@ import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipR
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.Friendship;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 
 import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Accepting a friendship offer, see «2. Принятие заявки»
@@ -68,11 +70,13 @@ public class AcceptFriendshipOffer {
      */
     @Transactional
     public FriendshipOfferDecisionResult accept(AcceptFriendshipOfferCommand command) {
-        var now = clock.instant();
-        var accepted = friendshipOfferRepository.updateStatusIfPending(new UpdateFriendshipOfferStatusRequest(
+        Instant now = clock.instant();
+        UpdateFriendshipOfferStatusRequest request = new UpdateFriendshipOfferStatusRequest(
                 command.offerId(), command.actorId(), FriendshipOfferStatus.ACCEPTED, now
-        )).orElseThrow(() -> decisionErrors.forAccept(command.offerId(), command.actorId(), now));
-        var friendship = Friendship.between(accepted.fromUserId(), accepted.toUserId(), accepted.id(), now);
+        );
+        UpdateFriendshipOfferStatusResponse accepted = friendshipOfferRepository.updateStatusIfPending(request)
+                .orElseThrow(() -> decisionErrors.forAccept(command.offerId(), command.actorId(), now));
+        Friendship friendship = Friendship.between(accepted.fromUserId(), accepted.toUserId(), accepted.id(), now);
         friendshipsRepository.createFriendship(friendshipMapper.toRequest(friendship));
         subscriptions.subscribeIfAbsent(accepted.toUserId(), accepted.fromUserId(), now);
         return offerMapper.toResult(accepted);

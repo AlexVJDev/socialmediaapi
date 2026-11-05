@@ -141,6 +141,7 @@ Modules under `ru.job4j.socialmediaapi` (rules — `../architecture.md`, package
 - Enum ↔ `String` (статусы в БД хранятся строкой) MapStruct делает сам через `name()` / `valueOf()`; неизвестное значение из БД даёт `IllegalArgumentException`.
 - Value objects (records) разворачиваются и собираются через `default`-методы маппера. `expression = "java(...)"` допустим только для однострочников.
 - Маппер не содержит бизнес-логики и не обращается к репозиториям или внешним системам. Исключение — справочные конвертеры, подключённые через `uses`.
+- тип переменных var можно использовать только в тестах
 
 **Проверка:**
 - `./mvnw clean compile` проходит без ошибок и предупреждений MapStruct об unmapped properties.

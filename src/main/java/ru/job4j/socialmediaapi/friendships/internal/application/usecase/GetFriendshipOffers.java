@@ -46,7 +46,7 @@ public class GetFriendshipOffers {
         if (command.afterId() == null) {
             return mapper.toResult(friendshipOfferRepository.findPage(command.limit()));
         }
-        var after = new FriendshipOfferCursor(command.afterCreatedAt(), command.afterId());
+        FriendshipOfferCursor after = new FriendshipOfferCursor(command.afterCreatedAt(), command.afterId());
         return mapper.toResult(friendshipOfferRepository.findPageAfter(after, command.limit()));
     }
 }

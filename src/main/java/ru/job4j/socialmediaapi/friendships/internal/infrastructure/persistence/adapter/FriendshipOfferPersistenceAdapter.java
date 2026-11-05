@@ -136,9 +136,9 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
     public CreateFriendshipOfferResponse createFriendshipOffer(
             CreateFriendshipOfferRequest request
     ) {
-        var row = mapper.toRow(request);
+        FriendshipOfferRow row = mapper.toRow(request);
         try {
-            var saved = jdbcTemplate.queryForObject(
+            FriendshipOfferRow saved = jdbcTemplate.queryForObject(
                     CREATE,
                     ROW_MAPPER,
                     row.id(),
@@ -221,12 +221,12 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
      * @return the page with the cursor of the next page, if there is one
      */
     private FriendshipOfferPageResponse findPage(int limit, String sql, Object... args) {
-        var rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
-        var hasNext = rows.size() > limit;
+        List<FriendshipOfferRow> rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
+        boolean hasNext = rows.size() > limit;
         List<FriendshipOfferRow> pageRows = hasNext ? rows.subList(0, limit) : rows;
-        var next = hasNext
+        Optional<FriendshipOfferCursor> next = hasNext
                 ? Optional.of(mapper.toCursor(pageRows.getLast()))
-                : Optional.<FriendshipOfferCursor>empty();
+                : Optional.empty();
         return new FriendshipOfferPageResponse(
                 pageRows.stream().map(mapper::toFindResponse).toList(),
                 next

@@ -59,7 +59,7 @@ public record Friendship(
     public static Friendship between(UUID userA, UUID userB, UUID friendshipOfferId, Instant now) {
         Objects.requireNonNull(userA, "userA");
         Objects.requireNonNull(userB, "userB");
-        var aFirst = compareAsPostgres(userA, userB) < 0;
+        boolean aFirst = compareAsPostgres(userA, userB) < 0;
         return new Friendship(
                 UUID.randomUUID(),
                 aFirst ? userA : userB,

@@ -80,8 +80,8 @@ public class PostPersistenceAdapter implements PostRepository {
 
     @Override
     public PostResponse createPost(CreatePostRequest request) {
-        var row = mapper.toRow(request);
-        var saved = jdbcTemplate.queryForObject(
+        PostRow row = mapper.toRow(request);
+        PostRow saved = jdbcTemplate.queryForObject(
                 CREATE,
                 ROW_MAPPER,
                 row.id(),

@@ -13,8 +13,10 @@ import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipO
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipRequestNotFoundException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
 
 import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Rejecting a friendship offer, see «3. Отклонение заявки»
@@ -51,10 +53,12 @@ public class RejectFriendshipOffer {
      */
     @Transactional
     public FriendshipOfferDecisionResult reject(RejectFriendshipOfferCommand command) {
-        var now = clock.instant();
-        var rejected = friendshipOfferRepository.updateStatusIfPending(new UpdateFriendshipOfferStatusRequest(
+        Instant now = clock.instant();
+        UpdateFriendshipOfferStatusRequest request = new UpdateFriendshipOfferStatusRequest(
                 command.offerId(), command.actorId(), FriendshipOfferStatus.REJECTED, now
-        )).orElseThrow(() -> decisionErrors.forReject(command.offerId(), command.actorId(), now));
+        );
+        UpdateFriendshipOfferStatusResponse rejected = friendshipOfferRepository.updateStatusIfPending(request)
+                .orElseThrow(() -> decisionErrors.forReject(command.offerId(), command.actorId(), now));
         return mapper.toResult(rejected);
     }
 }

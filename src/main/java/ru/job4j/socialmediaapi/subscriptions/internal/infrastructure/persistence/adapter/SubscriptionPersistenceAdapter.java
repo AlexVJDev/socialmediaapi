@@ -77,9 +77,9 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
     public CreateSubscriptionResponse createSubscription(
             CreateSubscriptionRequest request
     ) {
-        var row = mapper.toRow(request);
+        SubscriptionRow row = mapper.toRow(request);
         try {
-            var saved = jdbcTemplate.queryForObject(
+            SubscriptionRow saved = jdbcTemplate.queryForObject(
                     CREATE,
                     ROW_MAPPER,
                     row.id(),
@@ -100,7 +100,7 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
     public Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(
             CreateSubscriptionRequest request
     ) {
-        var row = mapper.toRow(request);
+        SubscriptionRow row = mapper.toRow(request);
         return jdbcTemplate.query(
                         CREATE_IF_ABSENT,
                         ROW_MAPPER,

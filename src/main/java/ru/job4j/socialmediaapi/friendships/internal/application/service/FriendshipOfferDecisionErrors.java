@@ -8,8 +8,10 @@ import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipO
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipRequestNotFoundException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOffer;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -60,7 +62,7 @@ public class FriendshipOfferDecisionErrors {
      *         which a correct database cannot give right after an empty conditional update
      */
     private RuntimeException errorOf(UUID offerId, UUID actorId, Consumer<FriendshipOffer> decision) {
-        var stored = repository.findByIdAndRecipient(offerId, actorId);
+        Optional<FindFriendshipOfferResponse> stored = repository.findByIdAndRecipient(offerId, actorId);
         if (stored.isEmpty()) {
             return new FriendshipRequestNotFoundException(offerId);
         }

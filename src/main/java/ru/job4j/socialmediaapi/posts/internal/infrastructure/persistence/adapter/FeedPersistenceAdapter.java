@@ -119,7 +119,7 @@ public class FeedPersistenceAdapter implements FeedRepository {
     @Override
     public FeedPageResponse findFeed(UUID followerId, int limit) {
         checkLimit(limit);
-        var fetch = limit + 1;
+        int fetch = limit + 1;
         return findPage(limit, FIND_FIRST_PAGE, fetch, followerId, fetch);
     }
 
@@ -127,7 +127,7 @@ public class FeedPersistenceAdapter implements FeedRepository {
     public FeedPageResponse findFeedAfter(UUID followerId, FeedCursor after, int limit) {
         Objects.requireNonNull(after, "after");
         checkLimit(limit);
-        var fetch = limit + 1;
+        int fetch = limit + 1;
         return findPage(limit, FIND_PAGE_AFTER,
                 Timestamp.from(after.createdAt()), after.id(), fetch, followerId, fetch);
     }
@@ -142,12 +142,12 @@ public class FeedPersistenceAdapter implements FeedRepository {
      * @return the page with the cursor of the next page, if there is one
      */
     private FeedPageResponse findPage(int limit, String sql, Object... args) {
-        var rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
-        var hasNext = rows.size() > limit;
+        List<PostRow> rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
+        boolean hasNext = rows.size() > limit;
         List<PostRow> pageRows = hasNext ? rows.subList(0, limit) : rows;
-        var next = hasNext
+        Optional<FeedCursor> next = hasNext
                 ? Optional.of(mapper.toCursor(pageRows.getLast()))
-                : Optional.<FeedCursor>empty();
+                : Optional.empty();
         return new FeedPageResponse(
                 pageRows.stream().map(mapper::toResponse).toList(),
                 next

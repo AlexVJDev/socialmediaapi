@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferResult;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.FriendshipOfferDecisionResult;
+import ru.job4j.socialmediaapi.friendships.internal.application.model.FriendshipOfferPageResult;
 import ru.job4j.socialmediaapi.friendships.internal.application.usecase.AcceptFriendshipOffer;
 import ru.job4j.socialmediaapi.friendships.internal.application.usecase.CreateFriendshipOffer;
 import ru.job4j.socialmediaapi.friendships.internal.application.usecase.GetFriendshipOffer;
@@ -65,7 +68,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     public ResponseEntity<CreateFriendshipOfferWebResponse> createFriendshipOffer(
             CreateFriendshipOfferWebRequest request
     ) {
-        var result = createFriendshipOffer.create(mapper.toCommand(request));
+        CreateFriendshipOfferResult result = createFriendshipOffer.create(mapper.toCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(result));
     }
 
@@ -81,7 +84,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     public ResponseEntity<AcceptFriendshipOfferWebResponse> acceptFriendshipOffer(
             AcceptFriendshipOfferWebRequest request
     ) {
-        var result = acceptFriendshipOffer.accept(mapper.toAcceptCommand(request));
+        FriendshipOfferDecisionResult result = acceptFriendshipOffer.accept(mapper.toAcceptCommand(request));
         return ResponseEntity.ok(mapper.toAcceptResponse(result));
     }
 
@@ -97,7 +100,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     public ResponseEntity<RejectFriendshipOfferWebResponse> rejectFriendshipOffer(
             RejectFriendshipOfferWebRequest request
     ) {
-        var result = rejectFriendshipOffer.reject(mapper.toRejectCommand(request));
+        FriendshipOfferDecisionResult result = rejectFriendshipOffer.reject(mapper.toRejectCommand(request));
         return ResponseEntity.ok(mapper.toRejectResponse(result));
     }
 
@@ -127,7 +130,8 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     public ResponseEntity<FriendshipOfferPageWebResponse> getFriendshipOffers(
             Integer limit, Instant afterCreatedAt, UUID afterId
     ) {
-        var result = getFriendshipOffers.get(mapper.toGetPageCommand(limit, afterCreatedAt, afterId));
+        FriendshipOfferPageResult result =
+                getFriendshipOffers.get(mapper.toGetPageCommand(limit, afterCreatedAt, afterId));
         return ResponseEntity.ok(mapper.toResponse(result));
     }
 

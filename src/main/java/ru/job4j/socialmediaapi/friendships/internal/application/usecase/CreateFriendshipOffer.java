@@ -65,7 +65,7 @@ public class CreateFriendshipOffer {
      */
     @Transactional
     public CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command) {
-        var offer = FriendshipOffer.create(command.fromUserId(), command.toUserId(), clock.instant());
+        FriendshipOffer offer = FriendshipOffer.create(command.fromUserId(), command.toUserId(), clock.instant());
         CreateFriendshipOfferResponse created;
         try {
             created = friendshipOfferRepository.createFriendshipOffer(mapper.toRequest(offer));
