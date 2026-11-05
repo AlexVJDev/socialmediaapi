@@ -7,7 +7,7 @@
 ## HTTP-запрос
 
 ```http
-GET /api/v1/subscribes?userId=1
+GET /api/v1/subscribes?userId=0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
 Accept: application/json
 ```
 
@@ -15,7 +15,7 @@ Accept: application/json
 
 | Параметр | Тип | Обязательный | Описание |
 | --- | --- | --- | --- |
-| `userId` | `number` | Да | Идентификатор пользователя, для которого нужно получить список подписок. |
+| `userId` | `string (uuid)` | Да | Идентификатор пользователя, для которого нужно получить список подписок. |
 
 ## Успешный ответ
 
@@ -29,10 +29,12 @@ Content-Type: application/json
 ```json
 [
   {
-    "userId": 2
+    "id": "d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f03",
+    "userId": "5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22"
   },
   {
-    "userId": 4
+    "id": "d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f04",
+    "userId": "a3c8e5f1-6d2b-4f7e-9a10-8b4c2d6e7f88"
   }
 ]
 ```
@@ -47,7 +49,8 @@ Content-Type: application/json
 
 | Поле | Тип | Описание |
 | --- | --- | --- |
-| `userId` | `number` | Идентификатор пользователя, на которого оформлена подписка. |
+| `id` | `string (uuid)` | Идентификатор подписки. |
+| `userId` | `string (uuid)` | Идентификатор пользователя, на которого оформлена подписка. |
 
 ## Правила обработки
 

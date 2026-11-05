@@ -39,7 +39,7 @@
 		<openapi.friendships.spec>${project.basedir}/docs/api/modules/friendships.yaml</openapi.friendships.spec>
 		<openapi.friendships.package>ru.job4j.socialmediaapi.friendships.internal.infrastructure.web</openapi.friendships.package>
 		<openapi.friendships.requests>CreateFriendshipOfferWebRequest,AcceptFriendshipOfferWebRequest,RejectFriendshipOfferWebRequest</openapi.friendships.requests>
-		<openapi.friendships.responses>CreateFriendshipOfferWebResponse,AcceptFriendshipOfferWebResponse,RejectFriendshipOfferWebResponse,friendship-offer,FriendshipOfferPageWebResponse,FriendshipOfferCursorWebResponse,FriendshipOfferListItemWebResponse,FriendWebResponse</openapi.friendships.responses>
+		<openapi.friendships.responses>CreateFriendshipOfferWebResponse,AcceptFriendshipOfferWebResponse,RejectFriendshipOfferWebResponse,friendship-offer,FriendshipOfferPageWebResponse,FriendshipOfferCursorWebResponse,FriendWebResponse</openapi.friendships.responses>
 		<openapi.friendships.inline-names>
 			createFriendshipOffer_request=CreateFriendshipOfferWebRequest,
 			acceptFriendshipOffer_request=AcceptFriendshipOfferWebRequest,
@@ -49,7 +49,6 @@
 			rejectFriendshipOffer_200_response=RejectFriendshipOfferWebResponse,
 			getFriendshipOffers_200_response=FriendshipOfferPageWebResponse,
 			getFriendshipOffers_200_response_next=FriendshipOfferCursorWebResponse,
-			getIncomingFriendshipOffers_200_response_inner=FriendshipOfferListItemWebResponse,
 			getFriends_200_response_inner=FriendWebResponse
 		</openapi.friendships.inline-names>
 		<!-- Names of the schemas from docs/api/schemas/*.yaml (the schema is named by its file).
@@ -59,8 +58,8 @@
 		     createFriendshipOffer_200_response is the FRIENDSHIP_OFFER_ALREADY_PENDING error body too, but the generator
 		     takes the return type from the lowest 2xx code (200, not 201): it is mapped to the 201 type, so the method
 		     returns the created offer; the 200 body is written by FriendshipOfferExceptionHandler.
-		     Identical inline schemas are merged by the generator (reject 400/404 = accept 400/404,
-		     outgoing = incoming), so they are not listed. -->
+		     Identical inline schemas are merged by the generator (reject 400/404 = accept 400/404),
+		     so they are not listed. -->
 		<openapi.friendships.schemas>
 			createFriendshipOffer_200_response=CreateFriendshipOfferWebResponse,
 			createFriendshipOffer_400_response=ErrorResponse,
@@ -87,7 +86,6 @@
 			FriendshipOfferWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferWebResponse,
 			FriendshipOfferPageWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferPageWebResponse,
 			FriendshipOfferCursorWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferCursorWebResponse,
-			FriendshipOfferListItemWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferListItemWebResponse,
 			FriendWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendWebResponse
 		</openapi.friendships.imports>
 	</properties>

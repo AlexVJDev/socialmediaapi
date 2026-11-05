@@ -415,30 +415,59 @@ curl -i "$API?afterCreatedAt=yesterday&afterId=$NEXT_ID" -w '\n'
 
 ## 6. `GET /api/v1/friendship-offer/{incoming, outgoing}`
 
-Входящие и исходящие заявки пользователя. Есть в контракте и в сгенерированном `FriendshipOfferApi`,
-но ещё не реализованы: в контракте у них пока числовые id пользователей вместо UUID.
+Входящие (пользователь — получатель) и исходящие (пользователь — отправитель) заявки пользователя.
+Есть в контракте и в сгенерированном `FriendshipOfferApi`, но ещё не реализованы: метод отвечает `501`.
 
 ### Запрос
 
 | Параметр | Где | Тип | Обязательный | Описание |
 | --- | --- | --- | --- | --- |
-| `userId` | query | `integer (int64)` | Да | Пользователь |
+| `userId` | query | `string (uuid)` | Да | Пользователь |
 
 ### Ответ
 
-`501 Not Implemented` без тела.
+Сейчас — `501 Not Implemented` без тела.
+
+По контракту — `200 OK` и список заявок; элемент списка — заявка из раздела 4 (схема
+`docs/api/schemas/friendship-offer.yaml`, с `updatedAt`). Нет заявок — пустой список `[]`.
+
+```json
+[
+  {
+    "id": "9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44",
+    "fromUserId": "0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01",
+    "toUserId": "5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22",
+    "status": "PENDING",
+    "createdAt": "2026-09-22T10:15:00Z",
+    "updatedAt": "2026-09-22T10:15:00Z"
+  }
+]
+```
 
 ### Ошибки
 
-Пока не проверяются: метод сразу отвечает `501`.
+`userId` разбирается до вызова метода, поэтому эти ошибки есть уже сейчас:
+
+| Статус | `code` | Ситуация |
+| --- | --- | --- |
+| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | `userId` не передан или не UUID |
+
+`404 USER_NOT_FOUND` из контракта не возвращается: таблицы пользователей пока нет.
 
 ### Проверка
 
 **6.1. Оба эндпоинта** → `501`.
 
 ```shell
+curl -i "$API/incoming?userId=$BOB" -w '\n'
+curl -i "$API/outgoing?userId=$ALICE" -w '\n'
+```
+
+**6.2. `userId` не UUID и без `userId`** → оба `400 INVALID_FRIENDSHIP_OFFER_REQUEST`.
+
+```shell
 curl -i "$API/incoming?userId=1" -w '\n'
-curl -i "$API/outgoing?userId=1" -w '\n'
+curl -i "$API/incoming" -w '\n'
 ```
 
 ---

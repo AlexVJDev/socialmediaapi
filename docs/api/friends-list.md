@@ -7,7 +7,7 @@
 ## HTTP-запрос
 
 ```http
-GET /api/v1/friendships?userId=1
+GET /api/v1/friendships?userId=0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
 Accept: application/json
 ```
 
@@ -15,7 +15,7 @@ Accept: application/json
 
 | Параметр | Тип | Обязательный | Описание |
 | --- | --- | --- | --- |
-| `userId` | `number` | Да | Идентификатор пользователя, для которого нужно получить список друзей. |
+| `userId` | `string (uuid)` | Да | Идентификатор пользователя, для которого нужно получить список друзей. |
 
 ## Успешный ответ
 
@@ -29,12 +29,12 @@ Content-Type: application/json
 ```json
 [
   {
-    "id": 7,
-    "userId": 2
+    "id": "c1d2e3f4-5a6b-4c7d-8e9f-0a1b2c3d4e01",
+    "userId": "5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22"
   },
   {
-    "id": 12,
-    "userId": 3
+    "id": "c1d2e3f4-5a6b-4c7d-8e9f-0a1b2c3d4e02",
+    "userId": "7d1f0a52-2b8e-4c9a-b3d6-4e8f1a2c5b66"
   }
 ]
 ```
@@ -49,8 +49,8 @@ Content-Type: application/json
 
 | Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Идентификатор дружбы. |
-| `userId` | `number` | Идентификатор пользователя-друга. |
+| `id` | `string (uuid)` | Идентификатор дружбы. |
+| `userId` | `string (uuid)` | Идентификатор пользователя-друга. |
 
 ## Правила обработки
 

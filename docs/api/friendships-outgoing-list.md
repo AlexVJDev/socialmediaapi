@@ -7,7 +7,7 @@
 ## HTTP-запрос
 
 ```http
-GET /api/v1/friendship-offer/outgoing?userId=1
+GET /api/v1/friendship-offer/outgoing?userId=0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
 Accept: application/json
 ```
 
@@ -15,7 +15,7 @@ Accept: application/json
 
 | Параметр | Тип | Обязательный | Описание |
 | --- | --- | --- | --- |
-| `userId` | `number` | Да | Идентификатор пользователя, для которого нужно получить отправленные предложения дружбы. |
+| `userId` | `string (uuid)` | Да | Идентификатор пользователя, для которого нужно получить отправленные предложения дружбы. |
 
 ## Успешный ответ
 
@@ -29,18 +29,20 @@ Content-Type: application/json
 ```json
 [
   {
-    "id": 10,
-    "fromUserId": 1,
-    "toUserId": 2,
+    "id": "9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44",
+    "fromUserId": "0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01",
+    "toUserId": "5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22",
     "status": "PENDING",
-    "createdAt": "2026-09-22T10:15:00Z"
+    "createdAt": "2026-09-22T10:15:00Z",
+    "updatedAt": "2026-09-22T10:15:00Z"
   },
   {
-    "id": 12,
-    "fromUserId": 1,
-    "toUserId": 4,
+    "id": "e8a4c2d6-1f3b-4e9d-b5c7-6a2d8f0e4b77",
+    "fromUserId": "0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01",
+    "toUserId": "a3c8e5f1-6d2b-4f7e-9a10-8b4c2d6e7f88",
     "status": "PENDING",
-    "createdAt": "2026-09-22T10:30:00Z"
+    "createdAt": "2026-09-22T10:30:00Z",
+    "updatedAt": "2026-09-22T10:30:00Z"
   }
 ]
 ```
@@ -55,11 +57,12 @@ Content-Type: application/json
 
 | Поле | Тип | Описание |
 | --- | --- | --- |
-| `id` | `number` | Идентификатор предложения дружбы. |
-| `fromUserId` | `number` | Идентификатор пользователя, который отправил предложение дружбы. |
-| `toUserId` | `number` | Идентификатор пользователя, которому отправлено предложение дружбы. |
+| `id` | `string (uuid)` | Идентификатор предложения дружбы. |
+| `fromUserId` | `string (uuid)` | Идентификатор пользователя, который отправил предложение дружбы. |
+| `toUserId` | `string (uuid)` | Идентификатор пользователя, которому отправлено предложение дружбы. |
 | `status` | `string` | Текущее состояние предложения. Для активных отправленных заявок обычно используется `PENDING`. |
 | `createdAt` | `string` | Дата и время создания предложения в формате ISO 8601. |
+| `updatedAt` | `string` | Дата и время последнего изменения предложения в формате ISO 8601; для решённой заявки — время принятия или отклонения. |
 
 ## Правила обработки
 

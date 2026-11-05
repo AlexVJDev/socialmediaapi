@@ -18,7 +18,6 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.C
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.RejectFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.AcceptFriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.CreateFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferListItemWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferPageWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.RejectFriendshipOfferWebResponse;
@@ -136,24 +135,24 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     }
 
     /**
-     * Not implemented yet: the contract still uses {@code int64} user ids.
+     * Not implemented yet.
      *
      * @param userId recipient of the offers
      * @return {@code 501 Not Implemented}
      */
     @Override
-    public ResponseEntity<List<FriendshipOfferListItemWebResponse>> getIncomingFriendshipOffers(Long userId) {
+    public ResponseEntity<List<FriendshipOfferWebResponse>> getIncomingFriendshipOffers(UUID userId) {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     /**
-     * Not implemented yet: the contract still uses {@code int64} user ids.
+     * Not implemented yet.
      *
      * @param userId sender of the offers
      * @return {@code 501 Not Implemented}
      */
     @Override
-    public ResponseEntity<List<FriendshipOfferListItemWebResponse>> getOutgoingFriendshipOffers(Long userId) {
+    public ResponseEntity<List<FriendshipOfferWebResponse>> getOutgoingFriendshipOffers(UUID userId) {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 }

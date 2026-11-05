@@ -154,6 +154,21 @@ class FriendshipOfferGetControllerTest {
         expectError(mockMvc.perform(get(BASE + "?" + query)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
+    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    void whenUserIdMissingOrNotUuidThenBadRequest(String path) throws Exception {
+        expectError(mockMvc.perform(get(BASE + path)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/incoming", "/outgoing"})
+    @DisplayName("incoming/outgoing с UUID: 501, пока не реализованы")
+    void whenUserIdIsUuidThenNotImplemented(String path) throws Exception {
+        mockMvc.perform(get(BASE + path).param("userId", UUID.randomUUID().toString()))
+                .andExpect(status().isNotImplemented());
+    }
+
     /** Replaces the application clock with a ticking one shifted to {@link #FUTURE}. */
     @TestConfiguration(proxyBeanMethods = false)
     static class FutureClockConfiguration {

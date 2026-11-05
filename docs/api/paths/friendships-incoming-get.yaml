@@ -9,9 +9,9 @@ get:
       required: true
       description: Идентификатор пользователя, для которого нужно получить входящие предложения дружбы
       schema:
-        type: integer
-        format: int64
-        example: 2
+        type: string
+        format: uuid
+        example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
   responses:
     '200':
       description: Список входящих предложений дружбы
@@ -20,47 +20,22 @@ get:
           schema:
             type: array
             items:
-              type: object
-              required:
-                - id
-                - fromUserId
-                - toUserId
-                - status
-                - createdAt
-              properties:
-                id:
-                  type: integer
-                  format: int64
-                  example: 10
-                fromUserId:
-                  type: integer
-                  format: int64
-                  example: 1
-                toUserId:
-                  type: integer
-                  format: int64
-                  example: 2
-                status:
-                  type: string
-                  enum: [PENDING, ACCEPTED, REJECTED]
-                  example: PENDING
-                createdAt:
-                  type: string
-                  format: date-time
-                  example: '2026-09-22T10:15:00Z'
+              $ref: '../schemas/friendship-offer.yaml'
           examples:
             found:
               value:
-                - id: 10
-                  fromUserId: 1
-                  toUserId: 2
+                - id: 9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44
+                  fromUserId: 0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
+                  toUserId: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
                   status: PENDING
                   createdAt: '2026-09-22T10:15:00Z'
-                - id: 11
-                  fromUserId: 3
-                  toUserId: 2
+                  updatedAt: '2026-09-22T10:15:00Z'
+                - id: 2f6b9d13-8e4a-4b1c-a7d5-3c9e0f1b2a55
+                  fromUserId: 7d1f0a52-2b8e-4c9a-b3d6-4e8f1a2c5b66
+                  toUserId: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
                   status: PENDING
                   createdAt: '2026-09-22T10:25:00Z'
+                  updatedAt: '2026-09-22T10:25:00Z'
             empty:
               value: []
     '400':

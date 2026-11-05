@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -40,7 +41,8 @@ public class FriendshipOfferExceptionHandler {
      * to {@link FriendshipOfferController}.
      * <ul>
      *     <li>body of create, accept, reject: unreadable, invalid or an offer to oneself;</li>
-     *     <li>path and query parameters of the GET endpoints: of a wrong type
+     *     <li>path and query parameters of the GET endpoints: a required one is missing
+     *     ({@link MissingServletRequestParameterException}, e.g. no {@code userId}), of a wrong type
      *     ({@link MethodArgumentTypeMismatchException}, e.g. an id that is not a UUID), out of the
      *     contract limits ({@code limit} outside 1..100: {@link HandlerMethodValidationException}
      *     of Spring MVC or {@link ConstraintViolationException} of the {@code @Validated} interface),
@@ -53,6 +55,7 @@ public class FriendshipOfferExceptionHandler {
             MethodArgumentNotValidException.class,
             HttpMessageNotReadableException.class,
             FriendshipOfferToSelfException.class,
+            MissingServletRequestParameterException.class,
             MethodArgumentTypeMismatchException.class,
             HandlerMethodValidationException.class,
             ConstraintViolationException.class,

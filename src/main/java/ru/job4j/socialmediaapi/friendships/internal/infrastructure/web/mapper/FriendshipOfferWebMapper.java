@@ -27,6 +27,13 @@ import java.util.UUID;
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
 /**
+ * Maps between the web DTOs of {@code FriendshipOfferController} and the scenarios.
+ * <p>
+ * The {@code to*Response} methods play the role of a Presenter: they know the shape of the external
+ * response and keep the controller away from the details of building it (enum mapping, field renaming,
+ * filling the DTO). The mapper holds no business rules and does not call repositories.
+ * The {@code to*Command} methods do the opposite direction: web request → scenario command.
+ * <p>
  * Web DTOs are generated from the OpenAPI contract ({@code openapi-generator-maven-plugin}).
  * {@code status} is mapped by name: domain {@code FriendshipOfferStatus} → {@code StatusEnum} of the response.
  * The decision time of accept/reject is named after the endpoint: {@code acceptedAt} / {@code rejectedAt}.
