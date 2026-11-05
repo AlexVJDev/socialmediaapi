@@ -344,7 +344,7 @@ class FriendshipOfferPersistenceAdapterTest {
     @Test
     @DisplayName("findPage: первая страница — самые новые заявки, next указывает на последнюю заявку страницы")
     void whenFindFirstPageThenNewestOffers() {
-        var newest = offerAt(Instant.parse("9000-01-01T00:00:00Z"));
+        var newest = offerAt(newerThanAll());
 
         var page = repository.findPage(1);
 
@@ -426,6 +426,23 @@ class FriendshipOfferPersistenceAdapterTest {
     private static Instant window() {
         return Instant.parse("2900-01-01T00:00:00Z")
                 .plusSeconds(ThreadLocalRandom.current().nextLong(1_000_000_000L) * 10);
+    }
+
+    /**
+     * Time later than every stored offer, at least {@code 9000-01-01}: the offer created at it is
+     * the newest one even if the test is run again on the same database (a fixed date would give
+     * two offers with the same {@code created_at}, ordered by a random {@code id}).
+     *
+     * @return one second after the newest stored offer, but not earlier than {@code 9000-01-01}
+     */
+    private Instant newerThanAll() {
+        var floor = Instant.parse("9000-01-01T00:00:00Z");
+        return repository.findPage(1).offers().stream()
+                .map(FindFriendshipOfferResponse::createdAt)
+                .filter(floor::isBefore)
+                .findFirst()
+                .orElse(floor)
+                .plusSeconds(1);
     }
 
     /**

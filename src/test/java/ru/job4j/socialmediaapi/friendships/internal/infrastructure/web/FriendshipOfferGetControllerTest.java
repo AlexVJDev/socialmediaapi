@@ -20,7 +20,10 @@ import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -33,8 +36,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * The database is shared with other tests, and some of them store offers with fixed dates
  * (e.g. {@code 2026-10-06}) that can be later than the clock of the machine running the build.
- * So the application clock of this test is shifted to {@link #FUTURE}: offers created here through
- * the API are the newest ones on any machine.
+ * So the application clock of this test starts at {@link #FUTURE}: offers created here through
+ * the API are the newest ones on any machine. The clock does not depend on the system time:
+ * every reading is one second later than the previous one, so offers created one after another
+ * always get growing, distinct {@code created_at} even on a machine with a coarse or
+ * non-monotonic system clock (CI containers).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -187,17 +193,52 @@ class FriendshipOfferGetControllerTest {
                 .andExpect(status().isNotImplemented());
     }
 
-    /** Replaces the application clock with a ticking one shifted to {@link #FUTURE}. */
+    /** Replaces the application clock with a {@link SteppingClock} starting at {@link #FUTURE}. */
     @TestConfiguration(proxyBeanMethods = false)
     static class FutureClockConfiguration {
 
         /**
-         * @return clock ticking from {@link #FUTURE}: offers created one after another get growing times
+         * @return clock starting at {@link #FUTURE}: offers created one after another get growing times
          */
         @Bean
         @Primary
         Clock futureClock() {
-            return Clock.offset(Clock.systemUTC(), Duration.between(Instant.now(), FUTURE));
+            return new SteppingClock(FUTURE);
+        }
+    }
+
+    /** UTC clock independent of the system time: each {@link #instant()} is one second after the previous one. */
+    static final class SteppingClock extends Clock {
+
+        /** Distance between two readings. */
+        private static final Duration STEP = Duration.ofSeconds(1);
+
+        /** Time of the first reading. */
+        private final Instant start;
+
+        /** Number of readings made so far. */
+        private final AtomicLong ticks = new AtomicLong();
+
+        /**
+         * @param start time of the first reading
+         */
+        SteppingClock(Instant start) {
+            this.start = start;
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            throw new UnsupportedOperationException("SteppingClock is UTC only");
+        }
+
+        @Override
+        public Instant instant() {
+            return start.plus(STEP.multipliedBy(ticks.getAndIncrement()));
         }
     }
 
