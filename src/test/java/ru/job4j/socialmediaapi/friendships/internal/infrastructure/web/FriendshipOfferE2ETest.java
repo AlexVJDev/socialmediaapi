@@ -26,6 +26,8 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.RejectFriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -366,26 +368,41 @@ class FriendshipOfferE2ETest {
     @DisplayName("GET (страница всех заявок)")
     class GetPage {
 
+        /** Order of the pages: {@code createdAt DESC, id DESC}; PostgreSQL compares UUIDs as text. */
+        private static final Comparator<FriendshipOfferWebResponse> NEWEST_FIRST = Comparator
+                .comparing(FriendshipOfferWebResponse::getCreatedAt)
+                .thenComparing(offer -> offer.getId().toString())
+                .reversed();
+
+        /**
+         * Other tests can create offers at the same time (the build may run tests in parallel
+         * in one context), so foreign offers may stand between the offers of this test.
+         * The test walks the pages by the cursor down to its oldest offer and checks the order
+         * of its own offers, the order of the whole output and the cursor of every page.
+         */
         @Test
-        @DisplayName("Страница: новые заявки первыми, next — последняя заявка страницы, по next — следующая")
+        @DisplayName("Страницы: новые первыми, next — последняя заявка страницы, по next — дальше без повторов")
         void whenPagedThenNewestFirstAndNextLeadsOn() {
             var first = pending(createOffer(UUID.randomUUID(), UUID.randomUUID()));
             var second = pending(createOffer(UUID.randomUUID(), UUID.randomUUID()));
             var third = pending(createOffer(UUID.randomUUID(), UUID.randomUUID()));
 
-            var page = restTemplate.getForEntity(BASE + "?limit=2", FriendshipOfferPageWebResponse.class);
+            var page = getPage(BASE + "?limit=2");
+            var seen = new ArrayList<>(page.getOffers());
+            while (!seen.contains(first)) {
+                var last = page.getOffers().getLast();
+                assertThat(page.getNext())
+                        .as("next страницы, после которой ещё есть заявки теста")
+                        .isEqualTo(new FriendshipOfferCursorWebResponse(last.getCreatedAt(), last.getId()));
+                page = getPage(BASE + "?limit=2&afterCreatedAt={createdAt}&afterId={id}",
+                        page.getNext().getCreatedAt(), page.getNext().getId());
+                seen.addAll(page.getOffers());
+            }
 
-            assertThat(page.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(page.getBody()).isEqualTo(new FriendshipOfferPageWebResponse(
-                    List.of(third, second),
-                    new FriendshipOfferCursorWebResponse(second.getCreatedAt(), second.getId())));
-
-            var next = restTemplate.getForEntity(BASE + "?limit=2&afterCreatedAt={createdAt}&afterId={id}",
-                    FriendshipOfferPageWebResponse.class,
-                    page.getBody().getNext().getCreatedAt(), page.getBody().getNext().getId());
-
-            assertThat(next.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(next.getBody().getOffers()).first().isEqualTo(first);
+            assertThat(seen)
+                    .doesNotHaveDuplicates()
+                    .isSortedAccordingTo(NEWEST_FIRST)
+                    .containsSubsequence(third, second, first);
         }
 
         @Test
@@ -426,6 +443,13 @@ class FriendshipOfferE2ETest {
         void whenInvalidParamsThenBadRequest(String query) {
             expectError(restTemplate.getForEntity(BASE + "?" + query, ErrorResponse.class),
                     HttpStatus.BAD_REQUEST, INVALID_REQUEST);
+        }
+
+        private FriendshipOfferPageWebResponse getPage(String url, Object... uriVariables) {
+            var response = restTemplate.getForEntity(url, FriendshipOfferPageWebResponse.class, uriVariables);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody().getOffers()).hasSizeLessThanOrEqualTo(2);
+            return response.getBody();
         }
     }
 
