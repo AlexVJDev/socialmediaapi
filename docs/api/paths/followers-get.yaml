@@ -1,7 +1,8 @@
 get:
   tags:
-    - Subscribe
+    - Subscription
   summary: Получить список подписчиков пользователя
+  operationId: getFollowers
   parameters:
     - name: userId
       in: query
@@ -13,7 +14,7 @@ get:
         example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
   responses:
     '200':
-      description: Список пользователей, подписанных на текущего пользователя
+      description: Список пользователей, подписанных на текущего пользователя (новые подписки первыми)
       content:
         application/json:
           schema:

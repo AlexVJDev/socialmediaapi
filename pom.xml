@@ -78,6 +78,22 @@
 			FriendshipOfferCursorWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferCursorWebResponse,
 			FriendWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendWebResponse
 		</openapi.friendships.imports>
+		<!-- OpenAPI generation of module subscriptions: only GET operations with a query parameter,
+		     so there are no request bodies and no subscriptions-requests execution. -->
+		<openapi.subscriptions.spec>${project.basedir}/docs/api/modules/subscriptions.yaml</openapi.subscriptions.spec>
+		<openapi.subscriptions.package>ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web</openapi.subscriptions.package>
+		<openapi.subscriptions.responses>SubscriptionWebResponse,FollowerWebResponse</openapi.subscriptions.responses>
+		<openapi.subscriptions.inline-names>
+			getSubscriptions_200_response_inner=SubscriptionWebResponse,
+			getFollowers_200_response_inner=FollowerWebResponse
+		</openapi.subscriptions.inline-names>
+		<openapi.subscriptions.schemas>error=ErrorResponse</openapi.subscriptions.schemas>
+		<openapi.subscriptions.imports>
+			${openapi.common.imports},
+			ErrorResponse=ru.job4j.socialmediaapi.shared.web.ErrorResponse,
+			SubscriptionWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.SubscriptionWebResponse,
+			FollowerWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.FollowerWebResponse
+		</openapi.subscriptions.imports>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -326,6 +342,34 @@
 							<modelsToGenerate>${openapi.friendships.responses}</modelsToGenerate>
 							<inlineSchemaNameMappings>${openapi.friendships.inline-names}</inlineSchemaNameMappings>
 							<modelNameMappings>${openapi.friendships.model-names}</modelNameMappings>
+						</configuration>
+					</execution>
+					<!-- module subscriptions -->
+					<execution>
+						<id>subscriptions-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${openapi.subscriptions.spec}</inputSpec>
+							<apiPackage>${openapi.subscriptions.package}</apiPackage>
+							<generateModels>false</generateModels>
+							<inlineSchemaNameMappings>${openapi.subscriptions.inline-names}</inlineSchemaNameMappings>
+							<schemaMappings>${openapi.subscriptions.schemas}</schemaMappings>
+							<importMappings>${openapi.subscriptions.imports}</importMappings>
+						</configuration>
+					</execution>
+					<execution>
+						<id>subscriptions-responses</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${openapi.subscriptions.spec}</inputSpec>
+							<modelPackage>${openapi.subscriptions.package}.response</modelPackage>
+							<generateApis>false</generateApis>
+							<modelsToGenerate>${openapi.subscriptions.responses}</modelsToGenerate>
+							<inlineSchemaNameMappings>${openapi.subscriptions.inline-names}</inlineSchemaNameMappings>
 						</configuration>
 					</execution>
 				</executions>

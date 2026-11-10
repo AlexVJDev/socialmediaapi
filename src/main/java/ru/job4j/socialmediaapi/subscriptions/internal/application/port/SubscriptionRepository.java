@@ -1,9 +1,10 @@
 package ru.job4j.socialmediaapi.subscriptions.internal.application.port;
 
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
-import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.SubscriptionResponse;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ public interface SubscriptionRepository {
      * @return the saved subscription
      * @throws SubscriptionAlreadyExistsException the follower is already subscribed to the user
      */
-    CreateSubscriptionResponse createSubscription(
+    SubscriptionResponse createSubscription(
             CreateSubscriptionRequest request
     );
 
@@ -28,7 +29,7 @@ public interface SubscriptionRepository {
      * @param request subscription to save
      * @return the saved subscription, or empty if it already exists
      */
-    Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(
+    Optional<SubscriptionResponse> createSubscriptionIfAbsent(
             CreateSubscriptionRequest request
     );
 
@@ -53,4 +54,22 @@ public interface SubscriptionRepository {
      *         {@code false} if there was nothing to remove
      */
     boolean deleteSubscription(UUID followerId, UUID followedId);
+
+    /**
+     * Subscriptions of the follower: the users the follower is subscribed to, newest first
+     * ({@code created_at DESC, id DESC}).
+     *
+     * @param followerId user whose subscriptions are read
+     * @return the subscriptions, empty if the user is subscribed to nobody
+     */
+    List<SubscriptionResponse> findByFollower(UUID followerId);
+
+    /**
+     * Followers of the user: the subscriptions to the user, newest first
+     * ({@code created_at DESC, id DESC}).
+     *
+     * @param followedId user whose followers are read
+     * @return the subscriptions, empty if nobody is subscribed to the user
+     */
+    List<SubscriptionResponse> findByFollowed(UUID followedId);
 }

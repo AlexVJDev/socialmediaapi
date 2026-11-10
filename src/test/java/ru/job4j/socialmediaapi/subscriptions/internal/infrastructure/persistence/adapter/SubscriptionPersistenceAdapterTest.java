@@ -10,7 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
-import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.SubscriptionResponse;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
 
 import java.time.Instant;
@@ -46,7 +46,7 @@ class SubscriptionPersistenceAdapterTest {
                 request(id, followerId, followedId)
         );
 
-        var expected = new CreateSubscriptionResponse(
+        var expected = new SubscriptionResponse(
                 id, followerId, followedId, NOW
         );
         assertThat(result).isEqualTo(expected);
@@ -97,7 +97,7 @@ class SubscriptionPersistenceAdapterTest {
 
         var result = repository.createSubscriptionIfAbsent(request(id, followerId, followedId));
 
-        assertThat(result).contains(new CreateSubscriptionResponse(
+        assertThat(result).contains(new SubscriptionResponse(
                 id, followerId, followedId, NOW
         ));
     }

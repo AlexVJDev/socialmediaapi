@@ -9,10 +9,11 @@ import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.persistence.mapper.SubscriptionPersistenceMapper;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
-import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionResponse;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.SubscriptionResponse;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -58,6 +59,22 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
             WHERE follower_id = ? AND followed_id = ?
             """;
 
+    /** Subscriptions of the follower, newest first (index {@code idx_subscriptions_follower}). */
+    private static final String FIND_BY_FOLLOWER = """
+            SELECT id, follower_id, followed_id, created_at
+            FROM subscriptions
+            WHERE follower_id = ?
+            ORDER BY created_at DESC, id DESC
+            """;
+
+    /** Followers of the user, newest first (index {@code idx_subscriptions_followed}). */
+    private static final String FIND_BY_FOLLOWED = """
+            SELECT id, follower_id, followed_id, created_at
+            FROM subscriptions
+            WHERE followed_id = ?
+            ORDER BY created_at DESC, id DESC
+            """;
+
     /** Reads a result set row into {@link SubscriptionRow}. */
     private static final RowMapper<SubscriptionRow> ROW_MAPPER =
             (resultSet, rowNum) -> new SubscriptionRow(
@@ -74,7 +91,7 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
     private final SubscriptionPersistenceMapper mapper;
 
     @Override
-    public CreateSubscriptionResponse createSubscription(
+    public SubscriptionResponse createSubscription(
             CreateSubscriptionRequest request
     ) {
         SubscriptionRow row = mapper.toRow(request);
@@ -97,7 +114,7 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
     }
 
     @Override
-    public Optional<CreateSubscriptionResponse> createSubscriptionIfAbsent(
+    public Optional<SubscriptionResponse> createSubscriptionIfAbsent(
             CreateSubscriptionRequest request
     ) {
         SubscriptionRow row = mapper.toRow(request);
@@ -124,5 +141,15 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
     @Override
     public boolean deleteSubscription(UUID followerId, UUID followedId) {
         return jdbcTemplate.update(DELETE, followerId, followedId) == 1;
+    }
+
+    @Override
+    public List<SubscriptionResponse> findByFollower(UUID followerId) {
+        return mapper.toResponses(jdbcTemplate.query(FIND_BY_FOLLOWER, ROW_MAPPER, followerId));
+    }
+
+    @Override
+    public List<SubscriptionResponse> findByFollowed(UUID followedId) {
+        return mapper.toResponses(jdbcTemplate.query(FIND_BY_FOLLOWED, ROW_MAPPER, followedId));
     }
 }
