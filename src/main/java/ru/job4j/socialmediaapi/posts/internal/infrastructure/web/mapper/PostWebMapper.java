@@ -22,8 +22,15 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
 /**
  * Maps between the web DTOs of {@code PostController} / {@code FeedController} and the scenarios.
- * Web DTOs are generated from the OpenAPI contract ({@code openapi-generator-maven-plugin}).
- * Query and path parameters come as separate arguments of the generated interfaces.
+ * <p>
+ * The {@code to*Response} methods play the role of a Presenter: they know the shape of the external
+ * response and keep the controllers away from the details of building it (enum mapping, the optional
+ * cursor, filling the DTO). The mapper holds no business rules and does not call repositories.
+ * The {@code to*Command} methods do the opposite direction: path and query parameters → scenario command;
+ * they come as separate arguments of the generated interfaces.
+ * <p>
+ * Web DTOs are generated from the OpenAPI contract ({@code openapi-generator-maven-plugin}); the internal
+ * {@code PostResult} / {@code FeedPageResult} do not depend on them.
  * The contract allows only {@code PUBLISHED} posts in responses: a deleted post is never returned,
  * so any other status is a bug and throws {@link IllegalArgumentException}.
  */

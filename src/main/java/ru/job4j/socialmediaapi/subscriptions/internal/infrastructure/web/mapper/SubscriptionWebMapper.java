@@ -16,9 +16,16 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
 /**
  * Maps between the web DTOs of {@code SubscriptionController} and the scenarios.
- * Web DTOs are generated from the OpenAPI contract ({@code openapi-generator-maven-plugin}).
- * {@code userId} of the response is the other side of the subscription: the followed user
- * in the list of subscriptions, the follower in the list of followers.
+ * <p>
+ * The {@code to*Response} methods play the role of a Presenter: they know the shape of the external
+ * response and keep the controller away from the details of building it (choosing the other side of
+ * the subscription, filling the DTO). The mapper holds no business rules and does not call repositories.
+ * The {@code to*Command} methods do the opposite direction: query parameter → scenario command.
+ * <p>
+ * Web DTOs are generated from the OpenAPI contract ({@code openapi-generator-maven-plugin}); the internal
+ * {@code SubscriptionResult} does not depend on them. Both responses carry only the fields of the contract:
+ * the subscription {@code id} and {@code userId} — the followed user in the list of subscriptions,
+ * the follower in the list of followers; {@code createdAt} and the stored row stay inside.
  */
 @Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface SubscriptionWebMapper {

@@ -20,6 +20,10 @@
 | --- | --- | --- |
 | `INVALID_USER_ID` | `400` | Некорректный или отсутствующий параметр userId |
 
+Ограничения запроса — только из контракта: у обоих эндпоинтов один query-параметр `userId`
+(`required: true`, `format: uuid`), других параметров (страниц, `limit`) в контракте нет. В сгенерированном
+`SubscriptionApi` это `@NotNull @RequestParam(required = true) UUID userId`; тел запросов у модуля нет.
+
 `404 USER_NOT_FOUND` есть в контракте, но не возвращается: таблицы пользователей пока нет, для неизвестного
 пользователя ответ — `200` с пустым списком.
 
@@ -102,11 +106,15 @@ curl -s "$API?userId=$ALICE" | jq -r '.[].userId'   # $CAROL, затем $BOB
 curl -i "$API?userId=$BOB" -w '\n'
 ```
 
-**1.3. `userId` не UUID и без `userId`** → оба `400 INVALID_USER_ID`.
+**1.3. Некорректный `userId`** → все `400 INVALID_USER_ID`. По порядку: не UUID, без `userId`, пустое
+значение, пробел, имя в другом регистре (`userid` — это другой параметр, `userId` отсутствует).
 
 ```shell
 curl -i "$API?userId=1" -w '\n'
 curl -i "$API" -w '\n'
+curl -i "$API?userId=" -w '\n'
+curl -i "$API?userId=%20" -w '\n'
+curl -i "$API?userid=$ALICE" -w '\n'
 ```
 
 ---
@@ -152,11 +160,15 @@ curl -s "$API/followers?userId=$BOB" | jq
 curl -i "$API/followers?userId=$ALICE" -w '\n'
 ```
 
-**2.3. `userId` не UUID и без `userId`** → оба `400 INVALID_USER_ID`.
+**2.3. Некорректный `userId`** → все `400 INVALID_USER_ID`. По порядку: не UUID, без `userId`, пустое
+значение, пробел, имя в другом регистре (`userid` — это другой параметр, `userId` отсутствует).
 
 ```shell
 curl -i "$API/followers?userId=1" -w '\n'
 curl -i "$API/followers" -w '\n'
+curl -i "$API/followers?userId=" -w '\n'
+curl -i "$API/followers?userId=%20" -w '\n'
+curl -i "$API/followers?userid=$ALICE" -w '\n'
 ```
 
 ---

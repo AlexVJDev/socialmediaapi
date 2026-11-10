@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -24,7 +25,9 @@ import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
 public class PostExceptionHandler {
 
     /**
-     * An invalid request: a path or query parameter is missing ({@code followerId}) or of a wrong type
+     * An invalid request: a query parameter is missing ({@code followerId}), a path parameter is empty
+     * after conversion ({@link MissingPathVariableException}: {@code postId} is a blank string),
+     * a parameter is of a wrong type
      * (an id that is not a UUID, {@code limit} or {@code afterCreatedAt} that cannot be converted),
      * {@code limit} is out of the contract range ({@link HandlerMethodValidationException} of Spring MVC
      * or {@link ConstraintViolationException} of the {@code @Validated} interface), only one part
@@ -34,6 +37,7 @@ public class PostExceptionHandler {
      */
     @ExceptionHandler({
             MissingServletRequestParameterException.class,
+            MissingPathVariableException.class,
             MethodArgumentTypeMismatchException.class,
             HandlerMethodValidationException.class,
             ConstraintViolationException.class,

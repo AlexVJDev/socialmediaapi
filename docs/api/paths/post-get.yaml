@@ -7,6 +7,7 @@ get:
     - name: postId
       in: path
       required: true
+      description: Идентификатор поста
       schema:
         type: string
         format: uuid
@@ -19,7 +20,7 @@ get:
           schema:
             $ref: '../schemas/post.yaml'
     '400':
-      description: Идентификатор поста не является UUID
+      description: Идентификатор поста не является UUID или пуст
       content:
         application/json:
           schema:

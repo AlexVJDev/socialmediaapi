@@ -14,6 +14,18 @@
 | --- | --- | --- |
 | `INVALID_POST_REQUEST` | `400` | Некорректные параметры запроса |
 
+Ограничения запроса — только из контракта (`docs/api/paths/feed-get.yaml`), в сгенерированном `FeedApi`:
+
+| Параметр | Контракт | `FeedApi` |
+| --- | --- | --- |
+| `followerId` | `required: true`, `format: uuid` | `@NotNull @RequestParam(required = true) UUID` |
+| `limit` | `integer`, `minimum: 1`, `maximum: 100`, `default: 20` | `@Min(1) @Max(100) @RequestParam(defaultValue = "20") Integer` |
+| `afterCreatedAt` | `format: date-time` | `@DateTimeFormat(iso = DATE_TIME) Instant` |
+| `afterId` | `format: uuid` | `UUID` |
+
+Правило «`afterCreatedAt` и `afterId` вместе или ни одного» в OpenAPI не выражается: его проверяет сценарий
+`GetFeed` (`IncompleteFeedCursorException`). Тела запроса нет.
+
 | Эндпоинт | Назначение |
 | --- | --- |
 | [`GET /api/v1/feed`](#1-get-apiv1feed) | Страница ленты читателя |
@@ -135,6 +147,20 @@ curl -s "$API?followerId=$READER&limit=abc" -w '\n'                        # lim
 curl -s "$API?followerId=$READER&afterId=$A1" -w '\n'                      # только afterId
 curl -s "$API?followerId=$READER&afterCreatedAt=2026-10-15T10:00:00Z" -w '\n'  # только afterCreatedAt
 curl -s "$API?followerId=$READER&afterCreatedAt=yesterday&afterId=$A1" -w '\n' # не дата-время
+curl -s "$API?followerId=" -w '\n'                                        # пустой followerId
+curl -s "$API?followerid=$READER" -w '\n'                                 # имя в другом регистре
+curl -s "$API?followerId=$READER&limit=-1" -w '\n'                        # limit < 1
+curl -s "$API?followerId=$READER&limit=1.5" -w '\n'                       # limit не целое
+curl -s "$API?followerId=$READER&afterCreatedAt=2026-10-15T10:00:00&afterId=$A1" -w '\n'  # без часового пояса
+curl -s "$API?followerId=$READER&afterCreatedAt=2026-10-15&afterId=$A1" -w '\n'           # только дата
+```
+
+**1.5. Допустимые граничные значения** → `200`: пустой `limit` — значение по умолчанию (20), время со смещением
+(`+05:00`, в URL `%2B05:00`) — тот же момент, что и в UTC (ответ как в 1.2 для второй страницы: `B1, A1`).
+
+```shell
+curl -s "$API?followerId=$READER&limit=" | jq -r '.posts[].title'
+curl -s "$API?followerId=$READER&afterCreatedAt=2026-10-15T15:02:00%2B05:00&afterId=$A2" | jq -r '.posts[].title'
 ```
 
 ---

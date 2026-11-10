@@ -22,6 +22,9 @@
 | `INVALID_POST_REQUEST` | `400` | Некорректные параметры запроса |
 | `POST_NOT_FOUND` | `404` | Пост не найден |
 
+Ограничения запроса — только из контракта: один path-параметр `postId` (`required: true`, `format: uuid`),
+query-параметров и тела нет. В сгенерированном `PostApi` это `@PathVariable UUID postId`.
+
 | Эндпоинт | Назначение |
 | --- | --- |
 | [`GET /api/v1/posts/{postId}`](#1-get-apiv1postspostid) | Опубликованный пост по id |
@@ -83,7 +86,7 @@ $PSQL -c "INSERT INTO posts (id, author_id, title, content, status, created_at, 
 
 | Статус | `code` | Когда |
 | --- | --- | --- |
-| `400` | `INVALID_POST_REQUEST` | `postId` не UUID |
+| `400` | `INVALID_POST_REQUEST` | `postId` не UUID или пуст (пробел) |
 | `404` | `POST_NOT_FOUND` | Поста нет или он удалён |
 
 ### Проверка
@@ -106,10 +109,11 @@ curl -i "$API/$DELETED" -w '\n'
 curl -i "$API/$(uuidgen | tr 'A-Z' 'a-z')" -w '\n'
 ```
 
-**1.4. `postId` не UUID** → `400 INVALID_POST_REQUEST`.
+**1.4. Некорректный `postId`** → оба `400 INVALID_POST_REQUEST`: не UUID, пробел.
 
 ```shell
 curl -i "$API/42" -w '\n'
+curl -i "$API/%20" -w '\n'
 ```
 
 ---
