@@ -3,6 +3,7 @@ package ru.job4j.socialmediaapi.posts.internal.application.usecase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.job4j.socialmediaapi.posts.internal.application.exception.IncompleteFeedCursorException;
 import ru.job4j.socialmediaapi.posts.internal.application.mapper.PostApplicationMapper;
 import ru.job4j.socialmediaapi.posts.internal.application.model.FeedPageResult;
 import ru.job4j.socialmediaapi.posts.internal.application.model.GetFeedCommand;
@@ -32,12 +33,15 @@ public class GetFeed {
     /**
      * @param command reader, cursor of the previous page (none for the first page) and page size
      * @return the page; its {@code next} is {@code null} if the feed has no more posts
-     * @throws IllegalArgumentException {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
-     * @throws NullPointerException     only one of {@code afterCreatedAt}, {@code afterId} is set
+     * @throws IncompleteFeedCursorException only one of {@code afterCreatedAt}, {@code afterId} is set
+     * @throws IllegalArgumentException      {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
      */
     @Transactional(readOnly = true)
     public FeedPageResult get(GetFeedCommand command) {
-        if (command.afterCreatedAt() == null && command.afterId() == null) {
+        if ((command.afterCreatedAt() == null) != (command.afterId() == null)) {
+            throw new IncompleteFeedCursorException();
+        }
+        if (command.afterId() == null) {
             return mapper.toResult(feedRepository.findFeed(command.followerId(), command.limit()));
         }
         FeedCursor after = new FeedCursor(command.afterCreatedAt(), command.afterId());

@@ -1,9 +1,7 @@
 package ru.job4j.socialmediaapi.posts.internal.infrastructure.web;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import ru.job4j.socialmediaapi.posts.internal.application.usecase.GetPost;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.mapper.PostWebMapper;
@@ -11,10 +9,14 @@ import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWe
 
 import java.util.UUID;
 
+/**
+ * Endpoint {@code GET /api/v1/posts/{postId}}.
+ * The path, HTTP method and parameter come from {@link PostApi}, generated from the OpenAPI contract
+ * ({@code docs/api/paths/post-get.yaml}); the annotations are not repeated here.
+ */
 @RestController
-@RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
-public class PostController {
+public class PostController implements PostApi {
 
     /** Use case that reads a post. */
     private final GetPost getPost;
@@ -29,8 +31,8 @@ public class PostController {
      * @param postId id of the post
      * @return the post
      */
-    @GetMapping("/{postId}")
-    public PostWebResponse get(@PathVariable UUID postId) {
-        return mapper.toResponse(getPost.get(mapper.toGetPostCommand(postId)));
+    @Override
+    public ResponseEntity<PostWebResponse> getPost(UUID postId) {
+        return ResponseEntity.ok(mapper.toResponse(getPost.get(mapper.toGetPostCommand(postId))));
     }
 }

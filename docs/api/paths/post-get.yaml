@@ -1,7 +1,8 @@
 get:
   tags:
-    - Posts
+    - Post
   summary: Получить опубликованный пост по идентификатору
+  operationId: getPost
   parameters:
     - name: postId
       in: path

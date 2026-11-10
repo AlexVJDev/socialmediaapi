@@ -1,20 +1,24 @@
 package ru.job4j.socialmediaapi.posts.internal.infrastructure.web;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import ru.job4j.socialmediaapi.posts.internal.application.usecase.GetFeed;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.mapper.PostWebMapper;
-import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.request.FeedWebRequest;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedPageWebResponse;
 
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Endpoint {@code GET /api/v1/feed}.
+ * The path, HTTP method, parameters and their validation ({@code limit} 1..100, default 20) come from
+ * {@link FeedApi}, generated from the OpenAPI contract ({@code docs/api/paths/feed-get.yaml});
+ * the annotations are not repeated here.
+ */
 @RestController
-@RequestMapping("/api/v1/feed")
 @RequiredArgsConstructor
-public class FeedController {
+public class FeedController implements FeedApi {
 
     /** Use case that reads a page of the feed. */
     private final GetFeed getFeed;
@@ -27,11 +31,18 @@ public class FeedController {
      * {@code afterCreatedAt} and {@code afterId} from {@code next}; {@code next == null} —
      * no more posts. Invalid parameters ({@code 400}) are answered by {@code PostExceptionHandler}.
      *
-     * @param request reader, page size and cursor
+     * @param followerId     reader of the feed (until Keycloak is connected it is passed by the client)
+     * @param limit          page size, from 1 to 100 (20 if not set)
+     * @param afterCreatedAt {@code next.createdAt} of the previous page
+     * @param afterId        {@code next.id} of the previous page
      * @return the page of the feed
      */
-    @GetMapping
-    public FeedPageWebResponse get(@Valid @ModelAttribute FeedWebRequest request) {
-        return mapper.toResponse(getFeed.get(mapper.toGetFeedCommand(request)));
+    @Override
+    public ResponseEntity<FeedPageWebResponse> getFeed(
+            UUID followerId, Integer limit, Instant afterCreatedAt, UUID afterId
+    ) {
+        return ResponseEntity.ok(mapper.toResponse(
+                getFeed.get(mapper.toGetFeedCommand(followerId, limit, afterCreatedAt, afterId))
+        ));
     }
 }

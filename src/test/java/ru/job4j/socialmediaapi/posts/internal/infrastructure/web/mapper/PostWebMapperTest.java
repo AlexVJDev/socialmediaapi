@@ -7,9 +7,7 @@ import ru.job4j.socialmediaapi.posts.internal.application.model.FeedCursorResult
 import ru.job4j.socialmediaapi.posts.internal.application.model.FeedPageResult;
 import ru.job4j.socialmediaapi.posts.internal.application.model.GetFeedCommand;
 import ru.job4j.socialmediaapi.posts.internal.application.model.PostResult;
-import ru.job4j.socialmediaapi.posts.internal.application.usecase.GetFeed;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
-import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.request.FeedWebRequest;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedCursorWebResponse;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWebResponse;
 
@@ -18,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PostWebMapper: параметры ленты → команда, результат → ответ")
 class PostWebMapperTest {
@@ -26,16 +25,20 @@ class PostWebMapperTest {
     private final PostWebMapper mapper = Mappers.getMapper(PostWebMapper.class);
 
     @Test
-    @DisplayName("Без limit берётся размер страницы по умолчанию")
-    void whenLimitMissingThenDefault() {
+    @DisplayName("Параметры ленты переносятся в команду (limit по умолчанию подставляет Spring по контракту)")
+    void whenFeedParamsThenCommand() {
         var reader = UUID.randomUUID();
+        var afterId = UUID.randomUUID();
+        var afterCreatedAt = Instant.parse("2026-10-15T10:00:00Z");
 
-        assertThat(mapper.toGetFeedCommand(new FeedWebRequest(reader, null, null, null)))
-                .isEqualTo(new GetFeedCommand(reader, null, null, GetFeed.DEFAULT_LIMIT));
+        assertThat(mapper.toGetFeedCommand(reader, 20, null, null))
+                .isEqualTo(new GetFeedCommand(reader, null, null, 20));
+        assertThat(mapper.toGetFeedCommand(reader, 5, afterCreatedAt, afterId))
+                .isEqualTo(new GetFeedCommand(reader, afterCreatedAt, afterId, 5));
     }
 
     @Test
-    @DisplayName("Статус — строка, курсор переносится, отсутствующий next остаётся null")
+    @DisplayName("Статус — PUBLISHED из контракта, курсор переносится, отсутствующий next остаётся null")
     void whenPageThenResponse() {
         var id = UUID.randomUUID();
         var author = UUID.randomUUID();
@@ -45,9 +48,11 @@ class PostWebMapperTest {
         var withNext = mapper.toResponse(new FeedPageResult(List.of(post), new FeedCursorResult(time, id)));
         var last = mapper.toResponse(new FeedPageResult(List.of(), null));
 
-        assertThat(withNext.posts()).containsExactly(
-                new PostWebResponse(id, author, "T", "C", "PUBLISHED", time, time));
-        assertThat(withNext.next()).isEqualTo(new FeedCursorWebResponse(time, id));
-        assertThat(last.next()).isNull();
+        assertThat(withNext.getPosts()).containsExactly(new PostWebResponse(
+                id, author, "T", "C", PostWebResponse.StatusEnum.PUBLISHED, time, time));
+        assertThat(withNext.getNext()).isEqualTo(new FeedCursorWebResponse(time, id));
+        assertThat(last.getNext()).isNull();
+        assertThatThrownBy(() -> mapper.toStatus(PostStatus.DELETED))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

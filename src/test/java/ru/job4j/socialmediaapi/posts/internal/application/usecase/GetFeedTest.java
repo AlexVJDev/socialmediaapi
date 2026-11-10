@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.job4j.socialmediaapi.posts.internal.application.exception.IncompleteFeedCursorException;
 import ru.job4j.socialmediaapi.posts.internal.application.mapper.PostApplicationMapper;
 import ru.job4j.socialmediaapi.posts.internal.application.model.GetFeedCommand;
 import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
@@ -71,10 +72,12 @@ class GetFeedTest {
     }
 
     @Test
-    @DisplayName("Курсор задан наполовину: NullPointerException, лента не читается")
-    void whenCursorPartialThenNullPointer() {
+    @DisplayName("Курсор задан наполовину: IncompleteFeedCursorException, лента не читается")
+    void whenCursorPartialThenIncompleteCursor() {
         assertThatThrownBy(() -> useCase.get(new GetFeedCommand(READER, null, UUID.randomUUID(), 10)))
-                .isInstanceOf(NullPointerException.class);
+                .isInstanceOf(IncompleteFeedCursorException.class);
+        assertThatThrownBy(() -> useCase.get(new GetFeedCommand(READER, Instant.EPOCH, null, 10)))
+                .isInstanceOf(IncompleteFeedCursorException.class);
         verifyNoInteractions(feedRepository);
     }
 

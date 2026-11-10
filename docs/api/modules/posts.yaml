@@ -1,0 +1,11 @@
+# Входная спецификация модуля для генерации кода (openapi-generator-maven-plugin в pom.xml).
+# Пути и их файлы должны совпадать с docs/api/openapi.yaml: при добавлении пути модуля — добавить и сюда.
+openapi: 3.0.3
+info:
+  title: API социальной сети — посты и лента
+  version: 1.0.0
+paths:
+  /api/v1/posts/{postId}:
+    $ref: '../paths/post-get.yaml'
+  /api/v1/feed:
+    $ref: '../paths/feed-get.yaml'

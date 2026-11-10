@@ -94,6 +94,25 @@
 			SubscriptionWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.SubscriptionWebResponse,
 			FollowerWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.FollowerWebResponse
 		</openapi.subscriptions.imports>
+		<!-- OpenAPI generation of module posts: only GET operations with path/query parameters,
+		     so there are no request bodies and no posts-requests execution.
+		     modelsToGenerate takes the file name of docs/api/schemas/post.yaml (post), not the mapped one. -->
+		<openapi.posts.spec>${project.basedir}/docs/api/modules/posts.yaml</openapi.posts.spec>
+		<openapi.posts.package>ru.job4j.socialmediaapi.posts.internal.infrastructure.web</openapi.posts.package>
+		<openapi.posts.responses>post,FeedPageWebResponse,FeedCursorWebResponse</openapi.posts.responses>
+		<openapi.posts.inline-names>
+			getFeed_200_response=FeedPageWebResponse,
+			getFeed_200_response_next=FeedCursorWebResponse
+		</openapi.posts.inline-names>
+		<openapi.posts.model-names>post=PostWebResponse</openapi.posts.model-names>
+		<openapi.posts.schemas>error=ErrorResponse</openapi.posts.schemas>
+		<openapi.posts.imports>
+			${openapi.common.imports},
+			ErrorResponse=ru.job4j.socialmediaapi.shared.web.ErrorResponse,
+			PostWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWebResponse,
+			FeedPageWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedPageWebResponse,
+			FeedCursorWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedCursorWebResponse
+		</openapi.posts.imports>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -370,6 +389,36 @@
 							<generateApis>false</generateApis>
 							<modelsToGenerate>${openapi.subscriptions.responses}</modelsToGenerate>
 							<inlineSchemaNameMappings>${openapi.subscriptions.inline-names}</inlineSchemaNameMappings>
+						</configuration>
+					</execution>
+					<!-- module posts -->
+					<execution>
+						<id>posts-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${openapi.posts.spec}</inputSpec>
+							<apiPackage>${openapi.posts.package}</apiPackage>
+							<generateModels>false</generateModels>
+							<inlineSchemaNameMappings>${openapi.posts.inline-names}</inlineSchemaNameMappings>
+							<modelNameMappings>${openapi.posts.model-names}</modelNameMappings>
+							<schemaMappings>${openapi.posts.schemas}</schemaMappings>
+							<importMappings>${openapi.posts.imports}</importMappings>
+						</configuration>
+					</execution>
+					<execution>
+						<id>posts-responses</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${openapi.posts.spec}</inputSpec>
+							<modelPackage>${openapi.posts.package}.response</modelPackage>
+							<generateApis>false</generateApis>
+							<modelsToGenerate>${openapi.posts.responses}</modelsToGenerate>
+							<inlineSchemaNameMappings>${openapi.posts.inline-names}</inlineSchemaNameMappings>
+							<modelNameMappings>${openapi.posts.model-names}</modelNameMappings>
 						</configuration>
 					</execution>
 				</executions>
