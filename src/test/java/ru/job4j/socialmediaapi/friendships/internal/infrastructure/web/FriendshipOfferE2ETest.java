@@ -52,10 +52,6 @@ class FriendshipOfferE2ETest {
     private static final ErrorResponse INVALID_REQUEST =
             new ErrorResponse("INVALID_FRIENDSHIP_OFFER_REQUEST", "Некорректное тело или параметры запроса");
 
-    /** Expected body of {@code 400} for a missing or invalid {@code userId} (contract example). */
-    private static final ErrorResponse INVALID_USER_ID =
-            new ErrorResponse("INVALID_USER_ID", "Некорректный или отсутствующий параметр userId");
-
     /** Expected body of {@code 200} for a repeated or counter offer while the pair's offer is pending. */
     private static final ErrorResponse ALREADY_PENDING =
             new ErrorResponse("FRIENDSHIP_OFFER_ALREADY_PENDING", "Предложение дружбы уже отправлено");
@@ -459,10 +455,10 @@ class FriendshipOfferE2ETest {
 
         @ParameterizedTest(name = "{0}")
         @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-        @DisplayName("userId нет или не UUID: 400 INVALID_USER_ID")
+        @DisplayName("userId нет или не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
         void whenUserIdMissingOrNotUuidThenBadRequest(String path) {
             expectError(restTemplate.getForEntity(BASE + path, ErrorResponse.class),
-                    HttpStatus.BAD_REQUEST, INVALID_USER_ID);
+                    HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
     }
 

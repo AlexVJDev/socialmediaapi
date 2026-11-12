@@ -180,9 +180,9 @@ class FriendshipOfferGetControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 INVALID_USER_ID по контракту")
+    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
     void whenUserIdMissingOrNotUuidThenBadRequest(String path) throws Exception {
-        expectError(mockMvc.perform(get(BASE + path)), 400, "INVALID_USER_ID");
+        expectError(mockMvc.perform(get(BASE + path)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
     }
 
     @ParameterizedTest

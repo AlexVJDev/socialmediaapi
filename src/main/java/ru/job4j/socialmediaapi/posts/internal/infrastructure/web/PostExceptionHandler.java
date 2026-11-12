@@ -8,7 +8,6 @@ import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.job4j.socialmediaapi.posts.internal.application.exception.IncompleteFeedCursorException;
 import ru.job4j.socialmediaapi.posts.internal.domain.exception.PostNotFoundException;
@@ -29,8 +28,8 @@ public class PostExceptionHandler {
      * after conversion ({@link MissingPathVariableException}: {@code postId} is a blank string),
      * a parameter is of a wrong type
      * (an id that is not a UUID, {@code limit} or {@code afterCreatedAt} that cannot be converted),
-     * {@code limit} is out of the contract range ({@link HandlerMethodValidationException} of Spring MVC
-     * or {@link ConstraintViolationException} of the {@code @Validated} interface), only one part
+     * {@code limit} is out of the contract range ({@link ConstraintViolationException} of the {@code @Validated}
+     * interface), only one part
      * of the feed cursor is set.
      *
      * @return {@code 400} with the INVALID_POST_REQUEST error body
@@ -39,7 +38,6 @@ public class PostExceptionHandler {
             MissingServletRequestParameterException.class,
             MissingPathVariableException.class,
             MethodArgumentTypeMismatchException.class,
-            HandlerMethodValidationException.class,
             ConstraintViolationException.class,
             IncompleteFeedCursorException.class
     })
