@@ -34,10 +34,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The database is shared with other tests, and some of them store offers with fixed dates
- * (e.g. {@code 2026-10-06}) that can be later than the clock of the machine running the build.
- * So the application clock of this test starts at {@link #FUTURE}: offers created here through
- * the API are the newest ones on any machine. The clock does not depend on the system time:
+ * The database is shared with other tests, and some of them store offers with arbitrary dates,
+ * up to the far future ({@code FriendshipOfferPersistenceAdapterTest}). So a test that checks the order
+ * of a page reads it by a cursor right after its own offers, not from the newest offer of the table.
+ * The application clock of this test starts at {@link #FUTURE} and does not depend on the system time:
  * every reading is one second later than the previous one, so offers created one after another
  * always get growing, distinct {@code created_at} even on a machine with a coarse or
  * non-monotonic system clock (CI containers).
@@ -99,13 +99,21 @@ class FriendshipOfferGetControllerTest {
     }
 
     @Test
-    @DisplayName("Страницы: новые заявки первыми, next ведёт на следующую страницу без повторов")
+    @DisplayName("Страницы по курсору: новые заявки первыми, next ведёт на следующую страницу без повторов")
     void whenPagedThenNewestFirstAndNextLeadsOn() throws Exception {
         var first = createOffer(UUID.randomUUID(), UUID.randomUUID());
         var second = createOffer(UUID.randomUUID(), UUID.randomUUID());
         var third = createOffer(UUID.randomUUID(), UUID.randomUUID());
+        // Other tests of the shared database store offers with arbitrary future dates, so the page
+        // starts right after the newest offer of this test, not at the newest offer of the table.
+        var thirdCreatedAt = Instant.parse(JsonPath.<String>read(
+                mockMvc.perform(get(BASE + "/" + third)).andReturn().getResponse().getContentAsString(),
+                "$.createdAt"));
 
-        var page = mockMvc.perform(get(BASE).param("limit", "2"))
+        var page = mockMvc.perform(get(BASE)
+                        .param("limit", "2")
+                        .param("afterCreatedAt", thirdCreatedAt.plusSeconds(1).toString())
+                        .param("afterId", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offers.length()").value(2))
                 .andExpect(jsonPath("$.offers[0].id").value(third.toString()))
