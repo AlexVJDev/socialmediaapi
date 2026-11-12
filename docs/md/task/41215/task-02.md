@@ -25,7 +25,7 @@
    --rollback DROP INDEX IF EXISTS idx_posts_author_created;
    ```
 2. Подключить в `db.changelog-master.yaml` после `007`.
-3. Упомянуть индекс в `CLAUDE2.md` рядом с описанием таблицы `posts`.
+3. Упомянуть индекс в `CLAUDE2_backup.md` рядом с описанием таблицы `posts`.
 
 ## Почему не частичный индекс
 

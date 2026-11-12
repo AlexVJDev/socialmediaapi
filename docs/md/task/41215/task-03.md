@@ -9,7 +9,7 @@
 
 ## Контекст
 
-Слои и соглашения — `../../CLAUDE2.md` (Architecture, «Маппинг») и `../../../architecture.md`. Модуль — пакет `ru.job4j.socialmediaapi.posts` с `@ApplicationModule` в `package-info.java` (`allowedDependencies = {}`); пакеты ниже — относительно `posts.internal`. Образцы — модули `subscriptions` и `friendships`:
+Слои и соглашения — `../../CLAUDE2_backup.md` (Architecture, «Маппинг») и `../../../architecture.md`. Модуль — пакет `ru.job4j.socialmediaapi.posts` с `@ApplicationModule` в `package-info.java` (`allowedDependencies = {}`); пакеты ниже — относительно `posts.internal`. Образцы — модули `subscriptions` и `friendships`:
 
 | Слой | Образец | Для публикаций |
 | --- | --- | --- |

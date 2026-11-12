@@ -130,7 +130,7 @@ ORDER BY p.created_at DESC, p.id DESC;
 
 ### 2.9. Документация
 
-`docs/process/Feed.md` (курсор — основной способ, offset — в истории решений, замеры), `docs/md/CLAUDE2.md` (описание `FeedRepository` и индекса), `docs/md/shema.md` (перегенерировать).
+`docs/process/Feed.md` (курсор — основной способ, offset — в истории решений, замеры), `../../CLAUDE2_backup.md` (описание `FeedRepository` и индекса), `docs/md/shema.md` (перегенерировать).
 
 ## 3. Что остаётся ограничением после этапа 1
 
@@ -242,7 +242,7 @@ ORDER BY p.created_at DESC, p.id DESC;
 | [task-02.md](task-02.md) | `FeedCursor`, `FeedPageResponse`, новый контракт `FeedRepository`, `FeedPersistenceMapper.toCursor` + тест | ✅ |
 | [task-03.md](task-03.md) | `FeedPersistenceAdapter`: SQL п. 2.5, `limit + 1`, проверка `limit` | ✅ |
 | [task-04.md](task-04.md) | `FeedPersistenceAdapterTest`, `FriendshipFeedTest`: перенос сценариев и новые проверки курсора | ✅ |
-| [task-05.md](task-05.md) | `Feed.md`, `CLAUDE2.md`, `architecture.md`, `shema.md`; `./mvnw verify` | ✅ |
+| [task-05.md](task-05.md) | `Feed.md`, `CLAUDE2_backup.md`, `architecture.md`, `shema.md`; `./mvnw verify` | ✅ |
 
 ### Отличия от плана
 

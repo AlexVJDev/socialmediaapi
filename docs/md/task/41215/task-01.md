@@ -43,7 +43,7 @@
          file: changes/007-create-posts.sql
          relativeToChangelogFile: true
    ```
-3. Описать таблицу в `../../../../CLAUDE.md` (`../../CLAUDE2.md`, пункт **Persistence → Tables**): `posts` (`status` in `PUBLISHED|DELETED`, default `PUBLISHED`, `author_id` без FK).
+3. Описать таблицу в `../../../../CLAUDE.md` (`../../CLAUDE2_backup.md`, пункт **Persistence → Tables**): `posts` (`status` in `PUBLISHED|DELETED`, default `PUBLISHED`, `author_id` без FK).
 
 ## Проверка
 

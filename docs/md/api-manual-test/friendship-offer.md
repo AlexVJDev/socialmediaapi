@@ -21,7 +21,6 @@
 | `code` | Статус | `message` |
 | --- | --- | --- |
 | `INVALID_FRIENDSHIP_OFFER_REQUEST` | `400` | Некорректное тело или параметры запроса |
-| `INVALID_USER_ID` | `400` | Некорректный или отсутствующий параметр userId (только `incoming`/`outgoing`) |
 | `FRIENDSHIP_OFFER_ALREADY_PENDING` | `200` | Предложение дружбы уже отправлено (только `create`) |
 | `FRIENDSHIP_OFFER_NOT_FOUND` | `404` | Предложение дружбы не найдено |
 | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | `409` | Предложение дружбы уже принято |
@@ -516,7 +515,7 @@ curl -s "$API?limit=100" | jq '.offers | length'
 
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400` | `INVALID_USER_ID` | `userId` не передан или не UUID (свой код по контракту; ошибки остальных параметров и тел — `INVALID_FRIENDSHIP_OFFER_REQUEST`) |
+| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | `userId` не передан или не UUID (контракт описывает отдельный `INVALID_USER_ID` — вернём его, когда эндпоинты будут реализованы) |
 
 `404 USER_NOT_FOUND` из контракта не возвращается: таблицы пользователей пока нет.
 
@@ -529,7 +528,7 @@ curl -i "$API/incoming?userId=$BOB" -w '\n'
 curl -i "$API/outgoing?userId=$ALICE" -w '\n'
 ```
 
-**6.2. `userId` не UUID и без `userId`** → оба `400 INVALID_USER_ID`.
+**6.2. `userId` не UUID и без `userId`** → оба `400 INVALID_FRIENDSHIP_OFFER_REQUEST`.
 
 ```shell
 curl -i "$API/incoming?userId=1" -w '\n'

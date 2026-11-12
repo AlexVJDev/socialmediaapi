@@ -16,7 +16,7 @@
    - бывший раздел «Ограничения offset pagination» сделать историей решения: почему отказались от `OFFSET` + таблица замеров из README, раздел 1;
    - «Профиль нагрузки и выбор решения» — README, раздел 3.1: до 200 подписок у читателя, до миллионов подписчиков у автора; стоимость страницы `подписки × limit`, не зависит от числа подписчиков автора; таблица замеров A–D;
    - «Развитие» — README, раздел 4: почему не fan-out on write (миллионы вставок на пост популярного автора), реплики, кеш последних постов автора (инвалидация по автору, не по подписчикам), шардирование по `author_id`.
-2. `docs/md/CLAUDE2.md`:
+2. `../../CLAUDE2_backup.md`:
    - блок «Module `posts`» → «Feed»: новые методы, `FeedCursor`, `FeedPageResponse`, `MAX_LIMIT`, `limit + 1`, `LATERAL` и частичный индекс вместо `findFeed(followerId, limit, offset)` и `LIMIT ? OFFSET ?`;
    - «Persistence»: перечень changesets до `010` (`010` — частичный индекс `posts`), индекс `posts` — `idx_posts_published_author_created ... WHERE status = 'PUBLISHED'`;
    - упоминание плана задачи: `md/task/41215-2`.

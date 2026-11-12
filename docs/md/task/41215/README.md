@@ -14,7 +14,7 @@
 
 ## Имена: задание → проект
 
-Имена из задания приведены к соглашениям проекта (`../../CLAUDE2.md`, раздел Architecture): строки таблиц — `*Row`, JDBC-адаптеры — `*PersistenceAdapter`, их тесты — `*PersistenceAdapterTest`. Пакеты ниже — относительно `ru.job4j.socialmediaapi.posts.internal`.
+Имена из задания приведены к соглашениям проекта (`../../CLAUDE2_backup.md`, раздел Architecture): строки таблиц — `*Row`, JDBC-адаптеры — `*PersistenceAdapter`, их тесты — `*PersistenceAdapterTest`. Пакеты ниже — относительно `ru.job4j.socialmediaapi.posts.internal`.
 
 | В задании | В проекте |
 | --- | --- |
@@ -80,7 +80,7 @@
   - `posts/internal/infrastructure/persistence/mapper/{PostPersistenceMapperTest,FeedPersistenceMapperTest}`;
   - `subscriptions/internal/infrastructure/persistence/adapter/SubscriptionPersistenceAdapterTest` (тесты `deleteSubscription`);
   - `FriendshipFeedTest` — сквозная проверка ленты после accept/reject.
-- Документация: `../../../process/Feed.md`, `../../CLAUDE2.md`, `../../../architecture.md`.
+- Документация: `../../../process/Feed.md`, `../../CLAUDE2_backup.md`, `../../../architecture.md`.
 
 ## Вне рамок этого задания
 

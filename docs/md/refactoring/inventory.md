@@ -246,7 +246,7 @@ system         (ни от кого)
 
 | Итерация | Что | Остановка |
 |---|---|---|
-| 1 | Каркас: Modulith в `../../../pom.xml`, `detection-strategy: explicitly-annotated`, `ApplicationModulesTest` с `LEGACY_PACKAGES`, `shared` (`ClockConfiguration`, `ErrorResponse`), `docs/architecture.md`, раздел в `CLAUDE2.md` — **выполнено** | да |
+| 1 | Каркас: Modulith в `../../../pom.xml`, `detection-strategy: explicitly-annotated`, `ApplicationModulesTest` с `LEGACY_PACKAGES`, `shared` (`ClockConfiguration`, `ErrorResponse`), `docs/architecture.md`, раздел в `CLAUDE2_backup.md` — **выполнено** | да |
 | 2 | `subscriptions` (листовой): шаг 2.1 — **выполнен** → остановка → шаг 2.2 — **выполнен** | да, дважды |
 | 3 | `posts` (зависит от `subscriptions` только в SQL и в тесте ленты): шаг 2.1 — **выполнен**, шаг 2.2 — **выполнен** | да, дважды |
 | 4 | `friendships` (зависит от `subscriptions::api`), разделение `GlobalExceptionHandler`: шаг 2.1 — **выполнен**, шаг 2.2 — **выполнен** | да, дважды |

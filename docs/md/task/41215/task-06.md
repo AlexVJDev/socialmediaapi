@@ -62,7 +62,7 @@
      - `OFFSET N` заставляет БД прочитать и отбросить N строк — чем дальше страница, тем медленнее запрос на больших лентах;
      - на быстро меняющейся ленте страницы «плывут»: новый пост сверху сдвигает выдачу, и на следующей странице читатель видит дубль; удаление поста или отписка — пропуск записи;
    - дальнейшее развитие — **cursor (keyset) pagination**: следующая страница по последней паре `(created_at, id)`: `WHERE (p.created_at, p.id) < (?, ?) ORDER BY p.created_at DESC, p.id DESC LIMIT ?`; индекс из задания 02 подходит и для неё.
-4. Ссылку на `../../../process/Feed.md` и описание `FeedRepository` добавить в `CLAUDE2.md` (Architecture → Persistence / Business process).
+4. Ссылку на `../../../process/Feed.md` и описание `FeedRepository` добавить в `CLAUDE2_backup.md` (Architecture → Persistence / Business process).
 
 ## Критерии приёмки
 
