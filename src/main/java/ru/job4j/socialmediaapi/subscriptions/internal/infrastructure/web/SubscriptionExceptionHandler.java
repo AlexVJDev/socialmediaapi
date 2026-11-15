@@ -7,8 +7,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.error.ErrorCode;
-import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.CommonErrorCode;
 
 /**
  * Errors of the subscription endpoints → HTTP responses of the API contract.
@@ -23,13 +23,13 @@ public class SubscriptionExceptionHandler {
      * The only parameter of the endpoints, {@code userId}, is missing or empty
      * ({@link MissingServletRequestParameterException}) or not a UUID ({@link MethodArgumentTypeMismatchException}).
      *
-     * @return {@code 400} with the INVALID_USER_ID error body
+     * @return {@code 400} with the common VALIDATION_ERROR error body
      */
     @ExceptionHandler({
             MissingServletRequestParameterException.class,
             MethodArgumentTypeMismatchException.class
     })
-    public ResponseEntity<ErrorResponse> handleInvalidUserId() {
-        return ErrorCode.INVALID_USER_ID.response();
+    public ResponseEntity<ApiErrorResponse> handleInvalidUserId() {
+        return CommonErrorCode.VALIDATION_ERROR.response();
     }
 }

@@ -86,10 +86,10 @@
 			getSubscriptions_200_response_inner=SubscriptionWebResponse,
 			getFollowers_200_response_inner=FollowerWebResponse
 		</openapi.subscriptions.inline-names>
-		<openapi.subscriptions.schemas>error=ErrorResponse</openapi.subscriptions.schemas>
+		<openapi.subscriptions.schemas>api-error-response=ApiErrorResponse</openapi.subscriptions.schemas>
 		<openapi.subscriptions.imports>
 			${openapi.common.imports},
-			ErrorResponse=ru.job4j.socialmediaapi.shared.web.ErrorResponse,
+			ApiErrorResponse=ru.job4j.socialmediaapi.shared.web.ApiErrorResponse,
 			SubscriptionWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.SubscriptionWebResponse,
 			FollowerWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.FollowerWebResponse
 		</openapi.subscriptions.imports>
@@ -278,8 +278,8 @@
 			       *-responses  *WebResponse        -> <module>.internal.infrastructure.web.response
 			     Names of inline schemas (<operationId>_request, <operationId>_<code>_response) are set by
 			     inlineSchemaNameMappings; *-api imports the module's DTOs by importMappings. The error body
-			     shared.web.ApiErrorResponse is generated once by shared-api-errors (docs/api/modules/shared.yaml);
-			     subscriptions still uses the hand-written shared.web.ErrorResponse. The settings of a module are kept
+			     shared.web.ApiErrorResponse is generated once by shared-api-errors (docs/api/modules/shared.yaml)
+			     and imported by every *-api. The settings of a module are kept
 			     in properties openapi.<module>.*; schemaMappings/importMappings are given only to *-api: in the model
 			     executions they would skip the mapped models. -->
 			<plugin>

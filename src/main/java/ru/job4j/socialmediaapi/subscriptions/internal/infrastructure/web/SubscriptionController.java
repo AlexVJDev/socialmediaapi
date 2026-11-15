@@ -6,10 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.usecase.GetFollowers;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.usecase.GetSubscriptions;
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.mapper.SubscriptionWebMapper;
-import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.FollowerWebResponse;
-import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.SubscriptionWebResponse;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -40,7 +37,7 @@ public class SubscriptionController implements SubscriptionApi {
      * @return the subscriptions
      */
     @Override
-    public ResponseEntity<List<SubscriptionWebResponse>> getSubscriptions(UUID userId) {
+    public ResponseEntity<?> getSubscriptions(UUID userId) {
         return ResponseEntity.ok(mapper.toSubscriptionResponses(
                 getSubscriptions.get(mapper.toSubscriptionsCommand(userId))
         ));
@@ -55,7 +52,7 @@ public class SubscriptionController implements SubscriptionApi {
      * @return the followers
      */
     @Override
-    public ResponseEntity<List<FollowerWebResponse>> getFollowers(UUID userId) {
+    public ResponseEntity<?> getFollowers(UUID userId) {
         return ResponseEntity.ok(mapper.toFollowerResponses(
                 getFollowers.get(mapper.toFollowersCommand(userId))
         ));
