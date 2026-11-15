@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import ru.job4j.socialmediaapi.posts.internal.application.usecase.GetFeed;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.mapper.PostWebMapper;
-import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedPageWebResponse;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -38,7 +37,7 @@ public class FeedController implements FeedApi {
      * @return the page of the feed
      */
     @Override
-    public ResponseEntity<FeedPageWebResponse> getFeed(
+    public ResponseEntity<?> getFeed(
             UUID followerId, Integer limit, Instant afterCreatedAt, UUID afterId
     ) {
         return ResponseEntity.ok(mapper.toResponse(

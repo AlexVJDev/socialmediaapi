@@ -75,9 +75,12 @@ get:
         Некорректные параметры: нет `followerId`, идентификатор не UUID, `limit` вне 1..100
         или не число, задана только одна часть курсора
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
-            code: INVALID_POST_REQUEST
-            message: Некорректные параметры запроса
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '500':
+      $ref: '../responses/internal-error.yaml'

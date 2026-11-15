@@ -22,18 +22,22 @@ get:
     '400':
       description: Идентификатор поста не является UUID или пуст
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
-            code: INVALID_POST_REQUEST
-            message: Некорректные параметры запроса
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
     '404':
       description: Поста нет или он удалён (удалённый пост читается как отсутствующий)
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
+            status: 404
+            detail: Пост не найден
             code: POST_NOT_FOUND
-            message: Пост не найден
+    '500':
+      $ref: '../responses/internal-error.yaml'

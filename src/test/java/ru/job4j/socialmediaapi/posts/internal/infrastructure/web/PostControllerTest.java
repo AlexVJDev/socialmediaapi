@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
@@ -24,6 +25,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -86,9 +88,9 @@ class PostControllerTest {
     }
 
     @Test
-    @DisplayName("Id поста не UUID: 400 INVALID_POST_REQUEST")
+    @DisplayName("Id поста не UUID: 400 VALIDATION_ERROR")
     void whenPostIdNotUuidThenBadRequest() throws Exception {
-        expectError(mockMvc.perform(get("/api/v1/posts/42")), 400, "INVALID_POST_REQUEST");
+        expectError(mockMvc.perform(get("/api/v1/posts/42")), 400, "VALIDATION_ERROR");
     }
 
     @Test
@@ -151,28 +153,28 @@ class PostControllerTest {
     }
 
     @Test
-    @DisplayName("Без followerId: 400 INVALID_POST_REQUEST")
+    @DisplayName("Без followerId: 400 VALIDATION_ERROR")
     void whenFollowerIdMissingThenBadRequest() throws Exception {
-        expectError(mockMvc.perform(get("/api/v1/feed")), 400, "INVALID_POST_REQUEST");
+        expectError(mockMvc.perform(get("/api/v1/feed")), 400, "VALIDATION_ERROR");
     }
 
     @ParameterizedTest(name = "limit={0}")
     @ValueSource(strings = {"0", "101", "abc"})
-    @DisplayName("limit вне 1..100 или не число: 400 INVALID_POST_REQUEST")
+    @DisplayName("limit вне 1..100 или не число: 400 VALIDATION_ERROR")
     void whenLimitInvalidThenBadRequest(String limit) throws Exception {
         expectError(mockMvc.perform(get("/api/v1/feed")
                         .param("followerId", UUID.randomUUID().toString())
                         .param("limit", limit)),
-                400, "INVALID_POST_REQUEST");
+                400, "VALIDATION_ERROR");
     }
 
     @Test
-    @DisplayName("Курсор задан наполовину (только afterId): 400 INVALID_POST_REQUEST")
+    @DisplayName("Курсор задан наполовину (только afterId): 400 VALIDATION_ERROR")
     void whenCursorPartialThenBadRequest() throws Exception {
         expectError(mockMvc.perform(get("/api/v1/feed")
                         .param("followerId", UUID.randomUUID().toString())
                         .param("afterId", UUID.randomUUID().toString())),
-                400, "INVALID_POST_REQUEST");
+                400, "VALIDATION_ERROR");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -184,9 +186,9 @@ class PostControllerTest {
             "followerId=00000000-0000-0000-0000-000000000001&afterCreatedAt=2026-10-15T10:00:00Z&afterId=42"
     })
     @DisplayName("followerId не UUID, курсор только из afterCreatedAt, afterCreatedAt не дата-время, "
-            + "afterId не UUID: 400 INVALID_POST_REQUEST")
+            + "afterId не UUID: 400 VALIDATION_ERROR")
     void whenFeedParamInvalidThenBadRequest(String query) throws Exception {
-        expectError(mockMvc.perform(get("/api/v1/feed?" + query)), 400, "INVALID_POST_REQUEST");
+        expectError(mockMvc.perform(get("/api/v1/feed?" + query)), 400, "VALIDATION_ERROR");
     }
 
     @Test
@@ -234,7 +236,9 @@ class PostControllerTest {
 
     private static void expectError(ResultActions actions, int status, String code) throws Exception {
         actions.andExpect(status().is(status))
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(status))
                 .andExpect(jsonPath("$.code").value(code))
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(jsonPath("$.detail").isNotEmpty());
     }
 }

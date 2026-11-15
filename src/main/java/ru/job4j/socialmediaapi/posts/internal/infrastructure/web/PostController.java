@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import ru.job4j.socialmediaapi.posts.internal.application.usecase.GetPost;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.mapper.PostWebMapper;
-import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWebResponse;
 
 import java.util.UUID;
 
@@ -32,7 +31,7 @@ public class PostController implements PostApi {
      * @return the post
      */
     @Override
-    public ResponseEntity<PostWebResponse> getPost(UUID postId) {
+    public ResponseEntity<?> getPost(UUID postId) {
         return ResponseEntity.ok(mapper.toResponse(getPost.get(mapper.toGetPostCommand(postId))));
     }
 }

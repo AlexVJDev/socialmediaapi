@@ -104,10 +104,10 @@
 			getFeed_200_response_next=FeedCursorWebResponse
 		</openapi.posts.inline-names>
 		<openapi.posts.model-names>post=PostWebResponse</openapi.posts.model-names>
-		<openapi.posts.schemas>error=ErrorResponse</openapi.posts.schemas>
+		<openapi.posts.schemas>api-error-response=ApiErrorResponse</openapi.posts.schemas>
 		<openapi.posts.imports>
 			${openapi.common.imports},
-			ErrorResponse=ru.job4j.socialmediaapi.shared.web.ErrorResponse,
+			ApiErrorResponse=ru.job4j.socialmediaapi.shared.web.ApiErrorResponse,
 			PostWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWebResponse,
 			FeedPageWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedPageWebResponse,
 			FeedCursorWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedCursorWebResponse
@@ -279,7 +279,7 @@
 			     Names of inline schemas (<operationId>_request, <operationId>_<code>_response) are set by
 			     inlineSchemaNameMappings; *-api imports the module's DTOs by importMappings. The error body
 			     shared.web.ApiErrorResponse is generated once by shared-api-errors (docs/api/modules/shared.yaml);
-			     posts and subscriptions still use the hand-written shared.web.ErrorResponse. The settings of a module are kept
+			     subscriptions still uses the hand-written shared.web.ErrorResponse. The settings of a module are kept
 			     in properties openapi.<module>.*; schemaMappings/importMappings are given only to *-api: in the model
 			     executions they would skip the mapped models. -->
 			<plugin>
