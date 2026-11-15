@@ -69,19 +69,21 @@ Content-Type: application/json
 - Если предложение для пары уже есть в состоянии `PENDING`, новое не создаётся: API возвращает `200 OK` с телом `FRIENDSHIP_OFFER_ALREADY_PENDING`.
 - Если предложение для пары уже принято, создание завершается конфликтом `409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED`.
 - Если предложение для пары было отклонено, создание завершается конфликтом `409 FRIENDSHIP_OFFER_ALREADY_REJECTED`.
+- Если заявка пары есть, но её статус не удалось прочитать, создание завершается конфликтом `409 FRIENDSHIP_OFFER_ALREADY_EXISTS`.
 - В этих случаях подписка не создаётся и данные не меняются.
 
 ## Предложение уже ожидает решения
 
 ```http
 HTTP/1.1 200 OK
-Content-Type: application/json
+Content-Type: application/problem+json
 ```
 
 ```json
 {
-  "code": "FRIENDSHIP_OFFER_ALREADY_PENDING",
-  "message": "Предложение дружбы уже отправлено"
+  "status": 200,
+  "detail": "Предложение дружбы уже отправлено",
+  "code": "FRIENDSHIP_OFFER_ALREADY_PENDING"
 }
 ```
 
@@ -98,25 +100,27 @@ Content-Type: application/json
 
 ## Возможные ошибки
 
-Тело ответа с ошибкой: `{"code": "...", "message": "..."}`.
+Тело ответа с ошибкой: `{"status": ..., "detail": "...", "code": "..."}`, `Content-Type: application/problem+json`.
 
 | HTTP-статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400 Bad Request` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | Некорректное тело запроса, отсутствуют обязательные поля, идентификатор не является UUID или `fromUserId` совпадает с `toUserId`. |
-| `404 Not Found` | `USER_NOT_FOUND` | Пользователь-инициатор или пользователь-получатель не найден. |
+| `400 Bad Request` | `VALIDATION_ERROR` | Некорректное тело запроса, отсутствуют обязательные поля, идентификатор не является UUID или `fromUserId` совпадает с `toUserId`. |
 | `409 Conflict` | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | Заявка для этой пары (в любом направлении) уже принята. |
 | `409 Conflict` | `FRIENDSHIP_OFFER_ALREADY_REJECTED` | Заявка для этой пары (в любом направлении) уже отклонена. |
+| `409 Conflict` | `FRIENDSHIP_OFFER_ALREADY_EXISTS` | Заявка для этой пары есть, но её статус не удалось прочитать. |
+| `500 Internal Server Error` | `INTERNAL_ERROR` | Непредвиденная ошибка сервера; подробности пишутся в лог и клиенту не раскрываются. |
 
 Пример:
 
 ```http
 HTTP/1.1 409 Conflict
-Content-Type: application/json
+Content-Type: application/problem+json
 ```
 
 ```json
 {
-  "code": "FRIENDSHIP_OFFER_ALREADY_REJECTED",
-  "message": "Предложение дружбы уже отклонено"
+  "status": 409,
+  "detail": "Предложение дружбы уже отклонено",
+  "code": "FRIENDSHIP_OFFER_ALREADY_REJECTED"
 }
 ```

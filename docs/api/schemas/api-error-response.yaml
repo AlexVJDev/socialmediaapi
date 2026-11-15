@@ -1,0 +1,17 @@
+type: object
+description: Тело ответа с ошибкой (application/problem+json)
+required: [status, detail, code]
+properties:
+  status:
+    type: integer
+    format: int32
+    description: HTTP-статус ответа, дублируется в теле
+    example: 400
+  detail:
+    type: string
+    description: Понятное человеку описание ошибки
+    example: Некорректное тело или параметры запроса
+  code:
+    type: string
+    description: Машинный код ошибки; возможные значения — в примерах ответов операции
+    example: VALIDATION_ERROR

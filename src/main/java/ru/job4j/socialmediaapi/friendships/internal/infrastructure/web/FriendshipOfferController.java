@@ -16,11 +16,7 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.mapper.Fr
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.AcceptFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.CreateFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.RejectFriendshipOfferWebRequest;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.AcceptFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.CreateFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferPageWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.RejectFriendshipOfferWebResponse;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,7 +26,8 @@ import java.util.UUID;
  * Endpoints {@code /api/v1/friendship-offer} and {@code /api/v1/friendship-offer/*}.
  * Paths, HTTP methods, parameters and their validation come from {@link FriendshipOfferApi},
  * generated from the OpenAPI contract ({@code docs/api/paths/friendship-offer*.yaml});
- * the annotations are not repeated here.
+ * the annotations are not repeated here. The methods return {@code ResponseEntity<?>} as the interface does:
+ * the body type depends on the outcome (an offer or, from the exception handler, an error body).
  */
 @RestController
 @RequiredArgsConstructor
@@ -58,13 +55,14 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * {@code 201} with the new offer. A repeated or a counter offer is answered by
      * {@code FriendshipOfferExceptionHandler} by the status of the pair's offer:
      * {@code PENDING} → {@code 200} FRIENDSHIP_OFFER_ALREADY_PENDING,
-     * {@code ACCEPTED} / {@code REJECTED} → {@code 409} with the code of the status.
+     * {@code ACCEPTED} / {@code REJECTED} → {@code 409} with the code of the status,
+     * the status could not be read → {@code 409} FRIENDSHIP_OFFER_ALREADY_EXISTS.
      *
      * @param request sender and recipient of the offer
      * @return the created offer
      */
     @Override
-    public ResponseEntity<CreateFriendshipOfferWebResponse> createFriendshipOffer(
+    public ResponseEntity<?> createFriendshipOffer(
             CreateFriendshipOfferWebRequest request
     ) {
         CreateFriendshipOfferResult result = createFriendshipOffer.create(mapper.toCommand(request));
@@ -80,7 +78,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * @return the accepted offer
      */
     @Override
-    public ResponseEntity<AcceptFriendshipOfferWebResponse> acceptFriendshipOffer(
+    public ResponseEntity<?> acceptFriendshipOffer(
             AcceptFriendshipOfferWebRequest request
     ) {
         FriendshipOfferDecisionResult result = acceptFriendshipOffer.accept(mapper.toAcceptCommand(request));
@@ -96,7 +94,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * @return the rejected offer
      */
     @Override
-    public ResponseEntity<RejectFriendshipOfferWebResponse> rejectFriendshipOffer(
+    public ResponseEntity<?> rejectFriendshipOffer(
             RejectFriendshipOfferWebRequest request
     ) {
         FriendshipOfferDecisionResult result = rejectFriendshipOffer.reject(mapper.toRejectCommand(request));
@@ -111,7 +109,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * @return the offer
      */
     @Override
-    public ResponseEntity<FriendshipOfferWebResponse> getFriendshipOffer(UUID offerId) {
+    public ResponseEntity<?> getFriendshipOffer(UUID offerId) {
         return ResponseEntity.ok(mapper.toResponse(getFriendshipOffer.get(mapper.toGetCommand(offerId))));
     }
 
@@ -126,7 +124,7 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * @return the page of offers
      */
     @Override
-    public ResponseEntity<FriendshipOfferPageWebResponse> getFriendshipOffers(
+    public ResponseEntity<?> getFriendshipOffers(
             Integer limit, Instant afterCreatedAt, UUID afterId
     ) {
         FriendshipOfferPageResult result =

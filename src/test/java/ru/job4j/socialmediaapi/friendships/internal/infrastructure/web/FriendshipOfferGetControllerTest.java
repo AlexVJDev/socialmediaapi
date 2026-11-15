@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -93,9 +94,9 @@ class FriendshipOfferGetControllerTest {
     }
 
     @Test
-    @DisplayName("id не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    @DisplayName("id не UUID: 400 VALIDATION_ERROR")
     void whenOfferIdNotUuidThenBadRequest() throws Exception {
-        expectError(mockMvc.perform(get(BASE + "/42")), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(mockMvc.perform(get(BASE + "/42")), 400, "VALIDATION_ERROR");
     }
 
     @Test
@@ -181,16 +182,16 @@ class FriendshipOfferGetControllerTest {
             "afterCreatedAt=2026-10-12T10:15:00Z",
             "afterId=00000000-0000-0000-0000-000000000001"
     })
-    @DisplayName("Некорректные параметры страницы: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    @DisplayName("Некорректные параметры страницы: 400 VALIDATION_ERROR")
     void whenInvalidPageParamsThenBadRequest(String query) throws Exception {
-        expectError(mockMvc.perform(get(BASE + "?" + query)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(mockMvc.perform(get(BASE + "?" + query)), 400, "VALIDATION_ERROR");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 VALIDATION_ERROR")
     void whenUserIdMissingOrNotUuidThenBadRequest(String path) throws Exception {
-        expectError(mockMvc.perform(get(BASE + path)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(mockMvc.perform(get(BASE + path)), 400, "VALIDATION_ERROR");
     }
 
     @ParameterizedTest
@@ -261,7 +262,9 @@ class FriendshipOfferGetControllerTest {
 
     private static void expectError(ResultActions actions, int status, String code) throws Exception {
         actions.andExpect(status().is(status))
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(status))
                 .andExpect(jsonPath("$.code").value(code))
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(jsonPath("$.detail").isNotEmpty());
     }
 }

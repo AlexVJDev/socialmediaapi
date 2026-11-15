@@ -12,8 +12,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.error.ErrorCode;
+import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.CommonErrorCode;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.error.FriendshipOfferErrorCode;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.IncompleteFriendshipOfferCursorException;
@@ -35,7 +36,7 @@ public class FriendshipOfferExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(FriendshipOfferExceptionHandler.class);
 
     /**
-     * An invalid request of /api/v1/friendship-offer[/*]: one INVALID_FRIENDSHIP_OFFER_REQUEST code for all of them.
+     * An invalid request of /api/v1/friendship-offer[/*]: one common VALIDATION_ERROR code for all of them.
      * <ul>
      *     <li>body of create, accept, reject: unreadable, invalid or an offer to oneself;</li>
      *     <li>path and query parameters: missing ({@code userId}) or of a wrong type (an id that is not a UUID,
@@ -45,7 +46,7 @@ public class FriendshipOfferExceptionHandler {
      *     only one part of the page cursor.</li>
      * </ul>
      *
-     * @return {@code 400} with the INVALID_FRIENDSHIP_OFFER_REQUEST error body
+     * @return {@code 400} with the VALIDATION_ERROR error body
      */
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
@@ -56,8 +57,8 @@ public class FriendshipOfferExceptionHandler {
             ConstraintViolationException.class,
             IncompleteFriendshipOfferCursorException.class
     })
-    public ResponseEntity<ErrorResponse> handleInvalidRequest() {
-        return ErrorCode.INVALID_FRIENDSHIP_OFFER_REQUEST.response();
+    public ResponseEntity<ApiErrorResponse> handleInvalidRequest() {
+        return CommonErrorCode.VALIDATION_ERROR.response();
     }
 
     /**
@@ -67,8 +68,8 @@ public class FriendshipOfferExceptionHandler {
      * @return {@code 200} with the FRIENDSHIP_OFFER_ALREADY_PENDING body
      */
     @ExceptionHandler(FriendshipOfferAlreadyPendingException.class)
-    public ResponseEntity<ErrorResponse> handleAlreadyPending() {
-        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_PENDING.response();
+    public ResponseEntity<ApiErrorResponse> handleAlreadyPending() {
+        return FriendshipOfferErrorCode.FRIENDSHIP_OFFER_ALREADY_PENDING.response();
     }
 
     /**
@@ -78,33 +79,33 @@ public class FriendshipOfferExceptionHandler {
      * @return {@code 404} with the FRIENDSHIP_OFFER_NOT_FOUND error body
      */
     @ExceptionHandler(FriendshipRequestNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound() {
-        return ErrorCode.FRIENDSHIP_OFFER_NOT_FOUND.response();
+    public ResponseEntity<ApiErrorResponse> handleNotFound() {
+        return FriendshipOfferErrorCode.FRIENDSHIP_OFFER_NOT_FOUND.response();
     }
 
     @ExceptionHandler(FriendshipOfferAlreadyAcceptedException.class)
-    public ResponseEntity<ErrorResponse> handleAlreadyAccepted() {
-        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_ACCEPTED.response();
+    public ResponseEntity<ApiErrorResponse> handleAlreadyAccepted() {
+        return FriendshipOfferErrorCode.FRIENDSHIP_OFFER_ALREADY_ACCEPTED.response();
     }
 
     @ExceptionHandler(FriendshipOfferAlreadyRejectedException.class)
-    public ResponseEntity<ErrorResponse> handleAlreadyRejected() {
-        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_REJECTED.response();
+    public ResponseEntity<ApiErrorResponse> handleAlreadyRejected() {
+        return FriendshipOfferErrorCode.FRIENDSHIP_OFFER_ALREADY_REJECTED.response();
     }
 
     /**
      * The service rethrows the duplicate only when the existing offer could not be read
      * after the unique key violation (see {@code CreateFriendshipOffer}): the offer
-     * is there, but its status is unknown. Nothing has changed, so the client gets the same
-     * answer as for a pending offer; the case is logged because it should not happen.
+     * is there, but its status is unknown, so the client gets a conflict: an offer of the pair
+     * already exists. The case is logged because it should not happen.
      *
      * @param exception duplicate reported by the repository
-     * @return {@code 200} with the FRIENDSHIP_OFFER_ALREADY_PENDING body
+     * @return {@code 409} with the FRIENDSHIP_OFFER_ALREADY_EXISTS error body
      */
     @ExceptionHandler(FriendshipOfferAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleAlreadyExists(FriendshipOfferAlreadyExistsException exception) {
+    public ResponseEntity<ApiErrorResponse> handleAlreadyExists(FriendshipOfferAlreadyExistsException exception) {
         LOG.warn("Friendship offer already exists but its status could not be read: {}",
                 exception.getMessage(), exception);
-        return ErrorCode.FRIENDSHIP_OFFER_ALREADY_PENDING.response();
+        return FriendshipOfferErrorCode.FRIENDSHIP_OFFER_ALREADY_EXISTS.response();
     }
 }

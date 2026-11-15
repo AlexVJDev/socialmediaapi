@@ -24,18 +24,22 @@ get:
     '400':
       description: Идентификатор не является UUID
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
-            code: INVALID_FRIENDSHIP_OFFER_REQUEST
-            message: Некорректное тело или параметры запроса
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
     '404':
       description: Предложения дружбы с таким идентификатором нет
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
+            status: 404
+            detail: Предложение дружбы не найдено
             code: FRIENDSHIP_OFFER_NOT_FOUND
-            message: Предложение дружбы не найдено
+    '500':
+      $ref: '../responses/internal-error.yaml'

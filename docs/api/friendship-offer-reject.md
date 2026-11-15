@@ -84,11 +84,12 @@ Content-Type: application/json
 
 ## Возможные ошибки
 
-Тело ответа с ошибкой: `{"code": "...", "message": "..."}`.
+Тело ответа с ошибкой: `{"status": ..., "detail": "...", "code": "..."}`, `Content-Type: application/problem+json`.
 
 | HTTP-статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400 Bad Request` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | Некорректное тело запроса, отсутствует `offerId` или `actorId`, идентификатор не является UUID. |
+| `400 Bad Request` | `VALIDATION_ERROR` | Некорректное тело запроса, отсутствует `offerId` или `actorId`, идентификатор не является UUID. |
 | `404 Not Found` | `FRIENDSHIP_OFFER_NOT_FOUND` | Предложения нет или `actorId` не является его получателем. |
 | `409 Conflict` | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | Предложение уже принято. |
 | `409 Conflict` | `FRIENDSHIP_OFFER_ALREADY_REJECTED` | Предложение уже отклонено. |
+| `500 Internal Server Error` | `INTERNAL_ERROR` | Непредвиденная ошибка сервера; подробности пишутся в лог и клиенту не раскрываются. |

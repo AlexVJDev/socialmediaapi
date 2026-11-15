@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,13 +61,13 @@ class FriendshipOfferControllerTest {
             "toUserId UUID без дефисов   | {\"fromUserId\":\"%1$s\",\"toUserId\":\"0b6f3c9e6a1d4c2e9f5a2d7b8e1c4a01\"}",
             "toUserId число, не строка   | {\"fromUserId\":\"%1$s\",\"toUserId\":123}"
     })
-    @DisplayName("create с отсутствующим, null или не UUID полем: 400 INVALID_FRIENDSHIP_OFFER_REQUEST, "
+    @DisplayName("create с отсутствующим, null или не UUID полем: 400 VALIDATION_ERROR, "
             + "заявка и подписка не создаются")
     void whenCreateWithInvalidIdsThenBadRequest(String situation, String template) throws Exception {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
 
-        expectError(create(template.formatted(fromUserId, toUserId)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(create(template.formatted(fromUserId, toUserId)), 400, "VALIDATION_ERROR");
 
         assertThat(offersFrom(fromUserId)).isZero();
         assertThat(offersTo(toUserId)).isZero();
@@ -74,17 +75,17 @@ class FriendshipOfferControllerTest {
     }
 
     @Test
-    @DisplayName("Некорректный JSON: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+    @DisplayName("Некорректный JSON: 400 VALIDATION_ERROR")
     void whenBodyNotJsonThenBadRequest() throws Exception {
-        expectError(create("{not json"), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(create("{not json"), 400, "VALIDATION_ERROR");
     }
 
     @Test
-    @DisplayName("Заявка самому себе: 400 INVALID_FRIENDSHIP_OFFER_REQUEST, заявка и подписка не создаются")
+    @DisplayName("Заявка самому себе: 400 VALIDATION_ERROR, заявка и подписка не создаются")
     void whenOfferToSelfThenBadRequest() throws Exception {
         var userId = UUID.randomUUID();
 
-        expectError(create(body(userId, userId)), 400, "INVALID_FRIENDSHIP_OFFER_REQUEST");
+        expectError(create(body(userId, userId)), 400, "VALIDATION_ERROR");
         assertThat(offersFrom(userId)).isZero();
         assertThat(subscriptionsOf(userId)).isZero();
     }
@@ -283,7 +284,7 @@ class FriendshipOfferControllerTest {
 
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("invalidDecideBodies")
-    @DisplayName("accept/reject с отсутствующим, null или не UUID полем: 400 INVALID_FRIENDSHIP_OFFER_REQUEST, "
+    @DisplayName("accept/reject с отсутствующим, null или не UUID полем: 400 VALIDATION_ERROR, "
             + "заявка остаётся PENDING, дружба и обратная подписка не создаются")
     void whenDecideWithInvalidBodyThenBadRequest(String action, String situation, String template) throws Exception {
         var aliceId = UUID.randomUUID();
@@ -292,7 +293,7 @@ class FriendshipOfferControllerTest {
 
         expectError(
                 decide(action, template.formatted(offerId, borisId)),
-                400, "INVALID_FRIENDSHIP_OFFER_REQUEST"
+                400, "VALIDATION_ERROR"
         );
         assertThat(offerStatus(aliceId, borisId)).isEqualTo("PENDING");
         assertThat(friendshipsOf(offerId)).isZero();
@@ -366,8 +367,10 @@ class FriendshipOfferControllerTest {
 
     private static void expectError(ResultActions actions, int status, String code) throws Exception {
         actions.andExpect(status().is(status))
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(status))
                 .andExpect(jsonPath("$.code").value(code))
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(jsonPath("$.detail").isNotEmpty());
     }
 
     private static String body(UUID fromUserId, UUID toUserId) {

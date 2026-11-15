@@ -72,37 +72,43 @@ post:
         Некорректный запрос: тело не читается, отсутствует `offerId` или `actorId`,
         идентификатор не является UUID
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
-            code: INVALID_FRIENDSHIP_OFFER_REQUEST
-            message: Некорректное тело или параметры запроса
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
     '404':
       description: >-
         Предложение дружбы не найдено: его нет или `actorId` не является его получателем
         (существование чужой заявки не раскрывается)
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
+            status: 404
+            detail: Предложение дружбы не найдено
             code: FRIENDSHIP_OFFER_NOT_FOUND
-            message: Предложение дружбы не найдено
     '409':
       description: >-
         Предложение дружбы нельзя принять, так как его статус отличен от 'PENDING' ('ACCEPTED' или 'REJECTED');
         в том числе повторное принятие. Данные не меняются
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           examples:
             accepted:
               value:
+                status: 409
+                detail: Предложение дружбы уже принято
                 code: FRIENDSHIP_OFFER_ALREADY_ACCEPTED
-                message: Предложение дружбы уже принято
             rejected:
               value:
+                status: 409
+                detail: Предложение дружбы уже отклонено
                 code: FRIENDSHIP_OFFER_ALREADY_REJECTED
-                message: Предложение дружбы уже отклонено
+    '500':
+      $ref: '../responses/internal-error.yaml'

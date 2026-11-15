@@ -47,18 +47,12 @@ get:
     '400':
       description: Некорректный или отсутствующий параметр userId
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
-            code: INVALID_USER_ID
-            message: Некорректный или отсутствующий параметр userId
-    '404':
-      description: Пользователь не найден
-      content:
-        application/json:
-          schema:
-            $ref: '../schemas/error.yaml'
-          example:
-            code: USER_NOT_FOUND
-            message: Пользователь не найден
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '500':
+      $ref: '../responses/internal-error.yaml'

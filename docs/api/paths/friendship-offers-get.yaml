@@ -65,9 +65,12 @@ get:
         Некорректные параметры: `limit` вне 1..100 или не число, `afterCreatedAt` не дата-время,
         `afterId` не UUID, задана только одна часть курсора
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: '../schemas/error.yaml'
+            $ref: '../schemas/api-error-response.yaml'
           example:
-            code: INVALID_FRIENDSHIP_OFFER_REQUEST
-            message: Некорректное тело или параметры запроса
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '500':
+      $ref: '../responses/internal-error.yaml'

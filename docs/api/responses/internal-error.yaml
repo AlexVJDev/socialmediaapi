@@ -1,0 +1,10 @@
+description: >-
+  Непредвиденная ошибка сервера. Подробности пишутся в лог и клиенту не раскрываются
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/api-error-response.yaml'
+    example:
+      status: 500
+      detail: Внутренняя ошибка сервера
+      code: INTERNAL_ERROR

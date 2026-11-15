@@ -1,0 +1,11 @@
+# Входная спецификация общих моделей для генерации кода (execution shared-api-errors в pom.xml).
+# Путей нет: модели генерируются один раз в пакет shared.web, модули подключают их через importMappings.
+openapi: 3.0.3
+info:
+  title: API социальной сети — общие модели
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    api-error-response:
+      $ref: '../schemas/api-error-response.yaml'

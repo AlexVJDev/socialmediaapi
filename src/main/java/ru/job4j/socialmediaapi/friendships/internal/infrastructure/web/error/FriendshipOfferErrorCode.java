@@ -1,20 +1,15 @@
 package ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.error;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.ErrorCode;
 
 /**
  * Error codes of the friendship offer endpoints: the constant name is the {@code code}
- * of the response body. The common {@code INTERNAL_ERROR} is in {@code shared.exception}.
+ * of the response body. The common {@code VALIDATION_ERROR} and {@code INTERNAL_ERROR}
+ * are in {@link ru.job4j.socialmediaapi.shared.web.CommonErrorCode}.
  */
-public enum ErrorCode {
+public enum FriendshipOfferErrorCode implements ErrorCode {
 
-    /** Invalid body or parameters: unreadable, missing or invalid fields, an offer to oneself, a bad parameter. */
-    INVALID_FRIENDSHIP_OFFER_REQUEST(
-            HttpStatus.BAD_REQUEST,
-            "Некорректное тело или параметры запроса"
-    ),
     /**
      * The offer of this pair of users (in either direction) already waits for a decision.
      * The body has the error format, but the status is {@code 200}: nothing has changed and
@@ -38,31 +33,31 @@ public enum ErrorCode {
     FRIENDSHIP_OFFER_ALREADY_REJECTED(
             HttpStatus.CONFLICT,
             "Предложение дружбы уже отклонено"
+    ),
+    /** The offer of this pair of users exists, but its status could not be read after the unique key violation. */
+    FRIENDSHIP_OFFER_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "Предложение дружбы для этой пары уже существует"
     );
 
     /** HTTP status of the error response. */
     private final HttpStatus status;
 
-    /** Human-readable {@code message} of the error response body. */
-    private final String message;
+    /** Human-readable {@code detail} of the error response body. */
+    private final String detail;
 
-    ErrorCode(HttpStatus status, String message) {
+    FriendshipOfferErrorCode(HttpStatus status, String detail) {
         this.status = status;
-        this.message = message;
+        this.detail = detail;
     }
 
+    @Override
     public HttpStatus status() {
         return status;
     }
 
-    public String message() {
-        return message;
-    }
-
-    /**
-     * @return the response with this error's status and {@code {code, message}} body
-     */
-    public ResponseEntity<ErrorResponse> response() {
-        return ResponseEntity.status(status).body(new ErrorResponse(name(), message));
+    @Override
+    public String detail() {
+        return detail;
     }
 }

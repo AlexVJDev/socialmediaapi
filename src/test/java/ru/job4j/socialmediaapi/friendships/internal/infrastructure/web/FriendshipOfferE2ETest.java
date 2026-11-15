@@ -24,7 +24,7 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferPageWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.RejectFriendshipOfferWebResponse;
-import ru.job4j.socialmediaapi.shared.web.ErrorResponse;
+import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -49,24 +49,24 @@ class FriendshipOfferE2ETest {
     private static final String BASE = "/api/v1/friendship-offer";
 
     /** Expected body of {@code 400} for an invalid body or parameters (contract example). */
-    private static final ErrorResponse INVALID_REQUEST =
-            new ErrorResponse("INVALID_FRIENDSHIP_OFFER_REQUEST", "Некорректное тело или параметры запроса");
+    private static final ApiErrorResponse INVALID_REQUEST =
+            new ApiErrorResponse(400, "Некорректное тело или параметры запроса", "VALIDATION_ERROR");
 
     /** Expected body of {@code 200} for a repeated or counter offer while the pair's offer is pending. */
-    private static final ErrorResponse ALREADY_PENDING =
-            new ErrorResponse("FRIENDSHIP_OFFER_ALREADY_PENDING", "Предложение дружбы уже отправлено");
+    private static final ApiErrorResponse ALREADY_PENDING =
+            new ApiErrorResponse(200, "Предложение дружбы уже отправлено", "FRIENDSHIP_OFFER_ALREADY_PENDING");
 
     /** Expected body of {@code 404}: no offer, or the actor is not its recipient. */
-    private static final ErrorResponse NOT_FOUND =
-            new ErrorResponse("FRIENDSHIP_OFFER_NOT_FOUND", "Предложение дружбы не найдено");
+    private static final ApiErrorResponse NOT_FOUND =
+            new ApiErrorResponse(404, "Предложение дружбы не найдено", "FRIENDSHIP_OFFER_NOT_FOUND");
 
     /** Expected body of {@code 409} for an accepted offer. */
-    private static final ErrorResponse ALREADY_ACCEPTED =
-            new ErrorResponse("FRIENDSHIP_OFFER_ALREADY_ACCEPTED", "Предложение дружбы уже принято");
+    private static final ApiErrorResponse ALREADY_ACCEPTED =
+            new ApiErrorResponse(409, "Предложение дружбы уже принято", "FRIENDSHIP_OFFER_ALREADY_ACCEPTED");
 
     /** Expected body of {@code 409} for a rejected offer. */
-    private static final ErrorResponse ALREADY_REJECTED =
-            new ErrorResponse("FRIENDSHIP_OFFER_ALREADY_REJECTED", "Предложение дружбы уже отклонено");
+    private static final ApiErrorResponse ALREADY_REJECTED =
+            new ApiErrorResponse(409, "Предложение дружбы уже отклонено", "FRIENDSHIP_OFFER_ALREADY_REJECTED");
 
     /** HTTP client bound to the random port of the running application. */
     @Autowired
@@ -94,6 +94,7 @@ class FriendshipOfferE2ETest {
                     .usingRecursiveComparison()
                     .ignoringFields("id", "createdAt")
                     .isEqualTo(expected);
+            assert response.getBody() != null;
             assertThat(response.getBody().getId()).isNotNull();
             assertThat(response.getBody().getCreatedAt()).isNotNull();
         }
@@ -144,7 +145,7 @@ class FriendshipOfferE2ETest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("invalidBodies")
-        @DisplayName("Некорректное тело: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+        @DisplayName("Некорректное тело: 400 VALIDATION_ERROR")
         void whenInvalidBodyThenBadRequest(String situation, String body) {
             expectError(postJson("/create", body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
@@ -192,6 +193,7 @@ class FriendshipOfferE2ETest {
                     .usingRecursiveComparison()
                     .ignoringFields("acceptedAt")
                     .isEqualTo(expected);
+            assert response.getBody() != null;
             assertThat(response.getBody().getAcceptedAt()).isAfter(offer.getCreatedAt());
         }
 
@@ -202,7 +204,7 @@ class FriendshipOfferE2ETest {
             var offer = createOffer(UUID.randomUUID(), toUserId);
             accept(offer.getId(), toUserId);
 
-            expectError(accept(offer.getId(), toUserId, ErrorResponse.class), HttpStatus.CONFLICT, ALREADY_ACCEPTED);
+            expectError(accept(offer.getId(), toUserId, ApiErrorResponse.class), HttpStatus.CONFLICT, ALREADY_ACCEPTED);
         }
 
         @Test
@@ -212,7 +214,7 @@ class FriendshipOfferE2ETest {
             var offer = createOffer(UUID.randomUUID(), toUserId);
             reject(offer.getId(), toUserId);
 
-            expectError(accept(offer.getId(), toUserId, ErrorResponse.class), HttpStatus.CONFLICT, ALREADY_REJECTED);
+            expectError(accept(offer.getId(), toUserId, ApiErrorResponse.class), HttpStatus.CONFLICT, ALREADY_REJECTED);
         }
 
         @Test
@@ -221,21 +223,22 @@ class FriendshipOfferE2ETest {
             var fromUserId = UUID.randomUUID();
             var offer = createOffer(fromUserId, UUID.randomUUID());
 
-            expectError(accept(offer.getId(), fromUserId, ErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
-            expectError(accept(offer.getId(), UUID.randomUUID(), ErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
+            expectError(accept(offer.getId(), fromUserId, ApiErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
+            expectError(accept(offer.getId(), UUID.randomUUID(), ApiErrorResponse.class),
+                    HttpStatus.NOT_FOUND, NOT_FOUND);
         }
 
         @Test
         @DisplayName("Заявки нет: 404 FRIENDSHIP_OFFER_NOT_FOUND")
         void whenOfferMissingThenNotFound() {
-            expectError(accept(UUID.randomUUID(), UUID.randomUUID(), ErrorResponse.class),
+            expectError(accept(UUID.randomUUID(), UUID.randomUUID(), ApiErrorResponse.class),
                     HttpStatus.NOT_FOUND, NOT_FOUND);
         }
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("ru.job4j.socialmediaapi.friendships.internal.infrastructure.web"
                 + ".FriendshipOfferE2ETest#invalidDecisionBodies")
-        @DisplayName("Некорректное тело: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+        @DisplayName("Некорректное тело: 400 VALIDATION_ERROR")
         void whenInvalidBodyThenBadRequest(String situation, String body) {
             expectError(postJson("/accept", body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
@@ -265,6 +268,7 @@ class FriendshipOfferE2ETest {
                     .usingRecursiveComparison()
                     .ignoringFields("rejectedAt")
                     .isEqualTo(expected);
+            assert response.getBody() != null;
             assertThat(response.getBody().getRejectedAt()).isAfter(offer.getCreatedAt());
         }
 
@@ -275,7 +279,7 @@ class FriendshipOfferE2ETest {
             var offer = createOffer(UUID.randomUUID(), toUserId);
             reject(offer.getId(), toUserId);
 
-            expectError(reject(offer.getId(), toUserId, ErrorResponse.class), HttpStatus.CONFLICT, ALREADY_REJECTED);
+            expectError(reject(offer.getId(), toUserId, ApiErrorResponse.class), HttpStatus.CONFLICT, ALREADY_REJECTED);
         }
 
         @Test
@@ -285,7 +289,7 @@ class FriendshipOfferE2ETest {
             var offer = createOffer(UUID.randomUUID(), toUserId);
             accept(offer.getId(), toUserId);
 
-            expectError(reject(offer.getId(), toUserId, ErrorResponse.class), HttpStatus.CONFLICT, ALREADY_ACCEPTED);
+            expectError(reject(offer.getId(), toUserId, ApiErrorResponse.class), HttpStatus.CONFLICT, ALREADY_ACCEPTED);
         }
 
         @Test
@@ -294,21 +298,22 @@ class FriendshipOfferE2ETest {
             var fromUserId = UUID.randomUUID();
             var offer = createOffer(fromUserId, UUID.randomUUID());
 
-            expectError(reject(offer.getId(), fromUserId, ErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
-            expectError(reject(offer.getId(), UUID.randomUUID(), ErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
+            expectError(reject(offer.getId(), fromUserId, ApiErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
+            expectError(reject(offer.getId(), UUID.randomUUID(), ApiErrorResponse.class),
+                    HttpStatus.NOT_FOUND, NOT_FOUND);
         }
 
         @Test
         @DisplayName("Заявки нет: 404 FRIENDSHIP_OFFER_NOT_FOUND")
         void whenOfferMissingThenNotFound() {
-            expectError(reject(UUID.randomUUID(), UUID.randomUUID(), ErrorResponse.class),
+            expectError(reject(UUID.randomUUID(), UUID.randomUUID(), ApiErrorResponse.class),
                     HttpStatus.NOT_FOUND, NOT_FOUND);
         }
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("ru.job4j.socialmediaapi.friendships.internal.infrastructure.web"
                 + ".FriendshipOfferE2ETest#invalidDecisionBodies")
-        @DisplayName("Некорректное тело: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+        @DisplayName("Некорректное тело: 400 VALIDATION_ERROR")
         void whenInvalidBodyThenBadRequest(String situation, String body) {
             expectError(postJson("/reject", body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
@@ -338,6 +343,7 @@ class FriendshipOfferE2ETest {
             var response = getOffer(offer.getId().toString(), FriendshipOfferWebResponse.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assert accepted != null;
             assertThat(response.getBody()).isEqualTo(pending(offer)
                     .status(FriendshipOfferWebResponse.StatusEnum.ACCEPTED)
                     .updatedAt(accepted.getAcceptedAt()));
@@ -346,13 +352,14 @@ class FriendshipOfferE2ETest {
         @Test
         @DisplayName("Заявки нет: 404 FRIENDSHIP_OFFER_NOT_FOUND")
         void whenOfferMissingThenNotFound() {
-            expectError(getOffer(UUID.randomUUID().toString(), ErrorResponse.class), HttpStatus.NOT_FOUND, NOT_FOUND);
+            expectError(getOffer(UUID.randomUUID().toString(), ApiErrorResponse.class),
+                    HttpStatus.NOT_FOUND, NOT_FOUND);
         }
 
         @Test
-        @DisplayName("id не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+        @DisplayName("id не UUID: 400 VALIDATION_ERROR")
         void whenIdNotUuidThenBadRequest() {
-            expectError(getOffer("42", ErrorResponse.class), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
+            expectError(getOffer("42", ApiErrorResponse.class), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
 
         private <T> ResponseEntity<T> getOffer(String offerId, Class<T> type) {
@@ -411,6 +418,7 @@ class FriendshipOfferE2ETest {
             var page = restTemplate.getForEntity(BASE, FriendshipOfferPageWebResponse.class);
 
             assertThat(page.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assert page.getBody() != null;
             assertThat(page.getBody().getOffers()).hasSize(20);
             assertThat(page.getBody().getNext()).isNotNull();
         }
@@ -435,15 +443,16 @@ class FriendshipOfferE2ETest {
                 "afterCreatedAt=2026-10-12T10:15:00Z",
                 "afterId=00000000-0000-0000-0000-000000000001"
         })
-        @DisplayName("Некорректные параметры: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+        @DisplayName("Некорректные параметры: 400 VALIDATION_ERROR")
         void whenInvalidParamsThenBadRequest(String query) {
-            expectError(restTemplate.getForEntity(BASE + "?" + query, ErrorResponse.class),
+            expectError(restTemplate.getForEntity(BASE + "?" + query, ApiErrorResponse.class),
                     HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
 
         private FriendshipOfferPageWebResponse getPage(String url, Object... uriVariables) {
             var response = restTemplate.getForEntity(url, FriendshipOfferPageWebResponse.class, uriVariables);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assert response.getBody() != null;
             assertThat(response.getBody().getOffers()).hasSizeLessThanOrEqualTo(2);
             return response.getBody();
         }
@@ -455,9 +464,9 @@ class FriendshipOfferE2ETest {
 
         @ParameterizedTest(name = "{0}")
         @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-        @DisplayName("userId нет или не UUID: 400 INVALID_FRIENDSHIP_OFFER_REQUEST")
+        @DisplayName("userId нет или не UUID: 400 VALIDATION_ERROR")
         void whenUserIdMissingOrNotUuidThenBadRequest(String path) {
-            expectError(restTemplate.getForEntity(BASE + path, ErrorResponse.class),
+            expectError(restTemplate.getForEntity(BASE + path, ApiErrorResponse.class),
                     HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
     }
@@ -485,9 +494,9 @@ class FriendshipOfferE2ETest {
         return response.getBody();
     }
 
-    private ResponseEntity<ErrorResponse> create(UUID fromUserId, UUID toUserId) {
+    private ResponseEntity<ApiErrorResponse> create(UUID fromUserId, UUID toUserId) {
         return restTemplate.postForEntity(BASE + "/create",
-                new CreateFriendshipOfferWebRequest(fromUserId, toUserId), ErrorResponse.class);
+                new CreateFriendshipOfferWebRequest(fromUserId, toUserId), ApiErrorResponse.class);
     }
 
     private ResponseEntity<AcceptFriendshipOfferWebResponse> accept(UUID offerId, UUID actorId) {
@@ -508,10 +517,10 @@ class FriendshipOfferE2ETest {
                 new RejectFriendshipOfferWebRequest(offerId, actorId), type);
     }
 
-    private ResponseEntity<ErrorResponse> postJson(String path, String json) {
+    private ResponseEntity<ApiErrorResponse> postJson(String path, String json) {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return restTemplate.postForEntity(BASE + path, new HttpEntity<>(json, headers), ErrorResponse.class);
+        return restTemplate.postForEntity(BASE + path, new HttpEntity<>(json, headers), ApiErrorResponse.class);
     }
 
     private static FriendshipOfferWebResponse pending(CreateFriendshipOfferWebResponse offer) {
@@ -519,8 +528,9 @@ class FriendshipOfferE2ETest {
                 FriendshipOfferWebResponse.StatusEnum.PENDING, offer.getCreatedAt(), offer.getCreatedAt());
     }
 
-    private static void expectError(ResponseEntity<?> response, HttpStatus status, ErrorResponse expected) {
+    private static void expectError(ResponseEntity<?> response, HttpStatus status, ApiErrorResponse expected) {
         assertThat(response.getStatusCode()).isEqualTo(status);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
         assertThat(response.getBody()).isEqualTo(expected);
     }
 }
