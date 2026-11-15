@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The database is shared with other tests, and some of them store offers with arbitrary dates,
  * up to the far future ({@code FriendshipOfferPersistenceAdapterTest}). So a test that checks the order
  * of a page reads it by a cursor right after its own offers, not from the newest offer of the table.
- * The application clock of this test starts at {@link #FUTURE} and does not depend on the system time:
+ * The application clock of this test starts at {@link #windowStart()} and does not depend on the system time:
  * every reading is one second later than the previous one, so offers created one after another
  * always get growing, distinct {@code created_at} even on a machine with a coarse or
  * non-monotonic system clock (CI containers).
@@ -52,8 +53,17 @@ class FriendshipOfferGetControllerTest {
     /** Base URL of the friendship offer endpoints. */
     private static final String BASE = "/api/v1/friendship-offer";
 
-    /** Time the application clock of this test starts from: later than any offer of other tests. */
-    private static final Instant FUTURE = Instant.parse("3000-01-01T00:00:00Z");
+    /**
+     * Earliest start of the clock: far from the dates of other tests (up to {@code 3217} in
+     * {@code FriendshipOfferPersistenceAdapterTest#window()}, from {@code 9000} in its {@code newerThanAll()}).
+     */
+    private static final Instant EARLIEST_START = Instant.parse("5000-01-01T00:00:00Z");
+
+    /** Number of possible clock windows: they all end before {@code 9000-01-01}. */
+    private static final long WINDOWS = 12_000_000L;
+
+    /** Length of one clock window, far more seconds than all tests of the class read from the clock. */
+    private static final long WINDOW_SECONDS = 10_000L;
 
     /** MockMvc to call the API without a running server. */
     @Autowired
@@ -202,17 +212,29 @@ class FriendshipOfferGetControllerTest {
                 .andExpect(status().isNotImplemented());
     }
 
-    /** Replaces the application clock with a {@link SteppingClock} starting at {@link #FUTURE}. */
+    /**
+     * A fixed start gave the same {@code created_at} to the offers of every context of this class on a shared
+     * or reused database (another run, a restarted context): a foreign offer with the time right after the newest
+     * offer of a test got into its page. A random window of {@value #WINDOW_SECONDS} seconds makes the times
+     * of each context its own.
+     *
+     * @return start of the clock window of one context
+     */
+    private static Instant windowStart() {
+        return EARLIEST_START.plusSeconds(ThreadLocalRandom.current().nextLong(WINDOWS) * WINDOW_SECONDS);
+    }
+
+    /** Replaces the application clock with a {@link SteppingClock} starting at {@link #windowStart()}. */
     @TestConfiguration(proxyBeanMethods = false)
     static class FutureClockConfiguration {
 
         /**
-         * @return clock starting at {@link #FUTURE}: offers created one after another get growing times
+         * @return clock starting at {@link #windowStart()}: offers created one after another get growing times
          */
         @Bean
         @Primary
         Clock futureClock() {
-            return new SteppingClock(FUTURE);
+            return new SteppingClock(windowStart());
         }
     }
 
