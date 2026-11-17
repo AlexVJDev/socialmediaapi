@@ -1,0 +1,17 @@
+meta {
+  name: Получить пост
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/posts/{{postId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}

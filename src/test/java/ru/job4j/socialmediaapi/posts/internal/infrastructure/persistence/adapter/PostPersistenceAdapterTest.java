@@ -11,6 +11,7 @@ import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
@@ -190,10 +191,33 @@ class PostPersistenceAdapterTest {
                 .hasMessageContaining("title");
     }
 
+    @Test
+    @DisplayName("findPublishedByAuthor: только опубликованные посты автора, от новых к старым, по страницам")
+    void whenFindPublishedByAuthorThenOwnPublishedPostsNewestFirst() {
+        var author = UUID.randomUUID();
+        var oldest = repository.createPost(request(author, CREATED_AT));
+        var middle = repository.createPost(request(author, CREATED_AT.plusSeconds(60)));
+        var newest = repository.createPost(request(author, CREATED_AT.plusSeconds(120)));
+        var deleted = repository.createPost(request(author, CREATED_AT.plusSeconds(180)));
+        repository.deletePost(new DeletePostRequest(deleted.id(), author, CHANGED_AT));
+        repository.createPost(request(UUID.randomUUID(), CREATED_AT.plusSeconds(240)));
+
+        var first = repository.findPublishedByAuthor(author, 2);
+        var second = repository.findPublishedByAuthorAfter(author, first.next().orElseThrow(), 2);
+
+        assertThat(first.posts()).extracting(FeedPostResponse::id).containsExactly(newest.id(), middle.id());
+        assertThat(second.posts()).extracting(FeedPostResponse::id).containsExactly(oldest.id());
+        assertThat(second.next()).isEmpty();
+    }
+
     private static CreatePostRequest request(UUID authorId) {
+        return request(authorId, CREATED_AT);
+    }
+
+    private static CreatePostRequest request(UUID authorId, Instant createdAt) {
         return new CreatePostRequest(
                 UUID.randomUUID(), authorId, "Заголовок", "Текст",
-                PostStatus.PUBLISHED, CREATED_AT, CREATED_AT
+                PostStatus.PUBLISHED, createdAt, createdAt
         );
     }
 

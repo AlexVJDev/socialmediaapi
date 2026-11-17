@@ -4,22 +4,28 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper.FeedPersistenceMapper;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.mapper.PostPersistenceMapper;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.persistence.row.PostRow;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
+import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedCursor;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPageResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
 
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Only the author changes or deletes a post: the author and the status are checked
- * in the {@code WHERE} of the same {@code UPDATE}, not by a separate read before it,
- * so the check and the change are atomic.
+ * Посты автора читаются страницами по курсору {@code (created_at, id)} из частичного индекса
+ * {@code idx_posts_published_author_created}; лишняя {@code limit + 1}-я строка только сообщает,
+ * что есть следующая страница (как в {@link FeedPersistenceAdapter}).
  */
 @Repository
 @RequiredArgsConstructor
@@ -60,6 +66,30 @@ public class PostPersistenceAdapter implements PostRepository {
             WHERE id = ? AND author_id = ? AND status = 'PUBLISHED'
             """;
 
+    /**
+     * Первая страница опубликованных постов автора. Параметры: автор, лимит.
+     * {@code status = 'PUBLISHED'} — литерал, чтобы планировщик выбрал частичный индекс.
+     */
+    private static final String FIND_BY_AUTHOR_FIRST_PAGE = """
+            SELECT id, author_id, title, content,
+                   status, created_at, updated_at
+            FROM posts
+            WHERE author_id = ? AND status = 'PUBLISHED'
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """;
+
+    /** Страница опубликованных постов автора после курсора. Параметры: автор, {@code created_at}, {@code id}, лимит. */
+    private static final String FIND_BY_AUTHOR_PAGE_AFTER = """
+            SELECT id, author_id, title, content,
+                   status, created_at, updated_at
+            FROM posts
+            WHERE author_id = ? AND status = 'PUBLISHED'
+              AND (created_at, id) < (?, ?)
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """;
+
     /** Reads a result set row into {@link PostRow}. */
     private static final RowMapper<PostRow> ROW_MAPPER =
             (resultSet, rowNum) -> new PostRow(
@@ -77,6 +107,9 @@ public class PostPersistenceAdapter implements PostRepository {
 
     /** Maps port requests/responses to rows and back. */
     private final PostPersistenceMapper mapper;
+
+    /** Строки страницы → посты и курсор порта (те же модели, что у ленты). */
+    private final FeedPersistenceMapper pageMapper;
 
     @Override
     public PostResponse createPost(CreatePostRequest request) {
@@ -127,5 +160,54 @@ public class PostPersistenceAdapter implements PostRepository {
                 request.postId(),
                 request.actorId()
         ) == 1;
+    }
+
+    @Override
+    public FeedPageResponse findPublishedByAuthor(UUID authorId, int limit) {
+        checkLimit(limit);
+        return findPage(limit, FIND_BY_AUTHOR_FIRST_PAGE, authorId, limit + 1);
+    }
+
+    @Override
+    public FeedPageResponse findPublishedByAuthorAfter(UUID authorId, FeedCursor after, int limit) {
+        Objects.requireNonNull(after, "after");
+        checkLimit(limit);
+        return findPage(limit, FIND_BY_AUTHOR_PAGE_AFTER,
+                authorId, Timestamp.from(after.createdAt()), after.id(), limit + 1);
+    }
+
+    /**
+     * Читает до {@code limit + 1} строк: лишняя строка не возвращается,
+     * она только означает, что есть следующая страница.
+     *
+     * @param limit максимальное число постов на странице
+     * @param sql   запрос страницы
+     * @param args  параметры запроса
+     * @return страница с курсором следующей страницы, если она есть
+     */
+    private FeedPageResponse findPage(int limit, String sql, Object... args) {
+        List<PostRow> rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
+        boolean hasNext = rows.size() > limit;
+        List<PostRow> pageRows = hasNext ? rows.subList(0, limit) : rows;
+        Optional<FeedCursor> next = hasNext
+                ? Optional.of(pageMapper.toCursor(pageRows.getLast()))
+                : Optional.empty();
+        return new FeedPageResponse(
+                pageRows.stream().map(pageMapper::toResponse).toList(),
+                next
+        );
+    }
+
+    /**
+     * Отклоняет размер страницы вне допустимого до запроса.
+     *
+     * @param limit запрошенный размер страницы
+     * @throws IllegalArgumentException {@code limit} меньше 1 или больше {@link FeedRepository#MAX_LIMIT}
+     */
+    private static void checkLimit(int limit) {
+        if (limit < 1 || limit > FeedRepository.MAX_LIMIT) {
+            throw new IllegalArgumentException(
+                    "Page limit must be from 1 to %d, got %d".formatted(FeedRepository.MAX_LIMIT, limit));
+        }
     }
 }

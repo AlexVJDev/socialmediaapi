@@ -4,6 +4,8 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,13 +27,15 @@ import ru.job4j.socialmediaapi.shared.web.CommonErrorCode;
 public class PostExceptionHandler {
 
     /**
-     * An invalid request: a query parameter is missing ({@code followerId}), a path parameter is empty
+     * An invalid request: a query parameter is missing, a path parameter is empty
      * after conversion ({@link MissingPathVariableException}: {@code postId} is a blank string),
      * a parameter is of a wrong type
      * (an id that is not a UUID, {@code limit} or {@code afterCreatedAt} that cannot be converted),
      * {@code limit} is out of the contract range ({@link ConstraintViolationException} of the {@code @Validated}
      * interface), only one part
-     * of the feed cursor is set. One common VALIDATION_ERROR code for all of them.
+     * of the feed cursor is set. Тело поста не читается ({@link HttpMessageNotReadableException})
+     * или не прошло проверку контракта ({@link MethodArgumentNotValidException}: нет {@code title}/{@code content},
+     * длина вне допустимой, строка только из пробелов). One common VALIDATION_ERROR code for all of them.
      *
      * @return {@code 400} with the VALIDATION_ERROR error body
      */
@@ -40,7 +44,9 @@ public class PostExceptionHandler {
             MissingPathVariableException.class,
             MethodArgumentTypeMismatchException.class,
             ConstraintViolationException.class,
-            IncompleteFeedCursorException.class
+            IncompleteFeedCursorException.class,
+            MethodArgumentNotValidException.class,
+            HttpMessageNotReadableException.class
     })
     public ResponseEntity<ApiErrorResponse> handleInvalidRequest() {
         return CommonErrorCode.VALIDATION_ERROR.response();

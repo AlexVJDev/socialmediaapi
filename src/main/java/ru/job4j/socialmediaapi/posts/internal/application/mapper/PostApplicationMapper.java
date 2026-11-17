@@ -9,6 +9,7 @@ import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedCursor;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPageResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
+import ru.job4j.socialmediaapi.posts.internal.domain.model.Post;
 
 import java.util.Optional;
 
@@ -22,6 +23,8 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 public interface PostApplicationMapper {
 
     PostResult toResult(PostResponse response);
+
+    Post toDomain(PostResponse response);
 
     PostResult toResult(FeedPostResponse response);
 

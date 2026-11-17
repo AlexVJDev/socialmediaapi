@@ -1,0 +1,21 @@
+meta {
+  name: Удалить чужой пост Алисой
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/posts/{{postId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+tests {
+  test("статус 404", function() {
+    expect(res.status).to.equal(404);
+  });
+}

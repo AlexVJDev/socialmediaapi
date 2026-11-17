@@ -5,7 +5,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.model.GetFollowersCommand;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.model.GetSubscriptionsCommand;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.model.SubscribeCommand;
+import ru.job4j.socialmediaapi.subscriptions.internal.application.model.UnsubscribeCommand;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.model.SubscriptionResult;
+import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.request.SubscribeWebRequest;
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.FollowerWebResponse;
 import ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.SubscriptionWebResponse;
 
@@ -35,6 +38,24 @@ public interface SubscriptionWebMapper {
 
     @Mapping(target = "userId", source = "userId")
     GetFollowersCommand toFollowersCommand(UUID userId);
+
+    /**
+     * @param followerId текущий пользователь — подписчик
+     * @param request    пользователь, на которого подписываются
+     * @return команда сценария
+     */
+    @Mapping(target = "followerId", source = "followerId")
+    @Mapping(target = "followedId", source = "request.userId")
+    SubscribeCommand toSubscribeCommand(UUID followerId, SubscribeWebRequest request);
+
+    /**
+     * @param followerId текущий пользователь — подписчик
+     * @param userId     пользователь, от которого отписываются
+     * @return команда сценария
+     */
+    @Mapping(target = "followerId", source = "followerId")
+    @Mapping(target = "followedId", source = "userId")
+    UnsubscribeCommand toUnsubscribeCommand(UUID followerId, UUID userId);
 
     @Mapping(target = "userId", source = "followedId")
     SubscriptionWebResponse toSubscriptionResponse(SubscriptionResult result);

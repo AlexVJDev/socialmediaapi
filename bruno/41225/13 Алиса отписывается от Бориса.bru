@@ -1,0 +1,21 @@
+meta {
+  name: Алиса отписывается от Бориса
+  type: http
+  seq: 13
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/subscribes/{{borisId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+tests {
+  test("статус 204", function() {
+    expect(res.status).to.equal(204);
+  });
+}

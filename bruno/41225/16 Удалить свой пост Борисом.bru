@@ -1,0 +1,21 @@
+meta {
+  name: Удалить свой пост Борисом
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/posts/{{postId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+tests {
+  test("статус 204", function() {
+    expect(res.status).to.equal(204);
+  });
+}

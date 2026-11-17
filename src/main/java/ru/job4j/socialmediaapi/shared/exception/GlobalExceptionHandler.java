@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import ru.job4j.socialmediaapi.shared.security.UnauthenticatedException;
 import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
 import ru.job4j.socialmediaapi.shared.web.CommonErrorCode;
 
@@ -25,6 +26,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     /** Logs unexpected errors that are hidden from the client. */
     private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /**
+     * Пользователь, выполняющий запрос, не определён. Это не ошибка приложения, в лог не пишется.
+     *
+     * @param exception брошено {@link ru.job4j.socialmediaapi.shared.security.CurrentUserProvider}
+     * @return {@code 401} с телом ошибки UNAUTHORIZED
+     */
+    @ExceptionHandler(UnauthenticatedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnauthenticated(UnauthenticatedException exception) {
+        return CommonErrorCode.UNAUTHORIZED.response();
+    }
 
     /**
      * A database constraint fired although the application checks the rules before:

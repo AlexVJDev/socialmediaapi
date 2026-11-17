@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "41225 Посты, подписки и лента",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

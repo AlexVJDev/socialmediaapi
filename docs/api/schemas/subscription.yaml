@@ -1,0 +1,16 @@
+type: object
+description: Подписка на пользователя
+required:
+  - id
+  - userId
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Идентификатор подписки
+    example: d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f03
+  userId:
+    type: string
+    format: uuid
+    description: Идентификатор пользователя, на которого оформлена подписка
+    example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22

@@ -12,19 +12,24 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
+import ru.job4j.socialmediaapi.shared.security.HeaderCurrentUserProvider;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
 
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,11 +41,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@DisplayName("GET /api/v1/posts/{postId} и GET /api/v1/feed: чтение постов и ленты")
+@DisplayName("API постов и ленты: создание, изменение, удаление, чтение постов и ленты")
 class PostControllerTest {
 
     /** Base time of posts; later posts are created minutes after it. */
     private static final Instant BASE_TIME = Instant.parse("2026-10-15T10:00:00Z");
+
+    /** Заголовок текущего пользователя. */
+    private static final String USER = HeaderCurrentUserProvider.HEADER;
 
     /** MockMvc to call the API without a running server. */
     @Autowired
@@ -107,7 +115,7 @@ class PostControllerTest {
         subscriptions.subscribeIfAbsent(reader, alice, BASE_TIME);
         subscriptions.subscribeIfAbsent(reader, bob, BASE_TIME);
 
-        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()))
+        mockMvc.perform(get("/api/v1/feed").header(USER, reader.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.posts[*].id").value(contains(
                         third.toString(), second.toString(), first.toString())))
@@ -126,7 +134,7 @@ class PostControllerTest {
         subscriptions.subscribeIfAbsent(reader, author, BASE_TIME);
 
         var page1 = mockMvc.perform(get("/api/v1/feed")
-                        .param("followerId", reader.toString())
+                        .header(USER, reader.toString())
                         .param("limit", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.posts[*].id").value(contains(third.toString(), second.toString())))
@@ -134,7 +142,7 @@ class PostControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         mockMvc.perform(get("/api/v1/feed")
-                        .param("followerId", reader.toString())
+                        .header(USER, reader.toString())
                         .param("limit", "2")
                         .param("afterCreatedAt", JsonPath.<String>read(page1, "$.next.createdAt"))
                         .param("afterId", JsonPath.<String>read(page1, "$.next.id")))
@@ -146,16 +154,21 @@ class PostControllerTest {
     @Test
     @DisplayName("Пустая лента: 200, пустой список и next = null")
     void whenNoSubscriptionsThenEmptyFeed() throws Exception {
-        mockMvc.perform(get("/api/v1/feed").param("followerId", UUID.randomUUID().toString()))
+        mockMvc.perform(get("/api/v1/feed").header(USER, UUID.randomUUID().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.posts").isEmpty())
                 .andExpect(jsonPath("$.next").value(nullValue()));
     }
 
-    @Test
-    @DisplayName("Без followerId: 400 VALIDATION_ERROR")
-    void whenFollowerIdMissingThenBadRequest() throws Exception {
-        expectError(mockMvc.perform(get("/api/v1/feed")), 400, "VALIDATION_ERROR");
+    @ParameterizedTest(name = "X-User-Id={0}")
+    @ValueSource(strings = {"", "42"})
+    @DisplayName("Лента без X-User-Id или с не-UUID: 401 UNAUTHORIZED")
+    void whenFeedUserInvalidThenUnauthorized(String user) throws Exception {
+        var request = get("/api/v1/feed");
+        if (!user.isEmpty()) {
+            request.header(USER, user);
+        }
+        expectError(mockMvc.perform(request), 401, "UNAUTHORIZED");
     }
 
     @ParameterizedTest(name = "limit={0}")
@@ -163,7 +176,7 @@ class PostControllerTest {
     @DisplayName("limit вне 1..100 или не число: 400 VALIDATION_ERROR")
     void whenLimitInvalidThenBadRequest(String limit) throws Exception {
         expectError(mockMvc.perform(get("/api/v1/feed")
-                        .param("followerId", UUID.randomUUID().toString())
+                        .header(USER, UUID.randomUUID().toString())
                         .param("limit", limit)),
                 400, "VALIDATION_ERROR");
     }
@@ -172,23 +185,22 @@ class PostControllerTest {
     @DisplayName("Курсор задан наполовину (только afterId): 400 VALIDATION_ERROR")
     void whenCursorPartialThenBadRequest() throws Exception {
         expectError(mockMvc.perform(get("/api/v1/feed")
-                        .param("followerId", UUID.randomUUID().toString())
+                        .header(USER, UUID.randomUUID().toString())
                         .param("afterId", UUID.randomUUID().toString())),
                 400, "VALIDATION_ERROR");
     }
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {
-            "followerId=42",
-            "followerId=00000000-0000-0000-0000-000000000001&afterCreatedAt=2026-10-15T10:00:00Z",
-            "followerId=00000000-0000-0000-0000-000000000001"
-                    + "&afterCreatedAt=yesterday&afterId=00000000-0000-0000-0000-000000000002",
-            "followerId=00000000-0000-0000-0000-000000000001&afterCreatedAt=2026-10-15T10:00:00Z&afterId=42"
+            "afterCreatedAt=2026-10-15T10:00:00Z",
+            "afterCreatedAt=yesterday&afterId=00000000-0000-0000-0000-000000000002",
+            "afterCreatedAt=2026-10-15T10:00:00Z&afterId=42"
     })
-    @DisplayName("followerId не UUID, курсор только из afterCreatedAt, afterCreatedAt не дата-время, "
+    @DisplayName("Курсор только из afterCreatedAt, afterCreatedAt не дата-время, "
             + "afterId не UUID: 400 VALIDATION_ERROR")
     void whenFeedParamInvalidThenBadRequest(String query) throws Exception {
-        expectError(mockMvc.perform(get("/api/v1/feed?" + query)), 400, "VALIDATION_ERROR");
+        expectError(mockMvc.perform(get("/api/v1/feed?" + query).header(USER, UUID.randomUUID().toString())),
+                400, "VALIDATION_ERROR");
     }
 
     @Test
@@ -200,11 +212,11 @@ class PostControllerTest {
         post(author, 1);
         subscriptions.subscribeIfAbsent(reader, author, BASE_TIME);
 
-        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()).param("limit", "1"))
+        mockMvc.perform(get("/api/v1/feed").header(USER, reader.toString()).param("limit", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.posts.length()").value(1))
                 .andExpect(jsonPath("$.next").isNotEmpty());
-        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()).param("limit", "100"))
+        mockMvc.perform(get("/api/v1/feed").header(USER, reader.toString()).param("limit", "100"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.posts.length()").value(2))
                 .andExpect(jsonPath("$.next").value(nullValue()));
@@ -220,10 +232,132 @@ class PostControllerTest {
         }
         subscriptions.subscribeIfAbsent(reader, author, BASE_TIME);
 
-        mockMvc.perform(get("/api/v1/feed").param("followerId", reader.toString()))
+        mockMvc.perform(get("/api/v1/feed").header(USER, reader.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.posts.length()").value(20))
                 .andExpect(jsonPath("$.next").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /posts: 201, Location и пост текущего пользователя со статусом PUBLISHED")
+    void whenCreatePostThenCreated() throws Exception {
+        var author = UUID.randomUUID();
+
+        var body = mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/posts").header(USER, author.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(postJson("Заголовок", "Текст")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.authorId").value(author.toString()))
+                .andExpect(jsonPath("$.title").value("Заголовок"))
+                .andExpect(jsonPath("$.status").value("PUBLISHED"))
+                .andReturn().getResponse();
+
+        var id = JsonPath.<String>read(body.getContentAsString(), "$.id");
+        assertThat(body.getHeader("Location")).isEqualTo("/api/v1/posts/" + id);
+        mockMvc.perform(get("/api/v1/posts/{id}", id)).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {
+            "{\"content\":\"Текст\"}",
+            "{\"title\":\"   \",\"content\":\"Текст\"}",
+            "{\"title\":\"\",\"content\":\"Текст\"}",
+            "not json"
+    })
+    @DisplayName("POST /posts с некорректным телом: 400 VALIDATION_ERROR")
+    void whenCreatePostInvalidBodyThenBadRequest(String json) throws Exception {
+        expectError(mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/posts")
+                        .header(USER, UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON).content(json)),
+                400, "VALIDATION_ERROR");
+    }
+
+    @Test
+    @DisplayName("POST /posts без X-User-Id: 401 UNAUTHORIZED")
+    void whenCreatePostWithoutUserThenUnauthorized() throws Exception {
+        expectError(mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/posts")
+                        .contentType(MediaType.APPLICATION_JSON).content(postJson("Заголовок", "Текст"))),
+                401, "UNAUTHORIZED");
+    }
+
+    @Test
+    @DisplayName("PUT /posts/{id} автором: 200 и новые заголовок и текст")
+    void whenAuthorUpdatesPostThenOk() throws Exception {
+        var author = UUID.randomUUID();
+        var postId = post(author, 0);
+
+        mockMvc.perform(put("/api/v1/posts/{id}", postId).header(USER, author.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(postJson("Новый", "Новый текст")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(postId.toString()))
+                .andExpect(jsonPath("$.title").value("Новый"))
+                .andExpect(jsonPath("$.content").value("Новый текст"));
+    }
+
+    @Test
+    @DisplayName("PUT и DELETE чужого поста: 404 POST_NOT_FOUND, пост не изменился")
+    void whenOtherUserChangesPostThenNotFound() throws Exception {
+        var postId = post(UUID.randomUUID(), 0);
+        var other = UUID.randomUUID().toString();
+
+        expectError(mockMvc.perform(put("/api/v1/posts/{id}", postId).header(USER, other)
+                        .contentType(MediaType.APPLICATION_JSON).content(postJson("Чужой", "Чужой"))),
+                404, "POST_NOT_FOUND");
+        expectError(mockMvc.perform(delete("/api/v1/posts/{id}", postId).header(USER, other)),
+                404, "POST_NOT_FOUND");
+        mockMvc.perform(get("/api/v1/posts/{id}", postId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Пост 0"));
+    }
+
+    @Test
+    @DisplayName("DELETE /posts/{id} автором: 204, пост больше не читается, повторное удаление — 404")
+    void whenAuthorDeletesPostThenNoContent() throws Exception {
+        var author = UUID.randomUUID();
+        var postId = post(author, 0);
+
+        mockMvc.perform(delete("/api/v1/posts/{id}", postId).header(USER, author.toString()))
+                .andExpect(status().isNoContent());
+        expectError(mockMvc.perform(get("/api/v1/posts/{id}", postId)), 404, "POST_NOT_FOUND");
+        expectError(mockMvc.perform(delete("/api/v1/posts/{id}", postId).header(USER, author.toString())),
+                404, "POST_NOT_FOUND");
+    }
+
+    @Test
+    @DisplayName("GET /users/{id}/posts: посты пользователя по страницам, без заголовка X-User-Id")
+    void whenUserPostsThenPagedNewestFirst() throws Exception {
+        var author = UUID.randomUUID();
+        var first = post(author, 0);
+        var second = post(author, 1);
+        var third = post(author, 2);
+        post(UUID.randomUUID(), 3);
+
+        var page1 = mockMvc.perform(get("/api/v1/users/{id}/posts", author).param("limit", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts[*].id").value(contains(third.toString(), second.toString())))
+                .andReturn().getResponse().getContentAsString();
+
+        mockMvc.perform(get("/api/v1/users/{id}/posts", author)
+                        .param("limit", "2")
+                        .param("afterCreatedAt", JsonPath.<String>read(page1, "$.next.createdAt"))
+                        .param("afterId", JsonPath.<String>read(page1, "$.next.id")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts[*].id").value(contains(first.toString())))
+                .andExpect(jsonPath("$.next").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("GET /users/{id}/posts неизвестного пользователя: 200 и пустая страница")
+    void whenUnknownUserPostsThenEmptyPage() throws Exception {
+        mockMvc.perform(get("/api/v1/users/{id}/posts", UUID.randomUUID()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posts").isEmpty())
+                .andExpect(jsonPath("$.next").value(nullValue()));
+    }
+
+    private static String postJson(String title, String content) {
+        return "{\"title\":\"%s\",\"content\":\"%s\"}".formatted(title, content);
     }
 
     private UUID post(UUID author, int minutes) {

@@ -77,40 +77,48 @@
 			FriendshipOfferCursorWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferCursorWebResponse,
 			FriendWebResponse=ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendWebResponse
 		</openapi.friendships.imports>
-		<!-- OpenAPI generation of module subscriptions: only GET operations with a query parameter,
-		     so there are no request bodies and no subscriptions-requests execution. -->
+		<!-- OpenAPI generation of module subscriptions. Request body of POST /api/v1/subscribes is inline
+		     (subscribe_request); the subscription in responses is docs/api/schemas/subscription.yaml.
+		     modelsToGenerate takes the file name (subscription), not the mapped one. -->
 		<openapi.subscriptions.spec>${project.basedir}/docs/api/modules/subscriptions.yaml</openapi.subscriptions.spec>
 		<openapi.subscriptions.package>ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web</openapi.subscriptions.package>
-		<openapi.subscriptions.responses>SubscriptionWebResponse,FollowerWebResponse</openapi.subscriptions.responses>
+		<openapi.subscriptions.requests>SubscribeWebRequest</openapi.subscriptions.requests>
+		<openapi.subscriptions.responses>subscription,FollowerWebResponse</openapi.subscriptions.responses>
 		<openapi.subscriptions.inline-names>
-			getSubscriptions_200_response_inner=SubscriptionWebResponse,
+			subscribe_request=SubscribeWebRequest,
 			getFollowers_200_response_inner=FollowerWebResponse
 		</openapi.subscriptions.inline-names>
+		<openapi.subscriptions.model-names>subscription=SubscriptionWebResponse</openapi.subscriptions.model-names>
 		<openapi.subscriptions.schemas>api-error-response=ApiErrorResponse</openapi.subscriptions.schemas>
 		<openapi.subscriptions.imports>
 			${openapi.common.imports},
 			ApiErrorResponse=ru.job4j.socialmediaapi.shared.web.ApiErrorResponse,
+			SubscribeWebRequest=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.request.SubscribeWebRequest,
 			SubscriptionWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.SubscriptionWebResponse,
 			FollowerWebResponse=ru.job4j.socialmediaapi.subscriptions.internal.infrastructure.web.response.FollowerWebResponse
 		</openapi.subscriptions.imports>
-		<!-- OpenAPI generation of module posts: only GET operations with path/query parameters,
-		     so there are no request bodies and no posts-requests execution.
-		     modelsToGenerate takes the file name of docs/api/schemas/post.yaml (post), not the mapped one. -->
+		<!-- OpenAPI generation of module posts. Request body of POST/PUT is docs/api/schemas/post-request.yaml,
+		     the page of posts (feed and posts of a user) is post-page.yaml with post-cursor.yaml.
+		     modelsToGenerate takes the file names of docs/api/schemas (post, post-page, ...), not the mapped ones. -->
 		<openapi.posts.spec>${project.basedir}/docs/api/modules/posts.yaml</openapi.posts.spec>
 		<openapi.posts.package>ru.job4j.socialmediaapi.posts.internal.infrastructure.web</openapi.posts.package>
-		<openapi.posts.responses>post,FeedPageWebResponse,FeedCursorWebResponse</openapi.posts.responses>
-		<openapi.posts.inline-names>
-			getFeed_200_response=FeedPageWebResponse,
-			getFeed_200_response_next=FeedCursorWebResponse
-		</openapi.posts.inline-names>
-		<openapi.posts.model-names>post=PostWebResponse</openapi.posts.model-names>
+		<openapi.posts.requests>post-request</openapi.posts.requests>
+		<openapi.posts.responses>post,post-page,post-cursor</openapi.posts.responses>
+		<openapi.posts.inline-names></openapi.posts.inline-names>
+		<openapi.posts.model-names>
+			post=PostWebResponse,
+			post-request=PostWebRequest,
+			post-page=PostPageWebResponse,
+			post-cursor=PostCursorWebResponse
+		</openapi.posts.model-names>
 		<openapi.posts.schemas>api-error-response=ApiErrorResponse</openapi.posts.schemas>
 		<openapi.posts.imports>
 			${openapi.common.imports},
 			ApiErrorResponse=ru.job4j.socialmediaapi.shared.web.ApiErrorResponse,
+			PostWebRequest=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.request.PostWebRequest,
 			PostWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWebResponse,
-			FeedPageWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedPageWebResponse,
-			FeedCursorWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedCursorWebResponse
+			PostPageWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostPageWebResponse,
+			PostCursorWebResponse=ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostCursorWebResponse
 		</openapi.posts.imports>
 	</properties>
 	<dependencyManagement>
@@ -389,8 +397,23 @@
 							<apiPackage>${openapi.subscriptions.package}</apiPackage>
 							<generateModels>false</generateModels>
 							<inlineSchemaNameMappings>${openapi.subscriptions.inline-names}</inlineSchemaNameMappings>
+							<modelNameMappings>${openapi.subscriptions.model-names}</modelNameMappings>
 							<schemaMappings>${openapi.subscriptions.schemas}</schemaMappings>
 							<importMappings>${openapi.subscriptions.imports}</importMappings>
+						</configuration>
+					</execution>
+					<execution>
+						<id>subscriptions-requests</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${openapi.subscriptions.spec}</inputSpec>
+							<modelPackage>${openapi.subscriptions.package}.request</modelPackage>
+							<generateApis>false</generateApis>
+							<modelsToGenerate>${openapi.subscriptions.requests}</modelsToGenerate>
+							<inlineSchemaNameMappings>${openapi.subscriptions.inline-names}</inlineSchemaNameMappings>
+							<modelNameMappings>${openapi.subscriptions.model-names}</modelNameMappings>
 						</configuration>
 					</execution>
 					<execution>
@@ -404,6 +427,7 @@
 							<generateApis>false</generateApis>
 							<modelsToGenerate>${openapi.subscriptions.responses}</modelsToGenerate>
 							<inlineSchemaNameMappings>${openapi.subscriptions.inline-names}</inlineSchemaNameMappings>
+							<modelNameMappings>${openapi.subscriptions.model-names}</modelNameMappings>
 						</configuration>
 					</execution>
 					<!-- module posts -->
@@ -420,6 +444,20 @@
 							<modelNameMappings>${openapi.posts.model-names}</modelNameMappings>
 							<schemaMappings>${openapi.posts.schemas}</schemaMappings>
 							<importMappings>${openapi.posts.imports}</importMappings>
+						</configuration>
+					</execution>
+					<execution>
+						<id>posts-requests</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${openapi.posts.spec}</inputSpec>
+							<modelPackage>${openapi.posts.package}.request</modelPackage>
+							<generateApis>false</generateApis>
+							<modelsToGenerate>${openapi.posts.requests}</modelsToGenerate>
+							<inlineSchemaNameMappings>${openapi.posts.inline-names}</inlineSchemaNameMappings>
+							<modelNameMappings>${openapi.posts.model-names}</modelNameMappings>
 						</configuration>
 					</execution>
 					<execution>

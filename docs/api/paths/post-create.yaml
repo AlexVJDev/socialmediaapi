@@ -1,0 +1,41 @@
+post:
+  tags:
+    - Post
+  summary: Опубликовать пост от имени текущего пользователя
+  operationId: createPost
+  security:
+    - userIdHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/post-request.yaml'
+  responses:
+    '201':
+      description: Пост опубликован
+      headers:
+        Location:
+          description: Адрес поста, `/api/v1/posts/{postId}`
+          schema:
+            type: string
+            format: uri
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/post.yaml'
+    '400':
+      description: >-
+        Тело не читается, нет `title` или `content`, длина вне допустимой, строка только из пробелов
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/api-error-response.yaml'
+          example:
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '401':
+      $ref: '../responses/unauthorized.yaml'
+    '500':
+      $ref: '../responses/internal-error.yaml'

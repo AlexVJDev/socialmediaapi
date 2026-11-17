@@ -15,6 +15,11 @@ public enum CommonErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Некорректное тело или параметры запроса"
     ),
+    /** Пользователь, выполняющий запрос, не определён (нет или некорректен {@code X-User-Id}). */
+    UNAUTHORIZED(
+            HttpStatus.UNAUTHORIZED,
+            "Пользователь не определён"
+    ),
     /** Unexpected server error: the details are logged and are not disclosed to the client. */
     INTERNAL_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,

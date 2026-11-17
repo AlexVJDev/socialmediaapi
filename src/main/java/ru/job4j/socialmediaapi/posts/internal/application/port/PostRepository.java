@@ -1,6 +1,8 @@
 package ru.job4j.socialmediaapi.posts.internal.application.port;
 
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedCursor;
+import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPageResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
@@ -46,4 +48,27 @@ public interface PostRepository {
      *         is already deleted or {@code actorId} is not its author
      */
     boolean deletePost(DeletePostRequest request);
+
+    /**
+     * Первая страница опубликованных постов автора, от новых к старым
+     * ({@code created_at DESC, id DESC}); удалённые посты не попадают.
+     *
+     * @param authorId автор постов
+     * @param limit    максимальное число постов на странице, от 1 до {@link FeedRepository#MAX_LIMIT}
+     * @return страница; {@code next} пуст, если постов больше нет; у неизвестного автора — пустая страница
+     * @throws IllegalArgumentException {@code limit} меньше 1 или больше {@link FeedRepository#MAX_LIMIT}
+     */
+    FeedPageResponse findPublishedByAuthor(UUID authorId, int limit);
+
+    /**
+     * Страница опубликованных постов автора строго после {@code after} в том же порядке.
+     *
+     * @param authorId автор постов
+     * @param after    позиция последнего показанного поста из {@link FeedPageResponse#next()}
+     * @param limit    максимальное число постов на странице, от 1 до {@link FeedRepository#MAX_LIMIT}
+     * @return страница; {@code next} пуст, если постов больше нет
+     * @throws IllegalArgumentException {@code limit} меньше 1 или больше {@link FeedRepository#MAX_LIMIT}
+     * @throws NullPointerException     {@code after} равен {@code null}
+     */
+    FeedPageResponse findPublishedByAuthorAfter(UUID authorId, FeedCursor after, int limit);
 }

@@ -1,0 +1,37 @@
+meta {
+  name: Создать пост Борисом
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/posts
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+body:json {
+  {
+    "title": "Пост Бориса",
+    "content": "Текст Бориса"
+  }
+}
+
+script:post-response {
+  bru.setVar("postId", res.body.id);
+}
+
+tests {
+  test("статус 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("тело ответа", function() {
+    expect(res.headers["location"]).to.equal("/api/v1/posts/" + res.body.id);
+    expect(res.body.authorId).to.equal(bru.getEnvVar("borisId"));
+  });
+}

@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Subscription returned by the reading scenarios.
+ * Подписка, которую возвращают сценарии чтения и сценарий подписки ({@code Subscribe}).
  *
  * @param id         subscription id
  * @param followerId user who is subscribed

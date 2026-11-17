@@ -8,4 +8,13 @@ paths:
   /api/v1/subscribes/followers:
     $ref: '../paths/followers-get.yaml'
   /api/v1/subscribes:
-    $ref: '../paths/subscribes-get.yaml'
+    $ref: '../paths/subscribes.yaml'
+  /api/v1/subscribes/{userId}:
+    $ref: '../paths/subscribe-delete.yaml'
+components:
+  securitySchemes:
+    userIdHeader:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: Временная замена токена до подключения Keycloak

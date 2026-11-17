@@ -5,7 +5,18 @@ info:
   title: API социальной сети — посты и лента
   version: 1.0.0
 paths:
+  /api/v1/posts:
+    $ref: '../paths/post-create.yaml'
   /api/v1/posts/{postId}:
-    $ref: '../paths/post-get.yaml'
+    $ref: '../paths/post-by-id.yaml'
+  /api/v1/users/{userId}/posts:
+    $ref: '../paths/posts-by-user.yaml'
   /api/v1/feed:
     $ref: '../paths/feed-get.yaml'
+components:
+  securitySchemes:
+    userIdHeader:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: Временная замена токена до подключения Keycloak

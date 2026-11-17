@@ -1,0 +1,27 @@
+meta {
+  name: Подписка на себя
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/subscribes
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+body:json {
+  {
+    "userId": "{{aliceId}}"
+  }
+}
+
+tests {
+  test("статус 400", function() {
+    expect(res.status).to.equal(400);
+  });
+}

@@ -1,0 +1,18 @@
+type: object
+description: >-
+  Заголовок и текст поста (создание и изменение). Автор не передаётся: это текущий пользователь
+  (заголовок X-User-Id). Строки не могут состоять только из пробелов.
+required: [title, content]
+properties:
+  title:
+    type: string
+    minLength: 1
+    maxLength: 255
+    pattern: '(?s).*\S.*'
+    example: Первый пост
+  content:
+    type: string
+    minLength: 1
+    maxLength: 10000
+    pattern: '(?s).*\S.*'
+    example: Содержимое публикации

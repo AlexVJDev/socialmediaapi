@@ -1,0 +1,63 @@
+get:
+  tags:
+    - Post
+  summary: Получить страницу опубликованных постов пользователя
+  operationId: getUserPosts
+  description: >-
+    Опубликованные посты автора от новых к старым (`createdAt DESC, id DESC`); удалённые не попадают.
+    Курсор — как у ленты: первая страница без `afterCreatedAt`/`afterId`, следующая — с
+    `afterCreatedAt = next.createdAt` и `afterId = next.id`. Неизвестный пользователь — пустая страница.
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      description: Автор постов
+      schema:
+        type: string
+        format: uuid
+      example: 22222222-2222-2222-2222-222222222222
+    - name: limit
+      in: query
+      required: false
+      description: Размер страницы
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    - name: afterCreatedAt
+      in: query
+      required: false
+      description: '`next.createdAt` предыдущей страницы; задаётся вместе с `afterId`'
+      schema:
+        type: string
+        format: date-time
+      example: '2026-10-15T10:00:00.123456Z'
+    - name: afterId
+      in: query
+      required: false
+      description: '`next.id` предыдущей страницы; задаётся вместе с `afterCreatedAt`'
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: Страница постов автора (может быть пустой)
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/post-page.yaml'
+    '400':
+      description: >-
+        Некорректные параметры: идентификатор не UUID, `limit` вне 1..100 или не число,
+        задана только одна часть курсора
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/api-error-response.yaml'
+          example:
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '500':
+      $ref: '../responses/internal-error.yaml'

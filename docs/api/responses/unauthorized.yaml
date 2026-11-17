@@ -1,0 +1,10 @@
+description: >-
+  Пользователь не определён: заголовок X-User-Id отсутствует или не является UUID
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/api-error-response.yaml'
+    example:
+      status: 401
+      detail: Пользователь не определён
+      code: UNAUTHORIZED

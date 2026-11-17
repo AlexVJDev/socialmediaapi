@@ -1,0 +1,31 @@
+meta {
+  name: Алиса подписывается на Бориса
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/subscribes
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+body:json {
+  {
+    "userId": "{{borisId}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("subscriptionId", res.body.id);
+}
+
+tests {
+  test("статус 201", function() {
+    expect(res.status).to.equal(201);
+  });
+}

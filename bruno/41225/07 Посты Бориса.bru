@@ -1,0 +1,21 @@
+meta {
+  name: Посты Бориса
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/users/{{borisId}}/posts?limit=20
+  body: none
+  auth: none
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("тело ответа", function() {
+    expect(res.body.posts.map(p => p.id)).to.include(bru.getVar("postId"));
+  });
+}

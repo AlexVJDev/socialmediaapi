@@ -1,0 +1,95 @@
+get:
+  tags:
+    - Subscription
+  summary: Получить список подписок пользователя
+  operationId: getSubscriptions
+  parameters:
+    - name: userId
+      in: query
+      required: true
+      description: Идентификатор пользователя, для которого нужно получить список подписок
+      schema:
+        type: string
+        format: uuid
+        example: 0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
+  responses:
+    '200':
+      description: Список пользователей, на которых подписан текущий пользователь (новые подписки первыми)
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../schemas/subscription.yaml'
+          examples:
+            found:
+              value:
+                - id: d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f03
+                  userId: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
+                - id: d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f04
+                  userId: a3c8e5f1-6d2b-4f7e-9a10-8b4c2d6e7f88
+            empty:
+              value: []
+    '400':
+      description: Некорректный или отсутствующий параметр userId
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/api-error-response.yaml'
+          example:
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '500':
+      $ref: '../responses/internal-error.yaml'
+post:
+  tags:
+    - Subscription
+  summary: Подписать текущего пользователя на пользователя
+  description: >-
+    Подписчик — текущий пользователь (заголовок X-User-Id). Повторная подписка не ошибка:
+    `200` и существующая подписка.
+  operationId: subscribe
+  security:
+    - userIdHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - userId
+          properties:
+            userId:
+              type: string
+              format: uuid
+              description: Пользователь, на которого нужно подписаться
+              example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
+  responses:
+    '201':
+      description: Подписка создана
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/subscription.yaml'
+    '200':
+      description: Текущий пользователь уже подписан; возвращается существующая подписка
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/subscription.yaml'
+    '400':
+      description: Тело не читается, нет `userId` или он не UUID, подписка на самого себя
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/api-error-response.yaml'
+          example:
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '401':
+      $ref: '../responses/unauthorized.yaml'
+    '500':
+      $ref: '../responses/internal-error.yaml'

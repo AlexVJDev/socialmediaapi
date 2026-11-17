@@ -1,0 +1,25 @@
+meta {
+  name: Лента Алисы после отписки
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/v1/feed
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("тело ответа", function() {
+    expect(res.body.posts.map(p => p.id)).to.not.include(bru.getVar("postId"));
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: Удалённый пост не читается
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/api/v1/posts/{{postId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("статус 404", function() {
+    expect(res.status).to.equal(404);
+  });
+}

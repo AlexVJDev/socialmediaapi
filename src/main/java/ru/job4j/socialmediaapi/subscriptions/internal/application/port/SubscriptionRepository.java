@@ -45,6 +45,16 @@ public interface SubscriptionRepository {
     boolean existsSubscription(UUID followerId, UUID followedId);
 
     /**
+     * Читает подписку, чтобы вернуть её в ответе после {@link #createSubscriptionIfAbsent},
+     * когда та сообщила, что подписка уже есть. Не вызывать как проверку перед вставкой (check-then-act).
+     *
+     * @param followerId подписчик
+     * @param followedId пользователь, на которого подписаны
+     * @return подписка или пусто, если её нет
+     */
+    Optional<SubscriptionResponse> findSubscription(UUID followerId, UUID followedId);
+
+    /**
      * Removes the subscription of the follower to the followed user. The subscription
      * of the opposite direction is kept. After that the follower may subscribe again.
      *

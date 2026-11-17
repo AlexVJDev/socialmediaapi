@@ -4,11 +4,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import ru.job4j.socialmediaapi.posts.internal.application.model.FeedCursorResult;
+import ru.job4j.socialmediaapi.posts.internal.application.model.CreatePostCommand;
 import ru.job4j.socialmediaapi.posts.internal.application.model.FeedPageResult;
 import ru.job4j.socialmediaapi.posts.internal.application.model.GetFeedCommand;
 import ru.job4j.socialmediaapi.posts.internal.application.model.PostResult;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
-import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.FeedCursorWebResponse;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.request.PostWebRequest;
+import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostCursorWebResponse;
 import ru.job4j.socialmediaapi.posts.internal.infrastructure.web.response.PostWebResponse;
 
 import java.time.Instant;
@@ -50,9 +52,18 @@ class PostWebMapperTest {
 
         assertThat(withNext.getPosts()).containsExactly(new PostWebResponse(
                 id, author, "T", "C", PostWebResponse.StatusEnum.PUBLISHED, time, time));
-        assertThat(withNext.getNext()).isEqualTo(new FeedCursorWebResponse(time, id));
+        assertThat(withNext.getNext()).isEqualTo(new PostCursorWebResponse(time, id));
         assertThat(last.getNext()).isNull();
         assertThatThrownBy(() -> mapper.toStatus(PostStatus.DELETED))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Тело запроса и текущий пользователь переносятся в команду создания")
+    void whenCreateRequestThenCommand() {
+        var actor = UUID.randomUUID();
+
+        assertThat(mapper.toCreatePostCommand(actor, new PostWebRequest("Заголовок", "Текст")))
+                .isEqualTo(new CreatePostCommand(actor, "Заголовок", "Текст"));
     }
 }

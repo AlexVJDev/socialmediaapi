@@ -53,6 +53,13 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
             )
             """;
 
+    /** Подписка подписчика на пользователя (ограничение уникальности {@code uq_subscriptions_users}). */
+    private static final String FIND = """
+            SELECT id, follower_id, followed_id, created_at
+            FROM subscriptions
+            WHERE follower_id = ? AND followed_id = ?
+            """;
+
     /** Removes the subscription in one direction. */
     private static final String DELETE = """
             DELETE FROM subscriptions
@@ -136,6 +143,14 @@ public class SubscriptionPersistenceAdapter implements SubscriptionRepository {
         return Boolean.TRUE.equals(
                 jdbcTemplate.queryForObject(EXISTS, Boolean.class, followerId, followedId)
         );
+    }
+
+    @Override
+    public Optional<SubscriptionResponse> findSubscription(UUID followerId, UUID followedId) {
+        return jdbcTemplate.query(FIND, ROW_MAPPER, followerId, followedId)
+                .stream()
+                .findFirst()
+                .map(mapper::toResponse);
     }
 
     @Override

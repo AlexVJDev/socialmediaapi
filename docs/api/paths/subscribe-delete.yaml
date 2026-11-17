@@ -1,0 +1,36 @@
+delete:
+  tags:
+    - Subscription
+  summary: Отписать текущего пользователя от пользователя
+  description: >-
+    Подписчик — текущий пользователь (заголовок X-User-Id). Идемпотентно: если подписки нет,
+    ответ тот же — `204`.
+  operationId: unsubscribe
+  security:
+    - userIdHeader: []
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      description: Пользователь, от которого нужно отписаться
+      schema:
+        type: string
+        format: uuid
+      example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
+  responses:
+    '204':
+      description: Подписки больше нет
+    '400':
+      description: Идентификатор пользователя не является UUID
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/api-error-response.yaml'
+          example:
+            status: 400
+            detail: Некорректное тело или параметры запроса
+            code: VALIDATION_ERROR
+    '401':
+      $ref: '../responses/unauthorized.yaml'
+    '500':
+      $ref: '../responses/internal-error.yaml'

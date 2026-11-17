@@ -1,0 +1,32 @@
+meta {
+  name: Изменить свой пост Борисом
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/v1/posts/{{postId}}
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+body:json {
+  {
+    "title": "Новый заголовок",
+    "content": "Новый текст"
+  }
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("тело ответа", function() {
+    expect(res.body.title).to.equal("Новый заголовок");
+  });
+}

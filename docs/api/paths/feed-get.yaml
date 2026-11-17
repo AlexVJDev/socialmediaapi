@@ -1,25 +1,17 @@
 get:
   tags:
     - Feed
-  summary: Получить страницу ленты подписчика
+  summary: Получить страницу ленты текущего пользователя
   operationId: getFeed
+  security:
+    - userIdHeader: []
   description: >-
-    Опубликованные посты авторов, на которых подписан читатель, от новых к старым
+    Опубликованные посты авторов, на которых подписан текущий пользователь (заголовок X-User-Id), от новых к старым
     (`createdAt DESC, id DESC`). Собственные и удалённые посты в ленту не попадают.
     Страницы читаются по курсору: первая — без `afterCreatedAt`/`afterId`, следующая —
     с `afterCreatedAt = next.createdAt` и `afterId = next.id` из предыдущего ответа.
     `next: null` — постов больше нет. См. `docs/process/Feed.md`.
   parameters:
-    - name: followerId
-      in: query
-      required: true
-      description: >-
-        Читатель ленты. Передаётся параметром до подключения аутентификации (Keycloak),
-        затем будет браться из токена.
-      schema:
-        type: string
-        format: uuid
-      example: 55555555-5555-5555-5555-555555555555
     - name: limit
       in: query
       required: false
@@ -50,29 +42,10 @@ get:
       content:
         application/json:
           schema:
-            type: object
-            required: [posts, next]
-            properties:
-              posts:
-                type: array
-                items:
-                  $ref: '../schemas/post.yaml'
-              next:
-                type: object
-                nullable: true
-                description: Курсор следующей страницы — позиция последнего поста; `null`, если постов больше нет
-                required: [createdAt, id]
-                properties:
-                  createdAt:
-                    type: string
-                    format: date-time
-                    example: '2026-10-15T10:00:00.123456Z'
-                  id:
-                    type: string
-                    format: uuid
+            $ref: '../schemas/post-page.yaml'
     '400':
       description: >-
-        Некорректные параметры: нет `followerId`, идентификатор не UUID, `limit` вне 1..100
+        Некорректные параметры: `afterId` не UUID, `limit` вне 1..100
         или не число, задана только одна часть курсора
       content:
         application/problem+json:
@@ -82,5 +55,7 @@ get:
             status: 400
             detail: Некорректное тело или параметры запроса
             code: VALIDATION_ERROR
+    '401':
+      $ref: '../responses/unauthorized.yaml'
     '500':
       $ref: '../responses/internal-error.yaml'

@@ -26,8 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * End-to-end process of two modules: an accepted friendship ({@code friendships}) creates mutual
  * subscriptions, so each friend sees the posts of the other in the feed ({@code posts}).
- * Lives in the root package because it uses both modules; posts are created through
- * the {@code posts} port, as the module has no REST API yet.
+ * Lives in the root package because it uses both modules; posts are created and feeds are read
+ * through the {@code posts} ports, so the test checks the friendship → subscriptions → feed chain only.
+ * The same chain over REST (subscribe → post → feed) is {@code PostFeedScenarioTest}.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

@@ -1,0 +1,10 @@
+type: object
+description: Страница постов от новых к старым (`createdAt DESC, id DESC`); может быть пустой
+required: [posts, next]
+properties:
+  posts:
+    type: array
+    items:
+      $ref: './post.yaml'
+  next:
+    $ref: './post-cursor.yaml'
