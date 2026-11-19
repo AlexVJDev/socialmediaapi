@@ -26,3 +26,8 @@ PDF — скриншоты страницы, текст извлекается �
 Swagger UI (swagger-client) разрешает внешние относительные `$ref` HTTP-запросами относительно URL спецификации:
 `/openapi/openapi.yaml` → `/openapi/paths/...` → `/openapi/schemas/...`. Значит, достаточно опубликовать
 дерево `docs/api` (без `modules/`, `*.md`) с той же структурой.
+
+## Проверка Р-2 (19.11.2026, springdoc 3.1.1)
+- `api-docs.enabled: false` → `/swagger-ui.html` 404, `/v3/api-docs/swagger-config` 404 (UI не регистрируется).
+- без этой настройки → `/swagger-ui.html` 302 → `/swagger-ui/index.html` 200; swagger-config:
+  `"url":"/openapi/openapi.yaml"`, `"tryItOutEnabled":true` — UI грузит наш файл. Отсюда Р-10.

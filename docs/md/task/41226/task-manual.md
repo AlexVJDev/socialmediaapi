@@ -5,7 +5,7 @@
 
 Суть: springdoc отдаёт только Swagger UI, а UI показывает наш контракт `docs/api/openapi.yaml`.
 Контракт публикуется как статика `/openapi/**` прямо из `docs/api` при сборке, второй копии в репозитории нет (Р-5).
-Описание `/v3/api-docs`, которое springdoc строит по контроллерам, отключается (Р-2).
+Описание `/v3/api-docs`, которое springdoc строит по контроллерам, остаётся включённым — без него не работает UI; UI его не использует (Р-10).
 
 | Итого | Новые | Изменить |
 |---|---|---|
@@ -39,10 +39,10 @@ docs/md/task/41226/
 |---|---|---|---|---|
 | 1 | `pom.xml` | сборка | изменить: версия + зависимость | Р-1 |
 | 2 | `pom.xml` | сборка | изменить: `<resources>` | Р-5 |
-| 3 | `src/main/resources/application.yml` | конфигурация | изменить | Р-2, Р-4 |
+| 3 | `src/main/resources/application.yml` | конфигурация | изменить | Р-10, Р-4 |
 | 4 | `docs/api/openapi.yaml` | контракт | изменить | Р-3, Р-6 |
 | 5 | `src/test/java/ru/job4j/socialmediaapi/OpenApiE2ETest.java` | тест | новый | Р-7 |
-| 6 | `docs/md/task/41226/manual-test-curl.md` | ручные тесты | новый | Р-8, Р-2 |
+| 6 | `docs/md/task/41226/manual-test-curl.md` | ручные тесты | новый | Р-8, Р-10 |
 
 ---
 
@@ -85,13 +85,11 @@ docs/md/task/41226/
 - `modules/` и `*.md` не копируются. `filtering` не включаем: файлы копируются как есть.
 - Проверка: после `./mvnw process-resources` в `target/classes/static/openapi/` лежат `openapi.yaml` и три каталога.
 
-## 3. `application.yml` — настройки springdoc (Р-2, Р-4)
-**Зачем:** UI берёт наш файл вместо `/v3/api-docs`, демо-URL (petstore) не показывается, автоописание отключено.
+## 3. `application.yml` — настройки springdoc (Р-10, Р-4)
+**Зачем:** UI берёт наш файл вместо `/v3/api-docs`, демо-URL (petstore) не показывается.
 
 ```yaml
 springdoc:
-  api-docs:
-    enabled: false                       # Р-2
   swagger-ui:
     enabled: ${SWAGGER_UI_ENABLED:true}  # Р-4
     path: /swagger-ui.html
@@ -100,9 +98,9 @@ springdoc:
     try-it-out-enabled: true
 ```
 
-- Проверка Р-2 (при первом запуске): `/swagger-ui.html` открывается и показывает наш контракт.
-  Если после `api-docs.enabled: false` UI не грузится (не отдаётся `/v3/api-docs/swagger-config` или пропадает `url`),
-  убираем `api-docs.enabled: false` и фиксируем это в `decisions.md` (Р-2 → «оставлен включённым»).
+- `springdoc.api-docs.enabled` не задаём (Р-10): при `false` springdoc отключает и `/v3/api-docs/swagger-config`,
+  и `/swagger-ui.html` отдаёт 404.
+- Проверка: `/swagger-ui.html` открывается, `/v3/api-docs/swagger-config` содержит `"url":"/openapi/openapi.yaml"`.
 
 ## 4. `docs/api/openapi.yaml` — `servers` и Bearer-схема (Р-3, Р-6)
 **Зачем:** Try it out отправляет запросы на тот же хост; кнопка Authorize предлагает Bearer-токен.
@@ -146,7 +144,7 @@ springdoc:
 | `GET /openapi/openapi.yaml` | 200, есть `/api/v1/friendship-offer/create`, `bearerAuth`, `servers` |
 | `GET /openapi/schemas/friendship-offer.yaml` | 200 |
 | `GET /swagger-ui.html` (`-L`) | 200 |
-| `GET /v3/api-docs` | 404 (Р-2; 200 — если Р-2 откатили) |
+| `GET /v3/api-docs` | 200 — включён, UI его не использует (Р-10) |
 | `POST /api/v1/friendship-offer/create` | 201 — тот же запрос, что делает Try it out |
 | перезапуск с `SWAGGER_UI_ENABLED=false`: `/swagger-ui.html` | 404; `/openapi/openapi.yaml` — 200 (Р-4) |
 
