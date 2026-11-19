@@ -5,6 +5,14 @@ Educational project
 
 OpenAPI contract: [docs/api/openapi.yaml](docs/api/openapi.yaml)
 
+Swagger UI (the application must be running): http://localhost:8080/swagger-ui.html
+(redirects to `/swagger-ui/index.html`). The contract file itself is served at
+http://localhost:8080/openapi/openapi.yaml.
+
+- `LIQUIBASE_CONTEXTS=dev` also loads the data of the contract examples
+  (`db/dev/swagger-examples.sql`), so "Try it out" works with the example ids.
+- `SWAGGER_UI_ENABLED=false` turns the UI off.
+
 ## PostgreSQL
 
 The database runs in Docker with the following default settings:
@@ -232,17 +240,18 @@ Ctrl + C
 ## Reading posts and the feed
 
 Two read-only endpoints of the `posts` module (contract:
-[post-get.yaml](docs/api/paths/post-get.yaml), [feed-get.yaml](docs/api/paths/feed-get.yaml)):
+[post-by-id.yaml](docs/api/paths/post-by-id.yaml) — `get`, [feed-get.yaml](docs/api/paths/feed-get.yaml)):
 
 - `GET /api/v1/posts/{postId}` — a published post; `404 POST_NOT_FOUND` if it
   does not exist or is deleted.
-- `GET /api/v1/feed?followerId=...&limit=...` — published posts of the authors
-  the reader is subscribed to, newest first. `limit` is 1..100 (default 20).
+- `GET /api/v1/feed?limit=...` with the header `X-User-Id: <reader id>` — published
+  posts of the authors the reader is subscribed to, newest first. `limit` is 1..100 (default 20).
   The next page is requested with `afterCreatedAt` and `afterId` copied from
   `next` of the previous response; `next: null` means there are no more posts.
 
-There is no endpoint that creates posts yet, so add test data to the local
-database first (the app must have been started once, so Liquibase created the
+Posts can be created with `POST /api/v1/posts` ([post-create.yaml](docs/api/paths/post-create.yaml)),
+but for a feed with several pages it is quicker to add test data to the local
+database directly (the app must have been started once, so Liquibase created the
 tables). A reader `…0001` subscribed to an author `…0002` with 15 posts
 (`Post 1` … `Post 15`, one per hour on 2026-11-01, `Post 15` is the newest):
 ```shell
@@ -280,19 +289,22 @@ Then, with the application running (`./mvnw spring-boot:run`):
 
 2. First page of the feed, ten posts per page:
    ```shell
-   curl -s "http://localhost:8080/api/v1/feed?followerId=00000000-0000-0000-0000-000000000001&limit=10"
+   curl -s -H "X-User-Id: 00000000-0000-0000-0000-000000000001" \
+     "http://localhost:8080/api/v1/feed?limit=10"
    ```
    Returns the posts `Post 15` … `Post 6` (newest first) and
    `"next":{"createdAt":"2026-11-01T06:00:00Z","id":"bbbbbbbb-0000-0000-0000-000000000006"}`.
 
 3. Next page — the cursor is the `next` of the previous response:
    ```shell
-   curl -s "http://localhost:8080/api/v1/feed?followerId=00000000-0000-0000-0000-000000000001&limit=10&afterCreatedAt=2026-11-01T06:00:00Z&afterId=bbbbbbbb-0000-0000-0000-000000000006"
+   curl -s -H "X-User-Id: 00000000-0000-0000-0000-000000000001" \
+     "http://localhost:8080/api/v1/feed?limit=10&afterCreatedAt=2026-11-01T06:00:00Z&afterId=bbbbbbbb-0000-0000-0000-000000000006"
    ```
    Returns the remaining posts `Post 5` … `Post 1` and `"next":null` — the feed
    has no more posts.
 
-Errors use the `{code, message}` body: a missing post gives
-`404 POST_NOT_FOUND`; an id that is not a UUID, a missing `followerId`, a
-`limit` outside 1..100 or only one of `afterCreatedAt`/`afterId` gives
-`400 INVALID_POST_REQUEST`.
+Errors use the `{status, detail, code}` body
+([api-error-response.yaml](docs/api/schemas/api-error-response.yaml)): a missing
+post gives `404 POST_NOT_FOUND`; an id that is not a UUID, a `limit` outside
+1..100 or only one of `afterCreatedAt`/`afterId` gives `400 VALIDATION_ERROR`;
+a missing `X-User-Id` header or one that is not a UUID gives `401 UNAUTHORIZED`.
