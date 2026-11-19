@@ -32,6 +32,8 @@
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<openapi-generator.version>7.27.0</openapi-generator.version>
+		<!-- Swagger UI over docs/api/openapi.yaml; springdoc 3.x is the line for Spring Boot 4 -->
+		<springdoc.version>3.1.1</springdoc.version>
 		<!-- OpenAPI generation, common to all modules: an execution's importMappings replaces the plugin's one,
 		     so every module's openapi.<module>.imports starts with ${openapi.common.imports}. -->
 		<openapi.common.imports>Instant=java.time.Instant</openapi.common.imports>
@@ -156,6 +158,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+		<!-- Swagger UI only: the contract is the static docs/api/openapi.yaml, not generated from controllers -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -227,6 +235,25 @@
 	</dependencies>
 
 	<build>
+		<!-- <resources> replaces the default resources, so src/main/resources is declared explicitly.
+		     The contract docs/api is published as static /openapi/** for Swagger UI: openapi.yaml with paths/,
+		     schemas/, responses/ (Swagger UI resolves the relative $ref by HTTP). The generator inputs modules/
+		     and *.md are not published. The source stays one - docs/api. -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>docs/api</directory>
+				<targetPath>static/openapi</targetPath>
+				<includes>
+					<include>openapi.yaml</include>
+					<include>paths/**</include>
+					<include>schemas/**</include>
+					<include>responses/**</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

@@ -2,6 +2,9 @@ openapi: 3.0.3
 info:
   title: API социальной сети
   version: 1.0.0
+servers:
+  - url: /
+    description: Текущий хост
 paths:
   /api/v1/friendship-offer:
     $ref: './paths/friendship-offers-get.yaml'
@@ -40,3 +43,8 @@ components:
       in: header
       name: X-User-Id
       description: Временная замена токена до подключения Keycloak
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT-токен (проверка появится вместе с Keycloak)

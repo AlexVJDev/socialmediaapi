@@ -10,4 +10,16 @@ spring:
   liquibase:
     change-log: classpath:db/db.changelog-master.yaml
     default-schema: public
+    # dev - also the Swagger UI examples db/dev/swagger-examples.sql; never empty: empty runs every context
+    contexts: ${LIQUIBASE_CONTEXTS:default}
 
+# Swagger UI shows the static contract docs/api/openapi.yaml (published as /openapi/** by the build).
+# springdoc.api-docs stays enabled: Swagger UI reads its config from /v3/api-docs/swagger-config;
+# the generated /v3/api-docs itself is not used by the UI (url below).
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}  # false - Swagger UI is off (the static /openapi/** stays)
+    path: /swagger-ui.html
+    url: /openapi/openapi.yaml
+    disable-swagger-default-url: true
+    try-it-out-enabled: true

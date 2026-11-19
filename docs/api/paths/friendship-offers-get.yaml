@@ -26,7 +26,6 @@ get:
       schema:
         type: string
         format: date-time
-      example: '2026-09-22T10:15:00.123456Z'
     - name: afterId
       in: query
       required: false
