@@ -13,7 +13,7 @@
 
 ```http
 POST /api/v1/friendship-offer/accept
-X-User-Id: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
+X-User-Id: 0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
 Content-Type: application/json
 ```
 
@@ -29,7 +29,7 @@ Content-Type: application/json
 
 ```json
 {
-  "offerId": "9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44"
+  "offerId": "0f000000-0000-4000-8000-000000000001"
 }
 ```
 
@@ -50,12 +50,12 @@ Content-Type: application/json
 
 ```json
 {
-  "id": "9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44",
-  "fromUserId": "0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01",
-  "toUserId": "5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22",
+  "id": "0f000000-0000-4000-8000-000000000001",
+  "fromUserId": "00000000-0000-4000-8000-000000000001",
+  "toUserId": "0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01",
   "status": "ACCEPTED",
-  "createdAt": "2026-09-22T10:15:00Z",
-  "acceptedAt": "2026-09-22T10:20:00Z"
+  "createdAt": "2026-10-01T10:00:00Z",
+  "acceptedAt": "2026-10-01T10:05:00Z"
 }
 ```
 

@@ -20,7 +20,7 @@ post:
               type: string
               format: uuid
               description: Получатель предложения дружбы.
-              example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
+              example: 3f8a2c6e-4b1d-4e7a-9c5f-1d2e3f4a5b60
   responses:
     '201':
       description: Предложение дружбы создано
@@ -46,7 +46,7 @@ post:
               toUserId:
                 type: string
                 format: uuid
-                example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
+                example: 3f8a2c6e-4b1d-4e7a-9c5f-1d2e3f4a5b60
               status:
                 type: string
                 enum: [PENDING]

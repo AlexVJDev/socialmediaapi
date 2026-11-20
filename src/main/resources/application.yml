@@ -12,6 +12,13 @@ spring:
     default-schema: public
     # dev - also the Swagger UI examples db/dev/swagger-examples.sql; never empty: empty runs every context
     contexts: ${LIQUIBASE_CONTEXTS:default}
+  # Static /openapi/** (the contract for Swagger UI): Cache-Control no-cache - the browser revalidates every file
+  # (304 if unchanged), otherwise it keeps an old contract by heuristic caching and Swagger UI sends old requests.
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
 
 # Swagger UI shows the static contract docs/api/openapi.yaml (published as /openapi/** by the build).
 # springdoc.api-docs stays enabled: Swagger UI reads its config from /v3/api-docs/swagger-config;

@@ -20,3 +20,8 @@
 | Р3-3 | В yaml accept/reject ответ `'401'` — сразу после `'400'`. | code-review.md п.3, 2026-11-20 | действует |
 | Р3-4 | Автотесты `401` для accept/reject не добавляются (Р1-7). | code-review.md п.4, 2026-11-20 | действует |
 | Р3-5 | `friendship_transitions.puml` не меняется: `actorId` — поле команды. | code-review.md п.5, 2026-11-20 | действует |
+| Р4-1 | `db/dev/swagger-examples.sql`: часть 1 удаляет данные пользователей-примеров (A, B, C, D, E, P, G(1..100)), часть 2 вставляет; повторный прогон даёт тот же результат. | чат 2026-11-20 | действует |
+| Р4-2 | Основной пользователь Swagger — Алиса `0b6f…4a01`: от её имени работают все запросы с примерами; второй — Борис `5e2a…1e22`. Описано в README («Users for Swagger UI»). | чат 2026-11-20 | действует |
+| Р4-3 | Все GET с примерами возвращают ≥10 элементов; примеры контракта под данные: `direction` = `INCOMING`, create `toUserId` = E, accept/reject — входящие заявки Алисы `0f…01`/`0f…02`, `users/{userId}/posts` и `post.authorId` — Алиса. | чат 2026-11-20 | действует |
+| Р4-4 | В `docs/api/friendship-offer-{create,accept,reject}.md` примеры id и времени — как в yaml (Р4-3): create `toUserId` = E, accept/reject — `X-User-Id` Алиса, заявки `0f…01`/`0f…02`. | чат 2026-11-20 | действует |
+| Р5-1 | Статика `/openapi/**` отдаётся с `Cache-Control: no-cache` (`spring.web.resources.cache.cachecontrol.no-cache`), тест в `OpenApiE2ETest`; в README — `Ctrl+F5` для старой копии. | review_2.md, 2026-11-20 | действует |

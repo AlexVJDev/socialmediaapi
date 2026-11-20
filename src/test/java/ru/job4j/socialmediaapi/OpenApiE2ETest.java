@@ -39,6 +39,14 @@ class OpenApiE2ETest {
     }
 
     @Test
+    @DisplayName("GET /openapi/** — Cache-Control: no-cache: браузер не держит старый контракт после изменений")
+    void whenGetContractThenNoCache() {
+        var response = restTemplate.getForEntity("/openapi/paths/friendship-offer-create.yaml", String.class);
+
+        assertThat(response.getHeaders().getCacheControl()).contains("no-cache");
+    }
+
+    @Test
     @DisplayName("GET /swagger-ui.html — 200 после редиректа на страницу Swagger UI")
     void whenGetSwaggerUiThenOk() {
         var response = restTemplate.getForEntity("/swagger-ui.html", String.class);

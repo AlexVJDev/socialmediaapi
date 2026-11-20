@@ -17,6 +17,7 @@ get:
       in: query
       required: true
       description: '`INCOMING` — входящие заявки текущего пользователя, `OUTGOING` — исходящие'
+      example: INCOMING
       schema:
         $ref: '../schemas/friendship-offer-direction.yaml'
     - name: status

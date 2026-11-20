@@ -7,11 +7,34 @@ OpenAPI contract: [docs/api/openapi.yaml](docs/api/openapi.yaml)
 
 Swagger UI (the application must be running): http://localhost:8080/swagger-ui.html
 (redirects to `/swagger-ui/index.html`). The contract file itself is served at
-http://localhost:8080/openapi/openapi.yaml.
+http://localhost:8080/openapi/openapi.yaml
 
 - `LIQUIBASE_CONTEXTS=dev` also loads the data of the contract examples
   (`db/dev/swagger-examples.sql`), so "Try it out" works with the example ids.
 - `SWAGGER_UI_ENABLED=false` turns the UI off.
+
+### Users for Swagger UI
+
+Start with `LIQUIBASE_CONTEXTS=dev`, press **Authorize** and put a user id into `userIdHeader`
+(header `X-User-Id`; a temporary replacement for the Keycloak token).
+
+| User | `X-User-Id` | What for |
+| --- | --- | --- |
+| Alice (main) | `0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01` | **Every** request with the prefilled example values works on her behalf |
+| Boris | `5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22` | Second point of view: recipient of the offer `9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44` (Alice → Boris), 14 followers |
+
+With Alice and the prefilled values every list request returns at least 10 items: incoming / outgoing
+offers (12 / 14 `PENDING`, 10+ `ACCEPTED` and `REJECTED`), 21 friends, 46 subscriptions, 14 followers of Boris,
+12 posts of Alice, 13 posts in her feed. `create`, `accept` and `reject` are prefilled with a free user and two
+incoming offers of Alice, so they succeed on the first run.
+
+Changes made through "Try it out" are reset on the next application start: the script first deletes
+all data of the example users and then inserts it again (the result is the same, ids of new records differ).
+
+The contract files `/openapi/**` are served with `Cache-Control: no-cache`, so after a contract change the browser
+loads the new version. A copy cached before this setting may still be shown once: reload Swagger UI with
+`Ctrl+F5` (or open it in a private window). Also restart the application after changing `docs/api`: the build
+copies the contract into `static/openapi`.
 
 ## PostgreSQL
 
