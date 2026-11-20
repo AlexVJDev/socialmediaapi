@@ -54,9 +54,9 @@ CAROL=$(uuidgen | tr 'A-Z' 'a-z')
 echo "alice=$ALICE bob=$BOB carol=$CAROL"
 
 curl -s -o /dev/null -w '%{http_code}\n' -X POST "$OFFERS/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\",\"toUserId\":\"$BOB\"}"
+  -H "X-User-Id: $ALICE" -d "{\"toUserId\":\"$BOB\"}"
 curl -s -o /dev/null -w '%{http_code}\n' -X POST "$OFFERS/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\",\"toUserId\":\"$CAROL\"}"
+  -H "X-User-Id: $ALICE" -d "{\"toUserId\":\"$CAROL\"}"
 ```
 
 Ожидаемо: `201` и `201`.

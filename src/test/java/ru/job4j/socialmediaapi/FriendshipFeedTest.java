@@ -67,8 +67,9 @@ class FriendshipFeedTest {
         assertThat(feedIds(borisId)).isEmpty();
 
         mockMvc.perform(post(OFFERS + "/accept")
+                        .header("X-User-Id", borisId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"offerId\":\"%s\",\"actorId\":\"%s\"}".formatted(offerId, borisId)))
+                        .content("{\"offerId\":\"%s\"}".formatted(offerId)))
                 .andExpect(status().isOk());
 
         assertThat(feedIds(aliceId)).containsExactly(borisPost);
@@ -85,8 +86,9 @@ class FriendshipFeedTest {
         var offerId = createOffer(aliceId, borisId);
 
         mockMvc.perform(post(OFFERS + "/reject")
+                        .header("X-User-Id", borisId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"offerId\":\"%s\",\"actorId\":\"%s\"}".formatted(offerId, borisId)))
+                        .content("{\"offerId\":\"%s\"}".formatted(offerId)))
                 .andExpect(status().isOk());
 
         assertThat(feedIds(aliceId)).containsExactly(borisPost);
@@ -95,8 +97,9 @@ class FriendshipFeedTest {
 
     private UUID createOffer(UUID fromUserId, UUID toUserId) throws Exception {
         var json = mockMvc.perform(post(OFFERS + "/create")
+                        .header("X-User-Id", fromUserId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromUserId\":\"%s\",\"toUserId\":\"%s\"}".formatted(fromUserId, toUserId)))
+                        .content("{\"toUserId\":\"%s\"}".formatted(toUserId)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(JsonPath.read(json, "$.id"));

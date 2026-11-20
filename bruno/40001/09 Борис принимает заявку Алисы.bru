@@ -1,0 +1,30 @@
+meta {
+  name: Борис принимает заявку Алисы
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/accept
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+body:json {
+  {"offerId": "{{offerAlice}}"}
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("ACCEPTED, есть acceptedAt", function() {
+    expect(res.body.status).to.equal("ACCEPTED");
+    expect(res.body.acceptedAt).to.be.a("string");
+  });
+}

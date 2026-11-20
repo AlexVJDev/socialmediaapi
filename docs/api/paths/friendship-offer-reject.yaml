@@ -3,6 +3,10 @@ post:
     - FriendshipOffer
   summary: Отклонить предложение дружбы
   operationId: rejectFriendshipOffer
+  security:
+    - userIdHeader: []
+  description: >-
+    Действующий пользователь — текущий (заголовок X-User-Id); отклонить заявку может только её получатель.
   requestBody:
     required: true
     content:
@@ -11,20 +15,12 @@ post:
           type: object
           required:
             - offerId
-            - actorId
           properties:
             offerId:
               type: string
               format: uuid
               description: Идентификатор отклоняемого предложения дружбы.
               example: 9c4e1b77-3f2a-4d6c-8b0e-1a5f7d2c3e44
-            actorId:
-              type: string
-              format: uuid
-              description: >-
-                Пользователь, выполняющий действие, — получатель предложения.
-                Передаётся в теле до подключения аутентификации (Keycloak), затем будет браться из токена.
-              example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
   responses:
     '200':
       description: >-
@@ -68,8 +64,8 @@ post:
                 example: '2026-09-22T10:20:00Z'
     '400':
       description: >-
-        Некорректный запрос: тело не читается, отсутствует `offerId` или `actorId`,
-        идентификатор не является UUID
+        Некорректный запрос: тело не читается, отсутствует `offerId` или он не является UUID.
+        Невалидное тело без X-User-Id — тоже `400`: тело проверяется раньше заголовка
       content:
         application/problem+json:
           schema:
@@ -78,9 +74,11 @@ post:
             status: 400
             detail: Некорректное тело или параметры запроса
             code: VALIDATION_ERROR
+    '401':
+      $ref: '../responses/unauthorized.yaml'
     '404':
       description: >-
-        Предложение дружбы не найдено: его нет или `actorId` не является его получателем
+        Предложение дружбы не найдено: его нет или текущий пользователь (X-User-Id) не является его получателем
         (существование чужой заявки не раскрывается)
       content:
         application/problem+json:

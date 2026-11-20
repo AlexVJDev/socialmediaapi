@@ -31,9 +31,10 @@ check() {
   if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "OK   $1";
   else FAIL=$((FAIL+1)); echo "FAIL $1: ожидалось '$2', получено '$3'"; fi
 }
-# post <путь> <тело>  → тело ответа в $BODY, статус в $CODE
+# post <путь> <X-User-Id> <тело>  → тело ответа в $BODY, статус в $CODE
 post() {
-  CODE=$(curl -s -o /tmp/40000-body -w '%{http_code}' -X POST "$BASE$1" -H "$JSON" -d "$2"); BODY=$(cat /tmp/40000-body)
+  CODE=$(curl -s -o /tmp/40000-body -w '%{http_code}' -X POST "$BASE$1" -H "$JSON" -H "X-User-Id: $2" -d "$3")
+  BODY=$(cat /tmp/40000-body)
 }
 # get <путь> <X-User-Id или -> [query-параметр ...]  → тело ответа в $BODY, статус в $CODE
 get() {
@@ -46,16 +47,16 @@ get() {
 echo "alice=$ALICE boris=$BORIS vika=$VIKA dima=$DIMA"
 
 # 0. Подготовка: заявки Борису, Борис принимает заявку Вики
-post /friendship-offer/create "{\"fromUserId\":\"$ALICE\",\"toUserId\":\"$BORIS\"}"
+post /friendship-offer/create "$ALICE" "{\"toUserId\":\"$BORIS\"}"
 check "Алиса → Борис: заявка создана → 201"            201 "$CODE"
 OFFER_ALICE=$(jq -r .id <<<"$BODY")
-post /friendship-offer/create "{\"fromUserId\":\"$VIKA\",\"toUserId\":\"$BORIS\"}"
+post /friendship-offer/create "$VIKA" "{\"toUserId\":\"$BORIS\"}"
 check "Вика → Борис: заявка создана → 201"             201 "$CODE"
 OFFER_VIKA=$(jq -r .id <<<"$BODY")
-post /friendship-offer/create "{\"fromUserId\":\"$DIMA\",\"toUserId\":\"$BORIS\"}"
+post /friendship-offer/create "$DIMA" "{\"toUserId\":\"$BORIS\"}"
 check "Дима → Борис: заявка создана → 201"             201 "$CODE"
 OFFER_DIMA=$(jq -r .id <<<"$BODY")
-post /friendship-offer/accept "{\"offerId\":\"$OFFER_VIKA\",\"actorId\":\"$BORIS\"}"
+post /friendship-offer/accept "$BORIS" "{\"offerId\":\"$OFFER_VIKA\"}"
 check "Борис принимает заявку Вики → 200"              200 "$CODE"
 
 # 1. GET /friendship-offer — заявки текущего пользователя

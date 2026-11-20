@@ -1,0 +1,29 @@
+meta {
+  name: Дима отклоняет заявку Вики
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/reject
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{dimaId}}
+}
+
+body:json {
+  {"offerId": "{{offerVika}}"}
+}
+
+tests {
+  test("статус 404", function() {
+    expect(res.status).to.equal(404);
+  });
+
+  test("code = FRIENDSHIP_OFFER_NOT_FOUND", function() {
+    expect(res.body.code).to.equal("FRIENDSHIP_OFFER_NOT_FOUND");
+  });
+}

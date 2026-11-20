@@ -3,6 +3,10 @@ post:
     - FriendshipOffer
   summary: Создать предложение дружбы
   operationId: createFriendshipOffer
+  security:
+    - userIdHeader: []
+  description: >-
+    Отправитель — текущий пользователь (заголовок X-User-Id), получатель — `toUserId` из тела.
   requestBody:
     required: true
     content:
@@ -10,16 +14,12 @@ post:
         schema:
           type: object
           required:
-            - fromUserId
             - toUserId
           properties:
-            fromUserId:
-              type: string
-              format: uuid
-              example: 0b6f3c9e-6a1d-4c2e-9f5a-2d7b8e1c4a01
             toUserId:
               type: string
               format: uuid
+              description: Получатель предложения дружбы.
               example: 5e2a7d40-91c3-4b8f-a6e2-7c0d3f9b1e22
   responses:
     '201':
@@ -69,9 +69,9 @@ post:
             code: FRIENDSHIP_OFFER_ALREADY_PENDING
     '400':
       description: >-
-        Некорректный запрос: тело не читается, отсутствует `fromUserId` или `toUserId`,
-        идентификатор не является UUID, либо `fromUserId` совпадает с `toUserId`
-        (предложение дружбы самому себе)
+        Некорректный запрос: тело не читается, отсутствует `toUserId` или он не является UUID,
+        либо `toUserId` совпадает с X-User-Id (предложение дружбы самому себе).
+        Невалидное тело без X-User-Id — тоже `400`: тело проверяется раньше заголовка
       content:
         application/problem+json:
           schema:
@@ -80,6 +80,8 @@ post:
             status: 400
             detail: Некорректное тело или параметры запроса
             code: VALIDATION_ERROR
+    '401':
+      $ref: '../responses/unauthorized.yaml'
     '409':
       description: >-
         Предложение дружбы между этими пользователями (в том же направлении или встречное) уже существует

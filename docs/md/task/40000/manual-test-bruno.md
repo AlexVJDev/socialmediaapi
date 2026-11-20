@@ -22,10 +22,10 @@
 
 | № | Запрос | `X-User-Id` | Тело | Ожидается |
 | --- | --- | --- | --- | --- |
-| 01 | `POST /api/v1/friendship-offer/create` | — | `{"fromUserId":"{{aliceId}}","toUserId":"{{borisId}}"}` | `201` |
-| 02 | `POST /api/v1/friendship-offer/create` | — | `{"fromUserId":"{{vikaId}}","toUserId":"{{borisId}}"}` | `201` |
-| 03 | `POST /api/v1/friendship-offer/create` | — | `{"fromUserId":"{{dimaId}}","toUserId":"{{borisId}}"}` | `201` |
-| 04 | `POST /api/v1/friendship-offer/accept` | — | `{"offerId":"{{offerVika}}","actorId":"{{borisId}}"}` | `200` |
+| 01 | `POST /api/v1/friendship-offer/create` | Алиса | `{"toUserId":"{{borisId}}"}` | `201` |
+| 02 | `POST /api/v1/friendship-offer/create` | Вика | `{"toUserId":"{{borisId}}"}` | `201` |
+| 03 | `POST /api/v1/friendship-offer/create` | Дима | `{"toUserId":"{{borisId}}"}` | `201` |
+| 04 | `POST /api/v1/friendship-offer/accept` | Борис | `{"offerId":"{{offerVika}}"}` | `200` |
 | 05 | `GET /api/v1/friendship-offer?direction=INCOMING` | Борис | — | `200`, `offers` = [Дима, Алиса], `next: null` |
 | 06 | `GET /api/v1/friendship-offer?direction=INCOMING&limit=1` | Борис | — | `200`, `offers` = [Дима], `next` = позиция заявки Димы |
 | 07 | `GET /api/v1/friendship-offer?direction=INCOMING&limit=1&afterCreatedAt={{nextCreatedAt}}&afterId={{nextId}}` | Борис | — | `200`, `offers` = [Алиса], `next: null` |
@@ -73,12 +73,12 @@
 `{{offerVika}}` (из ответа 02), `{{nextCreatedAt}}`/`{{nextId}}` (из `next` ответа 06).
 
 ```shell
-# 01, 02, 03 — fromUserId: Алиса, Вика, Дима
+# 01, 02, 03 — X-User-Id: Алиса, Вика, Дима (задача 40001)
 curl -i -X POST '{{baseUrl}}/api/v1/friendship-offer/create' -H 'Content-Type: application/json' \
-  -d '{"fromUserId":"{{aliceId}}","toUserId":"{{borisId}}"}'
+  -H 'X-User-Id: {{aliceId}}' -d '{"toUserId":"{{borisId}}"}'
 # 04
 curl -i -X POST '{{baseUrl}}/api/v1/friendship-offer/accept' -H 'Content-Type: application/json' \
-  -d '{"offerId":"{{offerVika}}","actorId":"{{borisId}}"}'
+  -H 'X-User-Id: {{borisId}}' -d '{"offerId":"{{offerVika}}"}'
 # 05
 curl -i '{{baseUrl}}/api/v1/friendship-offer?direction=INCOMING' -H 'X-User-Id: {{borisId}}'
 # 06

@@ -1,0 +1,33 @@
+meta {
+  name: Вика предлагает дружбу Борису со старым fromUserId
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/create
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{vikaId}}
+}
+
+body:json {
+  {"fromUserId": "{{dimaId}}", "toUserId": "{{borisId}}"}
+}
+
+script:post-response {
+  bru.setVar("offerVika", res.body.id);
+}
+
+tests {
+  test("статус 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("fromUserId = Вика: поле тела игнорируется", function() {
+    expect(res.body.fromUserId).to.equal(bru.getVar("vikaId"));
+  });
+}

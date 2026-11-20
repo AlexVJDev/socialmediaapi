@@ -1,0 +1,43 @@
+meta {
+  name: Алиса предлагает дружбу Борису
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/create
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+body:json {
+  {"toUserId": "{{borisId}}"}
+}
+
+script:pre-request {
+  // Новые пользователи на каждый прогон: коллекцию можно запускать повторно.
+  const uuid = () => "xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
+  bru.setVar("aliceId", uuid());
+  bru.setVar("borisId", uuid());
+  bru.setVar("vikaId", uuid());
+  bru.setVar("dimaId", uuid());
+}
+
+script:post-response {
+  bru.setVar("offerAlice", res.body.id);
+}
+
+tests {
+  test("статус 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("fromUserId = Алиса из X-User-Id, PENDING", function() {
+    expect(res.body.fromUserId).to.equal(bru.getVar("aliceId"));
+    expect(res.body.status).to.equal("PENDING");
+  });
+}

@@ -76,8 +76,9 @@ class FriendshipOfferGetControllerTest {
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty());
 
         var accepted = mockMvc.perform(post(BASE + "/accept")
+                        .header(USER_HEADER, toUserId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"offerId\":\"%s\",\"actorId\":\"%s\"}".formatted(offerId, toUserId)))
+                        .content("{\"offerId\":\"%s\"}".formatted(offerId)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -139,8 +140,9 @@ class FriendshipOfferGetControllerTest {
         var recipient = UUID.randomUUID();
         var accepted = createOffer(user, recipient);
         mockMvc.perform(post(BASE + "/accept")
+                        .header(USER_HEADER, recipient)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"offerId\":\"%s\",\"actorId\":\"%s\"}".formatted(accepted, recipient)))
+                        .content("{\"offerId\":\"%s\"}".formatted(accepted)))
                 .andExpect(status().isOk());
         var pending = createOffer(user, UUID.randomUUID());
 
@@ -259,8 +261,9 @@ class FriendshipOfferGetControllerTest {
 
     private UUID createOffer(UUID fromUserId, UUID toUserId) throws Exception {
         var json = mockMvc.perform(post(BASE + "/create")
+                        .header(USER_HEADER, fromUserId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"fromUserId\":\"%s\",\"toUserId\":\"%s\"}".formatted(fromUserId, toUserId)))
+                        .content("{\"toUserId\":\"%s\"}".formatted(toUserId)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(JsonPath.read(json, "$.id"));

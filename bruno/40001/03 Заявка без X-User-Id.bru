@@ -1,0 +1,25 @@
+meta {
+  name: Заявка без X-User-Id
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/create
+  body: json
+  auth: none
+}
+
+body:json {
+  {"toUserId": "{{borisId}}"}
+}
+
+tests {
+  test("статус 401", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("code = UNAUTHORIZED", function() {
+    expect(res.body.code).to.equal("UNAUTHORIZED");
+  });
+}

@@ -45,7 +45,7 @@ docker compose up -d                              # Postgres :5432, Temporal :72
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
-Swagger локально: http://localhost:8080/swagger-ui/index.html. API-сценарии для IntelliJ/Amplicode Connekt — `scripts/connekt` (окружение `local`).
+Swagger локально: http://localhost:8080/swagger-ui/index.html. API-сценарии для IntelliJ/Amplicode connect — `scripts/connect` (окружение `local`).
 
 ## Стек
 Java 21, Spring Boot 3.4, Spring Modulith, Temporal, JPA + Flyway (PostgreSQL), Kafka, OpenFeign + Resilience4j, MapStruct, Lombok, Keycloak/OAuth2 resource server. Логирование — Log4j2 (spring-boot-starter-logging исключён).

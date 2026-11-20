@@ -30,7 +30,7 @@
   (`FriendshipOfferWebMapper`). Application, domain, persistence не меняются.
 - `401` при отсутствии / не-UUID заголовка — уже обрабатывает `GlobalExceptionHandler` (`UnauthenticatedException`).
 - Тесты: `FriendshipOfferControllerTest`, `FriendshipOfferE2ETest`, `FriendshipFeedTest`, `FriendshipOfferWebMapperTest`.
-- Сценарии ручных запросов (connekt / Bruno), если в них есть create/accept/reject.
+- Сценарии ручных запросов (connect / Bruno), если в них есть create/accept/reject.
 
 Всего ~10–14 файлов, в основном контракт и тесты.
 

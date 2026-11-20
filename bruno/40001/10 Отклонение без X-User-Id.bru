@@ -1,0 +1,25 @@
+meta {
+  name: Отклонение без X-User-Id
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/reject
+  body: json
+  auth: none
+}
+
+body:json {
+  {"offerId": "{{offerVika}}"}
+}
+
+tests {
+  test("статус 401", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("code = UNAUTHORIZED", function() {
+    expect(res.body.code).to.equal("UNAUTHORIZED");
+  });
+}

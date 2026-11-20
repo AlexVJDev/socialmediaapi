@@ -54,6 +54,9 @@ class FriendshipOfferE2ETest {
     /** Заголовок текущего пользователя. */
     private static final String USER_HEADER = "X-User-Id";
 
+    /** Текущий пользователь в проверках некорректного тела. */
+    private static final UUID SELF = UUID.randomUUID();
+
     /** Ожидаемое тело {@code 401}: нет текущего пользователя (пример контракта {@code responses/unauthorized.yaml}). */
     private static final ApiErrorResponse UNAUTHORIZED =
             new ApiErrorResponse(401, "Пользователь не определён", "UNAUTHORIZED");
@@ -89,7 +92,8 @@ class FriendshipOfferE2ETest {
             var toUserId = UUID.randomUUID();
 
             var response = restTemplate.postForEntity(BASE + "/create",
-                    new CreateFriendshipOfferWebRequest(fromUserId, toUserId), CreateFriendshipOfferWebResponse.class);
+                    asUser(fromUserId, new CreateFriendshipOfferWebRequest(toUserId)),
+                    CreateFriendshipOfferWebResponse.class);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             var expected = new CreateFriendshipOfferWebResponse()
@@ -153,25 +157,30 @@ class FriendshipOfferE2ETest {
         @MethodSource("invalidBodies")
         @DisplayName("Некорректное тело: 400 VALIDATION_ERROR")
         void whenInvalidBodyThenBadRequest(String situation, String body) {
-            expectError(postJson("/create", body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
+            expectError(postJson("/create", SELF, body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
 
         /**
-         * @return ситуация и тело запроса для некорректных запросов create из контракта
+         * @return ситуация и тело запроса для некорректных запросов create из контракта;
+         *         текущий пользователь — {@link #SELF}
          */
         static Stream<Arguments> invalidBodies() {
-            var from = UUID.randomUUID();
-            var to = UUID.randomUUID();
             return Stream.of(
                     Arguments.of("тело не читается", "{"),
-                    Arguments.of("нет fromUserId", "{\"toUserId\":\"%s\"}".formatted(to)),
-                    Arguments.of("нет toUserId", "{\"fromUserId\":\"%s\"}".formatted(from)),
-                    Arguments.of("fromUserId null", "{\"fromUserId\":null,\"toUserId\":\"%s\"}".formatted(to)),
-                    Arguments.of("fromUserId не UUID", "{\"fromUserId\":\"42\",\"toUserId\":\"%s\"}".formatted(to)),
-                    Arguments.of("toUserId не UUID", "{\"fromUserId\":\"%s\",\"toUserId\":\"x\"}".formatted(from)),
-                    Arguments.of("заявка самому себе",
-                            "{\"fromUserId\":\"%1$s\",\"toUserId\":\"%1$s\"}".formatted(from))
+                    Arguments.of("нет toUserId", "{}"),
+                    Arguments.of("toUserId null", "{\"toUserId\":null}"),
+                    Arguments.of("toUserId не UUID", "{\"toUserId\":\"x\"}"),
+                    Arguments.of("заявка самому себе (toUserId = X-User-Id)", "{\"toUserId\":\"%s\"}".formatted(SELF))
             );
+        }
+
+        @Test
+        @DisplayName("Без X-User-Id: 401 UNAUTHORIZED, заявка не создаётся")
+        void whenNoCurrentUserThenUnauthorized() {
+            var response = restTemplate.postForEntity(BASE + "/create",
+                    new CreateFriendshipOfferWebRequest(UUID.randomUUID()), ApiErrorResponse.class);
+
+            expectError(response, HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
         }
     }
 
@@ -224,7 +233,7 @@ class FriendshipOfferE2ETest {
         }
 
         @Test
-        @DisplayName("Принимает не получатель (отправитель или посторонний): 404 FRIENDSHIP_OFFER_NOT_FOUND")
+        @DisplayName("X-User-Id не получатель (отправитель или посторонний): 404 FRIENDSHIP_OFFER_NOT_FOUND")
         void whenActorIsNotRecipientThenNotFound() {
             var fromUserId = UUID.randomUUID();
             var offer = createOffer(fromUserId, UUID.randomUUID());
@@ -246,7 +255,7 @@ class FriendshipOfferE2ETest {
                 + ".FriendshipOfferE2ETest#invalidDecisionBodies")
         @DisplayName("Некорректное тело: 400 VALIDATION_ERROR")
         void whenInvalidBodyThenBadRequest(String situation, String body) {
-            expectError(postJson("/accept", body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
+            expectError(postJson("/accept", SELF, body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
     }
 
@@ -299,7 +308,7 @@ class FriendshipOfferE2ETest {
         }
 
         @Test
-        @DisplayName("Отклоняет не получатель (отправитель или посторонний): 404 FRIENDSHIP_OFFER_NOT_FOUND")
+        @DisplayName("X-User-Id не получатель (отправитель или посторонний): 404 FRIENDSHIP_OFFER_NOT_FOUND")
         void whenActorIsNotRecipientThenNotFound() {
             var fromUserId = UUID.randomUUID();
             var offer = createOffer(fromUserId, UUID.randomUUID());
@@ -321,7 +330,7 @@ class FriendshipOfferE2ETest {
                 + ".FriendshipOfferE2ETest#invalidDecisionBodies")
         @DisplayName("Некорректное тело: 400 VALIDATION_ERROR")
         void whenInvalidBodyThenBadRequest(String situation, String body) {
-            expectError(postJson("/reject", body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
+            expectError(postJson("/reject", SELF, body), HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
     }
 
@@ -462,28 +471,25 @@ class FriendshipOfferE2ETest {
      * @return ситуация и тело запроса для некорректных запросов accept / reject из контракта
      */
     static Stream<Arguments> invalidDecisionBodies() {
-        var offerId = UUID.randomUUID();
-        var actorId = UUID.randomUUID();
         return Stream.of(
                 Arguments.of("тело не читается", "{"),
-                Arguments.of("нет offerId", "{\"actorId\":\"%s\"}".formatted(actorId)),
-                Arguments.of("нет actorId", "{\"offerId\":\"%s\"}".formatted(offerId)),
-                Arguments.of("offerId null", "{\"offerId\":null,\"actorId\":\"%s\"}".formatted(actorId)),
-                Arguments.of("offerId не UUID", "{\"offerId\":\"42\",\"actorId\":\"%s\"}".formatted(actorId)),
-                Arguments.of("actorId не UUID", "{\"offerId\":\"%s\",\"actorId\":\"x\"}".formatted(offerId))
+                Arguments.of("нет offerId", "{}"),
+                Arguments.of("offerId null", "{\"offerId\":null}"),
+                Arguments.of("offerId не UUID", "{\"offerId\":\"42\"}")
         );
     }
 
     private CreateFriendshipOfferWebResponse createOffer(UUID fromUserId, UUID toUserId) {
         var response = restTemplate.postForEntity(BASE + "/create",
-                new CreateFriendshipOfferWebRequest(fromUserId, toUserId), CreateFriendshipOfferWebResponse.class);
+                asUser(fromUserId, new CreateFriendshipOfferWebRequest(toUserId)),
+                CreateFriendshipOfferWebResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         return response.getBody();
     }
 
     private ResponseEntity<ApiErrorResponse> create(UUID fromUserId, UUID toUserId) {
         return restTemplate.postForEntity(BASE + "/create",
-                new CreateFriendshipOfferWebRequest(fromUserId, toUserId), ApiErrorResponse.class);
+                asUser(fromUserId, new CreateFriendshipOfferWebRequest(toUserId)), ApiErrorResponse.class);
     }
 
     private ResponseEntity<AcceptFriendshipOfferWebResponse> accept(UUID offerId, UUID actorId) {
@@ -492,7 +498,7 @@ class FriendshipOfferE2ETest {
 
     private <T> ResponseEntity<T> accept(UUID offerId, UUID actorId, Class<T> type) {
         return restTemplate.postForEntity(BASE + "/accept",
-                new AcceptFriendshipOfferWebRequest(offerId, actorId), type);
+                asUser(actorId, new AcceptFriendshipOfferWebRequest(offerId)), type);
     }
 
     private ResponseEntity<RejectFriendshipOfferWebResponse> reject(UUID offerId, UUID actorId) {
@@ -501,13 +507,26 @@ class FriendshipOfferE2ETest {
 
     private <T> ResponseEntity<T> reject(UUID offerId, UUID actorId, Class<T> type) {
         return restTemplate.postForEntity(BASE + "/reject",
-                new RejectFriendshipOfferWebRequest(offerId, actorId), type);
+                asUser(actorId, new RejectFriendshipOfferWebRequest(offerId)), type);
     }
 
-    private ResponseEntity<ApiErrorResponse> postJson(String path, String json) {
+    private ResponseEntity<ApiErrorResponse> postJson(String path, UUID user, String json) {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set(USER_HEADER, user.toString());
         return restTemplate.postForEntity(BASE + path, new HttpEntity<>(json, headers), ApiErrorResponse.class);
+    }
+
+    /**
+     * @param <T>  тип тела
+     * @param user текущий пользователь — значение заголовка {@code X-User-Id}
+     * @param body тело запроса
+     * @return запрос с заголовком текущего пользователя
+     */
+    private static <T> HttpEntity<T> asUser(UUID user, T body) {
+        var headers = new HttpHeaders();
+        headers.set(USER_HEADER, user.toString());
+        return new HttpEntity<>(body, headers);
     }
 
     private static FriendshipOfferWebResponse pending(CreateFriendshipOfferWebResponse offer) {

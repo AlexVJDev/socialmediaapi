@@ -15,7 +15,7 @@
 --   P 22222222-2222-2222-2222-222222222222  автор поста
 --
 -- Заявки (friendship_offer):
---   9c4e1b77-…3e44  A → B  PENDING   get / accept / reject (actorId = B); create A → B даёт 200 ALREADY_PENDING
+--   9c4e1b77-…3e44  A → B  PENDING   get / accept / reject (X-User-Id = B); create A → B (X-User-Id = A) даёт 200 ALREADY_PENDING
 --   2f6b9d13-…2a55  C → B  PENDING   входящие B
 --   e8a4c2d6-…4b77  A → D  PENDING   исходящие A
 --   c1d2e3f4-…4e00  A → C  ACCEPTED  основание дружбы A и C (в контракте не упоминается)

@@ -39,6 +39,8 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
  * и избавляют контроллер от деталей его сборки (маппинг enum, переименование полей,
  * заполнение DTO). Маппер не содержит бизнес-правил и не вызывает репозитории.
  * Методы {@code to*Command} работают в обратную сторону: web-запрос → команда сценария.
+ * Действующий пользователь (отправитель, принимающий, отклоняющий) приходит отдельным аргументом
+ * из {@code CurrentUserProvider}, а не из тела запроса.
  * <p>
  * Web DTO генерируются по OpenAPI-контракту ({@code openapi-generator-maven-plugin}).
  * {@code status} маппится по имени: доменный {@code FriendshipOfferStatus} → {@code StatusEnum} ответа.
@@ -51,13 +53,34 @@ import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 @Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface FriendshipOfferWebMapper {
 
-    CreateFriendshipOfferCommand toCommand(CreateFriendshipOfferWebRequest request);
+    /**
+     * @param fromUserId отправитель — текущий пользователь из {@code CurrentUserProvider}
+     * @param request    тело запроса с получателем
+     * @return команда сценария
+     */
+    @Mapping(target = "fromUserId", source = "fromUserId")
+    @Mapping(target = "toUserId", source = "request.toUserId")
+    CreateFriendshipOfferCommand toCommand(UUID fromUserId, CreateFriendshipOfferWebRequest request);
 
     CreateFriendshipOfferWebResponse toResponse(CreateFriendshipOfferResult result);
 
-    AcceptFriendshipOfferCommand toAcceptCommand(AcceptFriendshipOfferWebRequest request);
+    /**
+     * @param actorId действующий — текущий пользователь из {@code CurrentUserProvider}
+     * @param request тело запроса с id заявки
+     * @return команда сценария
+     */
+    @Mapping(target = "actorId", source = "actorId")
+    @Mapping(target = "offerId", source = "request.offerId")
+    AcceptFriendshipOfferCommand toAcceptCommand(UUID actorId, AcceptFriendshipOfferWebRequest request);
 
-    RejectFriendshipOfferCommand toRejectCommand(RejectFriendshipOfferWebRequest request);
+    /**
+     * @param actorId действующий — текущий пользователь из {@code CurrentUserProvider}
+     * @param request тело запроса с id заявки
+     * @return команда сценария
+     */
+    @Mapping(target = "actorId", source = "actorId")
+    @Mapping(target = "offerId", source = "request.offerId")
+    RejectFriendshipOfferCommand toRejectCommand(UUID actorId, RejectFriendshipOfferWebRequest request);
 
     @Mapping(target = "acceptedAt", source = "decidedAt")
     AcceptFriendshipOfferWebResponse toAcceptResponse(FriendshipOfferDecisionResult result);

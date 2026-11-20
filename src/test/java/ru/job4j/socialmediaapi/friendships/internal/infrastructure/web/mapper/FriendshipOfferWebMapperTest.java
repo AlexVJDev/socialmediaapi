@@ -50,15 +50,14 @@ class FriendshipOfferWebMapperTest {
             Mappers.getMapper(FriendshipOfferWebMapper.class);
 
     @Test
-    @DisplayName("toCommand: идентификаторы пользователей переносятся в команду сценария")
+    @DisplayName("toCommand: текущий пользователь — отправитель, toUserId из тела — получатель")
     void whenToCommandThenCopyUserIds() {
-        var request = new CreateFriendshipOfferWebRequest(UUID.randomUUID(), UUID.randomUUID());
+        var fromUserId = UUID.randomUUID();
+        var request = new CreateFriendshipOfferWebRequest(UUID.randomUUID());
 
-        var command = mapper.toCommand(request);
+        var command = mapper.toCommand(fromUserId, request);
 
-        assertThat(command).isEqualTo(new CreateFriendshipOfferCommand(
-                request.getFromUserId(), request.getToUserId()
-        ));
+        assertThat(command).isEqualTo(new CreateFriendshipOfferCommand(fromUserId, request.getToUserId()));
     }
 
     @Test
@@ -78,14 +77,14 @@ class FriendshipOfferWebMapperTest {
     }
 
     @Test
-    @DisplayName("toAcceptCommand / toRejectCommand: id заявки и действующий пользователь переносятся в команду")
+    @DisplayName("toAcceptCommand / toRejectCommand: id заявки из тела и текущий пользователь переносятся в команду")
     void whenToDecisionCommandThenCopyIds() {
         var offerId = UUID.randomUUID();
         var actorId = UUID.randomUUID();
 
-        assertThat(mapper.toAcceptCommand(new AcceptFriendshipOfferWebRequest(offerId, actorId)))
+        assertThat(mapper.toAcceptCommand(actorId, new AcceptFriendshipOfferWebRequest(offerId)))
                 .isEqualTo(new AcceptFriendshipOfferCommand(offerId, actorId));
-        assertThat(mapper.toRejectCommand(new RejectFriendshipOfferWebRequest(offerId, actorId)))
+        assertThat(mapper.toRejectCommand(actorId, new RejectFriendshipOfferWebRequest(offerId)))
                 .isEqualTo(new RejectFriendshipOfferCommand(offerId, actorId));
     }
 

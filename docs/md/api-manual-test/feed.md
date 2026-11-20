@@ -55,7 +55,7 @@ echo "reader=$READER alice=$ALICE bob=$BOB stranger=$STRANGER"
 
 for AUTHOR in $ALICE $BOB; do
   curl -s -o /dev/null -w '%{http_code}\n' -X POST "$OFFERS/create" -H 'Content-Type: application/json' \
-    -d "{\"fromUserId\":\"$READER\",\"toUserId\":\"$AUTHOR\"}"
+    -H "X-User-Id: $READER" -d "{\"toUserId\":\"$AUTHOR\"}"
 done
 
 $PSQL -c "INSERT INTO posts (id, author_id, title, content, status, created_at, updated_at) VALUES

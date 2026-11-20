@@ -1,0 +1,29 @@
+meta {
+  name: Заявка самому себе
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/create
+  body: json
+  auth: none
+}
+
+headers {
+  X-User-Id: {{aliceId}}
+}
+
+body:json {
+  {"toUserId": "{{aliceId}}"}
+}
+
+tests {
+  test("статус 400", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("code = VALIDATION_ERROR", function() {
+    expect(res.body.code).to.equal("VALIDATION_ERROR");
+  });
+}

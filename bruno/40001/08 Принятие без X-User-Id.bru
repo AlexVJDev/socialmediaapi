@@ -1,0 +1,25 @@
+meta {
+  name: Принятие без X-User-Id
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/accept
+  body: json
+  auth: none
+}
+
+body:json {
+  {"offerId": "{{offerAlice}}"}
+}
+
+tests {
+  test("статус 401", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("code = UNAUTHORIZED", function() {
+    expect(res.body.code).to.equal("UNAUTHORIZED");
+  });
+}

@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import ru.job4j.socialmediaapi.E2ETest;
@@ -107,12 +109,18 @@ class FriendshipE2ETest {
 
     private void befriend(UUID sender, UUID recipient) {
         var created = restTemplate.postForEntity(OFFERS + "/create",
-                new CreateFriendshipOfferWebRequest(sender, recipient), CreateFriendshipOfferWebResponse.class);
+                asUser(sender, new CreateFriendshipOfferWebRequest(recipient)), CreateFriendshipOfferWebResponse.class);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assert created.getBody() != null;
         var accepted = restTemplate.postForEntity(OFFERS + "/accept",
-                new AcceptFriendshipOfferWebRequest(created.getBody().getId(), recipient),
+                asUser(recipient, new AcceptFriendshipOfferWebRequest(created.getBody().getId())),
                 AcceptFriendshipOfferWebResponse.class);
         assertThat(accepted.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private static <T> HttpEntity<T> asUser(UUID userId, T body) {
+        var headers = new HttpHeaders();
+        headers.set("X-User-Id", userId.toString());
+        return new HttpEntity<>(body, headers);
     }
 }

@@ -49,7 +49,10 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     /** Сценарий чтения страницы заявок текущего пользователя. */
     private final GetFriendshipOffers getFriendshipOffers;
 
-    /** Текущий пользователь: читатель страницы заявок. */
+    /**
+     * Текущий пользователь (заголовок {@code X-User-Id}): отправитель, принимающий или отклоняющий заявку,
+     * читатель страницы заявок. Нет заголовка или не UUID — {@code 401} ({@code GlobalExceptionHandler}).
+     */
     private final CurrentUserProvider currentUser;
 
     /** Преобразует web DTO в команду сценария и результат обратно. */
@@ -61,15 +64,17 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * {@code PENDING} → {@code 200} FRIENDSHIP_OFFER_ALREADY_PENDING,
      * {@code ACCEPTED} / {@code REJECTED} → {@code 409} с кодом статуса,
      * статус прочитать не удалось → {@code 409} FRIENDSHIP_OFFER_ALREADY_EXISTS.
+     * Отправитель — текущий пользователь.
      *
-     * @param request отправитель и получатель заявки
+     * @param request получатель заявки
      * @return созданная заявка
      */
     @Override
     public ResponseEntity<?> createFriendshipOffer(
             CreateFriendshipOfferWebRequest request
     ) {
-        CreateFriendshipOfferResult result = createFriendshipOffer.create(mapper.toCommand(request));
+        UUID fromUserId = currentUser.currentUserId();
+        CreateFriendshipOfferResult result = createFriendshipOffer.create(mapper.toCommand(fromUserId, request));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(result));
     }
 
@@ -77,31 +82,34 @@ public class FriendshipOfferController implements FriendshipOfferApi {
      * {@code 200} с принятой заявкой; дружба и обратная подписка создаются
      * в той же транзакции. На ошибки ({@code 404} — заявки нет или пользователь не её получатель,
      * {@code 409} — уже решена) отвечает {@code FriendshipOfferExceptionHandler}.
+     * Принимающий — текущий пользователь.
      *
-     * @param request заявка и принимающий её пользователь
+     * @param request принимаемая заявка
      * @return принятая заявка
      */
     @Override
     public ResponseEntity<?> acceptFriendshipOffer(
             AcceptFriendshipOfferWebRequest request
     ) {
-        FriendshipOfferDecisionResult result = acceptFriendshipOffer.accept(mapper.toAcceptCommand(request));
+        UUID actorId = currentUser.currentUserId();
+        FriendshipOfferDecisionResult result = acceptFriendshipOffer.accept(mapper.toAcceptCommand(actorId, request));
         return ResponseEntity.ok(mapper.toAcceptResponse(result));
     }
 
     /**
      * {@code 200} с отклонённой заявкой; дружба не создаётся, отправитель остаётся подписанным.
      * На ошибки ({@code 404} — заявки нет или пользователь не её получатель, {@code 409} — уже решена)
-     * отвечает {@code FriendshipOfferExceptionHandler}.
+     * отвечает {@code FriendshipOfferExceptionHandler}. Отклоняющий — текущий пользователь.
      *
-     * @param request заявка и отклоняющий её пользователь
+     * @param request отклоняемая заявка
      * @return отклонённая заявка
      */
     @Override
     public ResponseEntity<?> rejectFriendshipOffer(
             RejectFriendshipOfferWebRequest request
     ) {
-        FriendshipOfferDecisionResult result = rejectFriendshipOffer.reject(mapper.toRejectCommand(request));
+        UUID actorId = currentUser.currentUserId();
+        FriendshipOfferDecisionResult result = rejectFriendshipOffer.reject(mapper.toRejectCommand(actorId, request));
         return ResponseEntity.ok(mapper.toRejectResponse(result));
     }
 

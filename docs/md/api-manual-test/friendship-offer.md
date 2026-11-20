@@ -15,21 +15,22 @@
 Команды выполняются сверху вниз в одном терминале: переменные (`OFFER`, `OFFER2`, `NEXT_AT`, …) создаются
 в предыдущих разделах. Они рассчитаны на `zsh`/`bash` (macOS, Linux, Git Bash), нужны `curl`, `jq` и `uuidgen`.
 
-Тело любой ошибки — `{"code": "...", "message": "..."}` (схема `docs/api/schemas/error.yaml`). Коды и тексты
-одинаковы во всех разделах:
+Тело любой ошибки — `{"status": ..., "detail": "...", "code": "..."}`, `Content-Type: application/problem+json`
+(схема `docs/api/schemas/api-error-response.yaml`). Коды и тексты одинаковы во всех разделах:
 
-| `code` | Статус | `message` |
+| `code` | Статус | `detail` |
 | --- | --- | --- |
-| `INVALID_FRIENDSHIP_OFFER_REQUEST` | `400` | Некорректное тело или параметры запроса |
+| `VALIDATION_ERROR` | `400` | Некорректное тело или параметры запроса |
 | `FRIENDSHIP_OFFER_ALREADY_PENDING` | `200` | Предложение дружбы уже отправлено (только `create`) |
 | `FRIENDSHIP_OFFER_NOT_FOUND` | `404` | Предложение дружбы не найдено |
 | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | `409` | Предложение дружбы уже принято |
 | `FRIENDSHIP_OFFER_ALREADY_REJECTED` | `409` | Предложение дружбы уже отклонено |
+| `UNAUTHORIZED` | `401` | Пользователь не определён (нет `X-User-Id` или не UUID) |
 
 Пример:
 
 ```json
-{"code":"INVALID_FRIENDSHIP_OFFER_REQUEST","message":"Некорректное тело или параметры запроса"}
+{"status":400,"detail":"Некорректное тело или параметры запроса","code":"VALIDATION_ERROR"}
 ```
 
 | Эндпоинт | Назначение |
@@ -72,14 +73,16 @@ echo "alice=$ALICE bob=$BOB carol=$CAROL dave=$DAVE"
 
 ### Запрос
 
+Отправитель — заголовок `X-User-Id` (текущий пользователь), в теле только получатель:
+
 ```json
-{"fromUserId": "<uuid>", "toUserId": "<uuid>"}
+{"toUserId": "<uuid>"}
 ```
 
-| Поле | Тип | Обязательное | Описание |
-| --- | --- | --- | --- |
-| `fromUserId` | `string (uuid)` | Да | Отправитель |
-| `toUserId` | `string (uuid)` | Да | Получатель, не равен отправителю |
+| Где | Поле | Тип | Обязательное | Описание |
+| --- | --- | --- | --- | --- |
+| заголовок | `X-User-Id` | `string (uuid)` | Да | Отправитель |
+| тело | `toUserId` | `string (uuid)` | Да | Получатель, не равен `X-User-Id` |
 
 ### Ответ
 
@@ -96,7 +99,8 @@ echo "alice=$ALICE bob=$BOB carol=$CAROL dave=$DAVE"
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
 | `200 OK` | `FRIENDSHIP_OFFER_ALREADY_PENDING` | Заявка пары (в любом направлении) уже ждёт решения; ничего не меняется |
-| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | Тело не читается, нет поля или оно `null`, id не UUID, заявка самому себе |
+| `400` | `VALIDATION_ERROR` | Тело не читается, нет поля или оно `null`, id не UUID, заявка самому себе |
+| `401` | `UNAUTHORIZED` | Нет `X-User-Id` или не UUID (при корректном теле) |
 | `409` | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | Заявка пары уже принята |
 | `409` | `FRIENDSHIP_OFFER_ALREADY_REJECTED` | Заявка пары уже отклонена |
 
@@ -110,46 +114,49 @@ echo "alice=$ALICE bob=$BOB carol=$CAROL dave=$DAVE"
 
 ```shell
 OFFER=$(curl -s -D /dev/stderr -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\",\"toUserId\":\"$BOB\"}" | tee /dev/stderr | jq -r .id); echo; echo "offer=$OFFER"
+  -H "X-User-Id: $ALICE" -d "{\"toUserId\":\"$BOB\"}" | tee /dev/stderr | jq -r .id); echo; echo "offer=$OFFER"
 ```
 
 **1.2. Заявка Carol → Dave** → `201`, id в `OFFER2` (её отклонят в разделе 3).
 
 ```shell
 OFFER2=$(curl -s -D /dev/stderr -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$CAROL\",\"toUserId\":\"$DAVE\"}" | jq -r .id); echo "offer2=$OFFER2"
+  -H "X-User-Id: $CAROL" -d "{\"toUserId\":\"$DAVE\"}" | jq -r .id); echo "offer2=$OFFER2"
 ```
 
 **1.3. Повтор Alice → Bob** → `200 FRIENDSHIP_OFFER_ALREADY_PENDING`.
 
 ```shell
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\",\"toUserId\":\"$BOB\"}" -w '\n'
+  -H "X-User-Id: $ALICE" -d "{\"toUserId\":\"$BOB\"}" -w '\n'
 ```
 
 **1.4. Встречная Bob → Alice** → тот же `200 FRIENDSHIP_OFFER_ALREADY_PENDING`.
 
 ```shell
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$BOB\",\"toUserId\":\"$ALICE\"}" -w '\n'
+  -H "X-User-Id: $BOB" -d "{\"toUserId\":\"$ALICE\"}" -w '\n'
 ```
 
-**1.5. Некорректные запросы** → все `400 INVALID_FRIENDSHIP_OFFER_REQUEST`. По порядку: заявка самому себе,
-нет `toUserId`, нет `fromUserId`, пустой объект, `toUserId` равен `null`, id не UUID, тело не JSON.
+**1.5. Некорректные запросы** → все `400 VALIDATION_ERROR`. По порядку: заявка самому себе
+(`toUserId` = `X-User-Id`), пустой объект, `toUserId` равен `null`, id не UUID, тело не JSON.
 
 ```shell
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\",\"toUserId\":\"$ALICE\"}" -w '\n'
+  -H "X-User-Id: $ALICE" -d "{\"toUserId\":\"$ALICE\"}" -w '\n'
+curl -i -X POST "$API/create" -H 'Content-Type: application/json' -H "X-User-Id: $ALICE" -d '{}' -w '\n'
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\"}" -w '\n'
+  -H "X-User-Id: $ALICE" -d '{"toUserId":null}' -w '\n'
+curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
+  -H "X-User-Id: $ALICE" -d '{"toUserId":"2"}' -w '\n'
+curl -i -X POST "$API/create" -H 'Content-Type: application/json' -H "X-User-Id: $ALICE" -d '{oops' -w '\n'
+```
+
+**1.6. Без `X-User-Id`** → `401 UNAUTHORIZED`, заявка не создаётся.
+
+```shell
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
   -d "{\"toUserId\":\"$BOB\"}" -w '\n'
-curl -i -X POST "$API/create" -H 'Content-Type: application/json' -d '{}' -w '\n'
-curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$ALICE\",\"toUserId\":null}" -w '\n'
-curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d '{"fromUserId":"1","toUserId":"2"}' -w '\n'
-curl -i -X POST "$API/create" -H 'Content-Type: application/json' -d '{oops' -w '\n'
 ```
 
 Повторы для принятой и отклонённой пары (`409`) проверяются в разделах 2 и 3, после решения.
@@ -164,13 +171,13 @@ curl -i -X POST "$API/create" -H 'Content-Type: application/json' -d '{oops' -w 
 ### Запрос
 
 ```json
-{"offerId": "<uuid>", "actorId": "<uuid>"}
+{"offerId": "<uuid>"}
 ```
 
-| Поле | Тип | Обязательное | Описание |
-| --- | --- | --- | --- |
-| `offerId` | `string (uuid)` | Да | Заявка |
-| `actorId` | `string (uuid)` | Да | Кто принимает — должен быть получателем (до Keycloak передаётся в теле) |
+| Где | Поле | Тип | Обязательное | Описание |
+| --- | --- | --- | --- | --- |
+| заголовок | `X-User-Id` | `string (uuid)` | Да | Кто принимает — должен быть получателем |
+| тело | `offerId` | `string (uuid)` | Да | Заявка |
 
 ### Ответ
 
@@ -186,8 +193,9 @@ curl -i -X POST "$API/create" -H 'Content-Type: application/json' -d '{oops' -w 
 
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | Тело не читается, нет поля или оно `null`, id не UUID |
-| `404` | `FRIENDSHIP_OFFER_NOT_FOUND` | Заявки нет или `actorId` не её получатель (чужая заявка не раскрывается) |
+| `400` | `VALIDATION_ERROR` | Тело не читается, нет поля или оно `null`, id не UUID |
+| `401` | `UNAUTHORIZED` | Нет `X-User-Id` или не UUID (при корректном теле) |
+| `404` | `FRIENDSHIP_OFFER_NOT_FOUND` | Заявки нет или `X-User-Id` не её получатель (чужая заявка не раскрывается) |
 | `409` | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | Заявка уже принята, в том числе повтор |
 | `409` | `FRIENDSHIP_OFFER_ALREADY_REJECTED` | Заявка уже отклонена |
 
@@ -197,53 +205,49 @@ curl -i -X POST "$API/create" -H 'Content-Type: application/json' -d '{oops' -w 
 
 ```shell
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER\",\"actorId\":\"$ALICE\"}" -w '\n'
+  -H "X-User-Id: $ALICE" -d "{\"offerId\":\"$OFFER\"}" -w '\n'
 ```
 
 **2.2. Принять от имени получателя (Bob)** → `200`, `status: ACCEPTED`, есть `acceptedAt`.
 
 ```shell
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER\",\"actorId\":\"$BOB\"}" -w '\n'
+  -H "X-User-Id: $BOB" -d "{\"offerId\":\"$OFFER\"}" -w '\n'
 ```
 
 **2.3. Принять ещё раз** → `409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED`.
 
 ```shell
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER\",\"actorId\":\"$BOB\"}" -w '\n'
+  -H "X-User-Id: $BOB" -d "{\"offerId\":\"$OFFER\"}" -w '\n'
 ```
 
 **2.4. Создать заявку для подружившейся пары** (любое направление) → `409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED`.
 
 ```shell
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$BOB\",\"toUserId\":\"$ALICE\"}" -w '\n'
+  -H "X-User-Id: $BOB" -d "{\"toUserId\":\"$ALICE\"}" -w '\n'
 ```
 
-**2.5. Несуществующая заявка** → `404 FRIENDSHIP_OFFER_NOT_FOUND`; **нет `actorId`** → `400`.
+**2.5. Несуществующая заявка** → `404 FRIENDSHIP_OFFER_NOT_FOUND`; **нет `X-User-Id`** → `401`.
 
 ```shell
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$(uuidgen)\",\"actorId\":\"$BOB\"}" -w '\n'
+  -H "X-User-Id: $BOB" -d "{\"offerId\":\"$(uuidgen)\"}" -w '\n'
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
   -d "{\"offerId\":\"$OFFER\"}" -w '\n'
 ```
 
-**2.6. Некорректные тела** → все `400 INVALID_FRIENDSHIP_OFFER_REQUEST`, заявка не меняется. По порядку:
-нет `offerId`, пустой объект, `actorId` равен `null`, `offerId` не UUID, `actorId` пустая строка, тело не JSON.
+**2.6. Некорректные тела** → все `400 VALIDATION_ERROR`, заявка не меняется. По порядку:
+пустой объект, `offerId` равен `null`, `offerId` не UUID, тело не JSON.
 
 ```shell
+curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -H "X-User-Id: $BOB" -d '{}' -w '\n'
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"actorId\":\"$BOB\"}" -w '\n'
-curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -d '{}' -w '\n'
+  -H "X-User-Id: $BOB" -d '{"offerId":null}' -w '\n'
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER\",\"actorId\":null}" -w '\n'
-curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"42\",\"actorId\":\"$BOB\"}" -w '\n'
-curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER\",\"actorId\":\"\"}" -w '\n'
-curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -d '{oops' -w '\n'
+  -H "X-User-Id: $BOB" -d '{"offerId":"42"}' -w '\n'
+curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -H "X-User-Id: $BOB" -d '{oops' -w '\n'
 ```
 
 ---
@@ -255,7 +259,7 @@ curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -d '{oops' -w 
 
 ### Запрос
 
-Тело — как у `accept`: `{"offerId": "<uuid>", "actorId": "<uuid>"}`, `actorId` — получатель заявки.
+Как у `accept`: заголовок `X-User-Id` — получатель заявки, тело `{"offerId": "<uuid>"}`.
 
 ### Ответ
 
@@ -271,8 +275,9 @@ curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -d '{oops' -w 
 
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | Тело не читается, нет поля или оно `null`, id не UUID |
-| `404` | `FRIENDSHIP_OFFER_NOT_FOUND` | Заявки нет или `actorId` не её получатель |
+| `400` | `VALIDATION_ERROR` | Тело не читается, нет поля или оно `null`, id не UUID |
+| `401` | `UNAUTHORIZED` | Нет `X-User-Id` или не UUID (при корректном теле) |
+| `404` | `FRIENDSHIP_OFFER_NOT_FOUND` | Заявки нет или `X-User-Id` не её получатель |
 | `409` | `FRIENDSHIP_OFFER_ALREADY_ACCEPTED` | Заявка уже принята |
 | `409` | `FRIENDSHIP_OFFER_ALREADY_REJECTED` | Заявка уже отклонена, в том числе повтор |
 
@@ -282,51 +287,47 @@ curl -i -X POST "$API/accept" -H 'Content-Type: application/json' -d '{oops' -w 
 
 ```shell
 curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER2\",\"actorId\":\"$DAVE\"}" -w '\n'
+  -H "X-User-Id: $DAVE" -d "{\"offerId\":\"$OFFER2\"}" -w '\n'
 ```
 
 **3.2. Отклонить ещё раз** → `409 FRIENDSHIP_OFFER_ALREADY_REJECTED`.
 
 ```shell
 curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER2\",\"actorId\":\"$DAVE\"}" -w '\n'
+  -H "X-User-Id: $DAVE" -d "{\"offerId\":\"$OFFER2\"}" -w '\n'
 ```
 
 **3.3. Принять отклонённую** → `409 FRIENDSHIP_OFFER_ALREADY_REJECTED`.
 
 ```shell
 curl -i -X POST "$API/accept" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER2\",\"actorId\":\"$DAVE\"}" -w '\n'
+  -H "X-User-Id: $DAVE" -d "{\"offerId\":\"$OFFER2\"}" -w '\n'
 ```
 
 **3.4. Отклонить принятую (из раздела 2)** → `409 FRIENDSHIP_OFFER_ALREADY_ACCEPTED`.
 
 ```shell
 curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER\",\"actorId\":\"$BOB\"}" -w '\n'
+  -H "X-User-Id: $BOB" -d "{\"offerId\":\"$OFFER\"}" -w '\n'
 ```
 
 **3.5. Создать заявку для отклонённой пары** → `409 FRIENDSHIP_OFFER_ALREADY_REJECTED`.
 
 ```shell
 curl -i -X POST "$API/create" -H 'Content-Type: application/json' \
-  -d "{\"fromUserId\":\"$CAROL\",\"toUserId\":\"$DAVE\"}" -w '\n'
+  -H "X-User-Id: $CAROL" -d "{\"toUserId\":\"$DAVE\"}" -w '\n'
 ```
 
-**3.6. Некорректные тела** → все `400 INVALID_FRIENDSHIP_OFFER_REQUEST`, заявка не меняется. По порядку:
-нет `offerId`, пустой объект, `actorId` равен `null`, `offerId` не UUID, `actorId` пустая строка, тело не JSON.
+**3.6. Некорректные тела** → все `400 VALIDATION_ERROR`, заявка не меняется. По порядку:
+пустой объект, `offerId` равен `null`, `offerId` не UUID, тело не JSON.
 
 ```shell
+curl -i -X POST "$API/reject" -H 'Content-Type: application/json' -H "X-User-Id: $DAVE" -d '{}' -w '\n'
 curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"actorId\":\"$DAVE\"}" -w '\n'
-curl -i -X POST "$API/reject" -H 'Content-Type: application/json' -d '{}' -w '\n'
+  -H "X-User-Id: $DAVE" -d '{"offerId":null}' -w '\n'
 curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER2\",\"actorId\":null}" -w '\n'
-curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"42\",\"actorId\":\"$DAVE\"}" -w '\n'
-curl -i -X POST "$API/reject" -H 'Content-Type: application/json' \
-  -d "{\"offerId\":\"$OFFER2\",\"actorId\":\"\"}" -w '\n'
-curl -i -X POST "$API/reject" -H 'Content-Type: application/json' -d '{oops' -w '\n'
+  -H "X-User-Id: $DAVE" -d '{"offerId":"42"}' -w '\n'
+curl -i -X POST "$API/reject" -H 'Content-Type: application/json' -H "X-User-Id: $DAVE" -d '{oops' -w '\n'
 ```
 
 ---
@@ -370,7 +371,7 @@ curl -i -X POST "$API/reject" -H 'Content-Type: application/json' -d '{oops' -w 
 
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | `offerId` не UUID |
+| `400` | `VALIDATION_ERROR` | `offerId` не UUID |
 | `404` | `FRIENDSHIP_OFFER_NOT_FOUND` | Заявки с таким id нет |
 
 ### Проверка
@@ -432,7 +433,7 @@ curl -i "$API/42" -w '\n'
 
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | `limit` вне 1..100 или не число, `afterCreatedAt` не дата-время, `afterId` не UUID, задана только одна часть курсора |
+| `400` | `VALIDATION_ERROR` | `limit` вне 1..100 или не число, `afterCreatedAt` не дата-время, `afterId` не UUID, задана только одна часть курсора |
 
 ### Проверка
 
@@ -515,7 +516,7 @@ curl -s "$API?limit=100" | jq '.offers | length'
 
 | Статус | `code` | Ситуация |
 | --- | --- | --- |
-| `400` | `INVALID_FRIENDSHIP_OFFER_REQUEST` | `userId` не передан или не UUID (контракт описывает отдельный `INVALID_USER_ID` — вернём его, когда эндпоинты будут реализованы) |
+| `400` | `VALIDATION_ERROR` | `userId` не передан или не UUID (контракт описывает отдельный `INVALID_USER_ID` — вернём его, когда эндпоинты будут реализованы) |
 
 `404 USER_NOT_FOUND` из контракта не возвращается: таблицы пользователей пока нет.
 
@@ -528,7 +529,7 @@ curl -i "$API/incoming?userId=$BOB" -w '\n'
 curl -i "$API/outgoing?userId=$ALICE" -w '\n'
 ```
 
-**6.2. `userId` не UUID и без `userId`** → оба `400 INVALID_FRIENDSHIP_OFFER_REQUEST`.
+**6.2. `userId` не UUID и без `userId`** → оба `400 VALIDATION_ERROR`.
 
 ```shell
 curl -i "$API/incoming?userId=1" -w '\n'

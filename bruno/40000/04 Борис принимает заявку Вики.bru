@@ -10,8 +10,12 @@ post {
   auth: none
 }
 
+headers {
+  X-User-Id: {{borisId}}
+}
+
 body:json {
-  {"offerId": "{{offerVika}}", "actorId": "{{borisId}}"}
+  {"offerId": "{{offerVika}}"}
 }
 
 tests {

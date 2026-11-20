@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "40001 create/accept/reject: X-User-Id",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

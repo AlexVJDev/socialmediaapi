@@ -10,8 +10,12 @@ post {
   auth: none
 }
 
+headers {
+  X-User-Id: {{vikaId}}
+}
+
 body:json {
-  {"fromUserId": "{{vikaId}}", "toUserId": "{{borisId}}"}
+  {"toUserId": "{{borisId}}"}
 }
 
 script:post-response {
