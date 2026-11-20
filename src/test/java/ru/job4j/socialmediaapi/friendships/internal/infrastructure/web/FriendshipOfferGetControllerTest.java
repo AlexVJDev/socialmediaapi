@@ -23,12 +23,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -36,36 +34,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The database is shared with other tests, and some of them store offers with arbitrary dates,
- * up to the far future ({@code FriendshipOfferPersistenceAdapterTest}). So a test that checks the order
- * of a page reads it by a cursor right after its own offers, not from the newest offer of the table.
- * The application clock of this test starts at {@link #windowStart()} and does not depend on the system time:
- * every reading is one second later than the previous one, so offers created one after another
- * always get growing, distinct {@code created_at} even on a machine with a coarse or
- * non-monotonic system clock (CI containers).
+ * Страницы читаются только для текущего пользователя, и у каждого теста свои случайные пользователи, поэтому
+ * заявки других тестов на страницу не попадают. Часы приложения в этом тесте не зависят от системного времени:
+ * каждое чтение на секунду позже предыдущего, поэтому заявки, созданные одна за другой,
+ * всегда получают растущие и различные {@code created_at} даже на машине с грубыми или
+ * немонотонными системными часами (CI-контейнеры).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@DisplayName("GET /api/v1/friendship-offer[/{offerId}]: заявка по id и страницы всех заявок")
+@DisplayName("GET /api/v1/friendship-offer[/{offerId}]: заявка по id и страницы заявок текущего пользователя")
 class FriendshipOfferGetControllerTest {
 
-    /** Base URL of the friendship offer endpoints. */
+    /** Базовый URL эндпоинтов заявок в друзья. */
     private static final String BASE = "/api/v1/friendship-offer";
 
-    /**
-     * Earliest start of the clock: far from the dates of other tests (up to {@code 3217} in
-     * {@code FriendshipOfferPersistenceAdapterTest#window()}, from {@code 9000} in its {@code newerThanAll()}).
-     */
-    private static final Instant EARLIEST_START = Instant.parse("5000-01-01T00:00:00Z");
+    /** Заголовок текущего пользователя. */
+    private static final String USER_HEADER = "X-User-Id";
 
-    /** Number of possible clock windows: they all end before {@code 9000-01-01}. */
-    private static final long WINDOWS = 12_000_000L;
+    /** Время первого чтения часов приложения. */
+    private static final Instant CLOCK_START = Instant.parse("2026-10-01T10:00:00Z");
 
-    /** Length of one clock window, far more seconds than all tests of the class read from the clock. */
-    private static final long WINDOW_SECONDS = 10_000L;
-
-    /** MockMvc to call the API without a running server. */
+    /** MockMvc для вызова API без запущенного сервера. */
     @Autowired
     private MockMvc mockMvc;
 
@@ -110,21 +100,18 @@ class FriendshipOfferGetControllerTest {
     }
 
     @Test
-    @DisplayName("Страницы по курсору: новые заявки первыми, next ведёт на следующую страницу без повторов")
-    void whenPagedThenNewestFirstAndNextLeadsOn() throws Exception {
-        var first = createOffer(UUID.randomUUID(), UUID.randomUUID());
-        var second = createOffer(UUID.randomUUID(), UUID.randomUUID());
-        var third = createOffer(UUID.randomUUID(), UUID.randomUUID());
-        // Other tests of the shared database store offers with arbitrary future dates, so the page
-        // starts right after the newest offer of this test, not at the newest offer of the table.
-        var thirdCreatedAt = Instant.parse(JsonPath.<String>read(
-                mockMvc.perform(get(BASE + "/" + third)).andReturn().getResponse().getContentAsString(),
-                "$.createdAt"));
+    @DisplayName("INCOMING: страницы входящих текущего пользователя, новые первыми, next ведёт на следующую страницу")
+    void whenIncomingPagedThenNewestFirstAndNextLeadsOn() throws Exception {
+        var user = UUID.randomUUID();
+        var first = createOffer(UUID.randomUUID(), user);
+        var second = createOffer(UUID.randomUUID(), user);
+        var third = createOffer(UUID.randomUUID(), user);
+        createOffer(user, UUID.randomUUID());
 
         var page = mockMvc.perform(get(BASE)
-                        .param("limit", "2")
-                        .param("afterCreatedAt", thirdCreatedAt.plusSeconds(1).toString())
-                        .param("afterId", UUID.randomUUID().toString()))
+                        .header(USER_HEADER, user)
+                        .param("direction", "INCOMING")
+                        .param("limit", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offers.length()").value(2))
                 .andExpect(jsonPath("$.offers[0].id").value(third.toString()))
@@ -134,47 +121,58 @@ class FriendshipOfferGetControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         mockMvc.perform(get(BASE)
+                        .header(USER_HEADER, user)
+                        .param("direction", "INCOMING")
                         .param("limit", "2")
                         .param("afterCreatedAt", JsonPath.<String>read(page, "$.next.createdAt"))
                         .param("afterId", JsonPath.<String>read(page, "$.next.id")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers[0].id").value(first.toString()));
+                .andExpect(jsonPath("$.offers.length()").value(1))
+                .andExpect(jsonPath("$.offers[0].id").value(first.toString()))
+                .andExpect(jsonPath("$.next").value(nullValue()));
     }
 
     @Test
-    @DisplayName("Границы limit: 1 и 100 допустимы")
-    void whenLimitOnBoundsThenOk() throws Exception {
-        createOffer(UUID.randomUUID(), UUID.randomUUID());
-        createOffer(UUID.randomUUID(), UUID.randomUUID());
+    @DisplayName("OUTGOING + status: принятая исходящая — только при status=ACCEPTED; по умолчанию PENDING")
+    void whenOutgoingWithStatusThenOnlyOffersInStatus() throws Exception {
+        var user = UUID.randomUUID();
+        var recipient = UUID.randomUUID();
+        var accepted = createOffer(user, recipient);
+        mockMvc.perform(post(BASE + "/accept")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"offerId\":\"%s\",\"actorId\":\"%s\"}".formatted(accepted, recipient)))
+                .andExpect(status().isOk());
+        var pending = createOffer(user, UUID.randomUUID());
 
-        mockMvc.perform(get(BASE).param("limit", "1"))
+        mockMvc.perform(get(BASE).header(USER_HEADER, user).param("direction", "OUTGOING").param("status", "ACCEPTED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offers.length()").value(1))
-                .andExpect(jsonPath("$.next").isNotEmpty());
-        mockMvc.perform(get(BASE).param("limit", "100"))
+                .andExpect(jsonPath("$.offers[0].id").value(accepted.toString()))
+                .andExpect(jsonPath("$.offers[0].status").value("ACCEPTED"));
+        mockMvc.perform(get(BASE).header(USER_HEADER, user).param("direction", "OUTGOING"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers.length()").value(lessThanOrEqualTo(100)))
-                .andExpect(jsonPath("$.offers.length()").value(greaterThanOrEqualTo(2)));
+                .andExpect(jsonPath("$.offers.length()").value(1))
+                .andExpect(jsonPath("$.offers[0].id").value(pending.toString()));
     }
 
     @Test
-    @DisplayName("Без limit страница содержит не больше 20 заявок (значение по умолчанию из контракта)")
+    @DisplayName("Без limit страница содержит 20 заявок (значение по умолчанию из контракта)")
     void whenNoLimitThenDefaultLimit() throws Exception {
+        var user = UUID.randomUUID();
         for (int i = 0; i < 21; i++) {
-            createOffer(UUID.randomUUID(), UUID.randomUUID());
+            createOffer(UUID.randomUUID(), user);
         }
 
-        mockMvc.perform(get(BASE))
+        mockMvc.perform(get(BASE).header(USER_HEADER, user).param("direction", "INCOMING"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers.length()").value(20));
+                .andExpect(jsonPath("$.offers.length()").value(20))
+                .andExpect(jsonPath("$.next").isNotEmpty());
     }
 
     @Test
-    @DisplayName("После последней заявки: пустая страница и next: null в теле")
-    void whenNothingAfterCursorThenEmptyPageWithNullNext() throws Exception {
-        var body = mockMvc.perform(get(BASE)
-                        .param("afterCreatedAt", "1970-01-01T00:00:00Z")
-                        .param("afterId", UUID.randomUUID().toString()))
+    @DisplayName("Нет заявок: пустая страница и next: null в теле")
+    void whenNoOffersThenEmptyPageWithNullNext() throws Exception {
+        var body = mockMvc.perform(get(BASE).header(USER_HEADER, UUID.randomUUID()).param("direction", "OUTGOING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offers").isEmpty())
                 .andReturn().getResponse().getContentAsString();
@@ -184,74 +182,60 @@ class FriendshipOfferGetControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "limit=0",
-            "limit=101",
-            "limit=abc",
-            "afterCreatedAt=yesterday&afterId=00000000-0000-0000-0000-000000000001",
-            "afterCreatedAt=2026-10-12T10:15:00Z&afterId=42",
-            "afterCreatedAt=2026-10-12T10:15:00Z",
-            "afterId=00000000-0000-0000-0000-000000000001"
+            "",
+            "direction=FOO",
+            "direction=incoming",
+            "direction=INCOMING&status=FOO",
+            "direction=INCOMING&limit=0",
+            "direction=INCOMING&limit=101",
+            "direction=INCOMING&limit=abc",
+            "direction=INCOMING&afterCreatedAt=yesterday&afterId=00000000-0000-0000-0000-000000000001",
+            "direction=INCOMING&afterCreatedAt=2026-10-12T10:15:00Z&afterId=42",
+            "direction=INCOMING&afterCreatedAt=2026-10-12T10:15:00Z",
+            "direction=INCOMING&afterId=00000000-0000-0000-0000-000000000001"
     })
-    @DisplayName("Некорректные параметры страницы: 400 VALIDATION_ERROR")
+    @DisplayName("Нет direction или некорректные параметры: 400 VALIDATION_ERROR")
     void whenInvalidPageParamsThenBadRequest(String query) throws Exception {
-        expectError(mockMvc.perform(get(BASE + "?" + query)), 400, "VALIDATION_ERROR");
+        expectError(mockMvc.perform(get(BASE + "?" + query).header(USER_HEADER, UUID.randomUUID())),
+                400, "VALIDATION_ERROR");
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-    @DisplayName("incoming/outgoing без userId или с userId не UUID: 400 VALIDATION_ERROR")
-    void whenUserIdMissingOrNotUuidThenBadRequest(String path) throws Exception {
-        expectError(mockMvc.perform(get(BASE + path)), 400, "VALIDATION_ERROR");
+    @Test
+    @DisplayName("Без X-User-Id или X-User-Id не UUID: 401 UNAUTHORIZED")
+    void whenNoCurrentUserThenUnauthorized() throws Exception {
+        expectError(mockMvc.perform(get(BASE).param("direction", "INCOMING")), 401, "UNAUTHORIZED");
+        expectError(mockMvc.perform(get(BASE).header(USER_HEADER, "abc").param("direction", "INCOMING")),
+                401, "UNAUTHORIZED");
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"/incoming", "/outgoing"})
-    @DisplayName("incoming/outgoing с UUID: 501, пока не реализованы")
-    void whenUserIdIsUuidThenNotImplemented(String path) throws Exception {
-        mockMvc.perform(get(BASE + path).param("userId", UUID.randomUUID().toString()))
-                .andExpect(status().isNotImplemented());
-    }
-
-    /**
-     * A fixed start gave the same {@code created_at} to the offers of every context of this class on a shared
-     * or reused database (another run, a restarted context): a foreign offer with the time right after the newest
-     * offer of a test got into its page. A random window of {@value #WINDOW_SECONDS} seconds makes the times
-     * of each context its own.
-     *
-     * @return start of the clock window of one context
-     */
-    private static Instant windowStart() {
-        return EARLIEST_START.plusSeconds(ThreadLocalRandom.current().nextLong(WINDOWS) * WINDOW_SECONDS);
-    }
-
-    /** Replaces the application clock with a {@link SteppingClock} starting at {@link #windowStart()}. */
+    /** Заменяет часы приложения на {@link SteppingClock}, начинающиеся с {@link #CLOCK_START}. */
     @TestConfiguration(proxyBeanMethods = false)
     static class FutureClockConfiguration {
 
         /**
-         * @return clock starting at {@link #windowStart()}: offers created one after another get growing times
+         * @return часы, начинающиеся с {@link #CLOCK_START}: заявки, созданные одна за другой, получают растущее время
          */
         @Bean
         @Primary
         Clock futureClock() {
-            return new SteppingClock(windowStart());
+            return new SteppingClock(CLOCK_START);
         }
     }
 
-    /** UTC clock independent of the system time: each {@link #instant()} is one second after the previous one. */
+    /** Часы UTC, не зависящие от системного времени: каждый {@link #instant()} на секунду позже предыдущего. */
     static final class SteppingClock extends Clock {
 
-        /** Distance between two readings. */
+        /** Шаг между двумя чтениями. */
         private static final Duration STEP = Duration.ofSeconds(1);
 
-        /** Time of the first reading. */
+        /** Время первого чтения. */
         private final Instant start;
 
-        /** Number of readings made so far. */
+        /** Число уже сделанных чтений. */
         private final AtomicLong ticks = new AtomicLong();
 
         /**
-         * @param start time of the first reading
+         * @param start время первого чтения
          */
         SteppingClock(Instant start) {
             this.start = start;

@@ -1,0 +1,10 @@
+type: object
+description: Страница друзей от новых дружб к старым (`createdAt DESC, id DESC`); может быть пустой
+required: [friends, next]
+properties:
+  friends:
+    type: array
+    items:
+      $ref: './friend.yaml'
+  next:
+    $ref: './friend-cursor.yaml'

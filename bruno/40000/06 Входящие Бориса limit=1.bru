@@ -1,0 +1,31 @@
+meta {
+  name: Входящие Бориса limit=1
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendship-offer?direction=INCOMING&limit=1
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+script:post-response {
+  bru.setVar("nextCreatedAt", res.body.next.createdAt);
+  bru.setVar("nextId", res.body.next.id);
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("первая страница — Дима, есть next", function() {
+    expect(res.body.offers.map(i => i.id)).to.eql([bru.getVar("offerDima")]);
+    expect(res.body.next.id).to.equal(bru.getVar("offerDima"));
+  });
+}

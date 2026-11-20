@@ -15,9 +15,11 @@ import ru.job4j.socialmediaapi.friendships.internal.application.port.model.Creat
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferDirection;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferPageResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
+import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -26,14 +28,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * JDBC implementation of the {@link FriendshipOfferRepository} port: native SQL over the
- * {@code friendship_offer} table.
+ * JDBC-реализация порта {@link FriendshipOfferRepository}: нативный SQL по таблице
+ * {@code friendship_offer}.
  */
 @Repository
 @RequiredArgsConstructor
 public class FriendshipOfferPersistenceAdapter implements FriendshipOfferRepository {
 
-    /** Inserts an offer and returns the stored row. */
+    /** Вставляет заявку и возвращает сохранённую строку. */
     private static final String CREATE = """
             INSERT INTO friendship_offer (
                 id, from_user_id, to_user_id,
@@ -44,7 +46,7 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
                       status, created_at, updated_at
             """;
 
-    /** Selects the offer of the pair in either direction and locks it until the end of the transaction. */
+    /** Выбирает заявку пары в любом направлении и блокирует её до конца транзакции. */
     private static final String FIND_BY_PAIR = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
@@ -55,10 +57,10 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
             """;
 
     /**
-     * Changes the status of a {@code PENDING} offer of the given recipient and returns the stored row.
-     * A concurrent decision waits for the row lock of the first one and, after its commit,
-     * re-checks the {@code WHERE} on the new row version: {@code status = 'PENDING'} is false
-     * by then, so it updates nothing.
+     * Меняет статус {@code PENDING}-заявки данного получателя и возвращает сохранённую строку.
+     * Одновременное решение ждёт блокировку строки, взятую первым, и после его коммита
+     * перепроверяет {@code WHERE} на новой версии строки: {@code status = 'PENDING'} уже ложно,
+     * поэтому ничего не обновляется.
      */
     private static final String UPDATE_STATUS_IF_PENDING = """
             UPDATE friendship_offer
@@ -68,7 +70,7 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
                       status, created_at, updated_at
             """;
 
-    /** Selects the offer of the recipient; no lock: the row is only read to choose the error. */
+    /** Выбирает заявку получателя; без блокировки: строка читается только для выбора ошибки. */
     private static final String FIND_BY_ID_AND_RECIPIENT = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
@@ -76,7 +78,7 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
             WHERE id = ? AND to_user_id = ?
             """;
 
-    /** Selects the offer by id; no lock: the row is only read. */
+    /** Выбирает заявку по id; без блокировки: строка только читается. */
     private static final String FIND_BY_ID = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
@@ -85,31 +87,60 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
             """;
 
     /**
-     * First page of all offers, newest first. Parameter: number of rows to read.
-     * The order follows the index {@code idx_friendship_offer_created}.
+     * Первая страница входящих заявок пользователя. Параметры: получатель, статус, число читаемых строк.
+     * Фильтр и порядок совпадают с индексом {@code idx_friendship_offer_incoming}.
      */
-    private static final String FIND_FIRST_PAGE = """
+    private static final String FIND_INCOMING_FIRST_PAGE = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
             FROM friendship_offer
+            WHERE to_user_id = ? AND status = ?
             ORDER BY created_at DESC, id DESC
             LIMIT ?
             """;
 
     /**
-     * Page of the offers after the cursor. Parameters: cursor {@code created_at}, cursor {@code id},
-     * number of rows to read. The row comparison becomes an index condition.
+     * Страница входящих заявок после курсора. Параметры: получатель, статус, {@code created_at} курсора,
+     * {@code id} курсора, число читаемых строк. Сравнение строк становится условием индекса.
      */
-    private static final String FIND_PAGE_AFTER = """
+    private static final String FIND_INCOMING_PAGE_AFTER = """
             SELECT id, from_user_id, to_user_id,
                    status, created_at, updated_at
             FROM friendship_offer
-            WHERE (created_at, id) < (?, ?)
+            WHERE to_user_id = ? AND status = ?
+              AND (created_at, id) < (?, ?)
             ORDER BY created_at DESC, id DESC
             LIMIT ?
             """;
 
-    /** Reads a result set row into {@link FriendshipOfferRow}. */
+    /**
+     * Первая страница исходящих заявок пользователя. Параметры: отправитель, статус, число читаемых строк.
+     * Фильтр и порядок совпадают с индексом {@code idx_friendship_offer_outgoing}.
+     */
+    private static final String FIND_OUTGOING_FIRST_PAGE = """
+            SELECT id, from_user_id, to_user_id,
+                   status, created_at, updated_at
+            FROM friendship_offer
+            WHERE from_user_id = ? AND status = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """;
+
+    /**
+     * Страница исходящих заявок после курсора. Параметры: отправитель, статус, {@code created_at} курсора,
+     * {@code id} курсора, число читаемых строк.
+     */
+    private static final String FIND_OUTGOING_PAGE_AFTER = """
+            SELECT id, from_user_id, to_user_id,
+                   status, created_at, updated_at
+            FROM friendship_offer
+            WHERE from_user_id = ? AND status = ?
+              AND (created_at, id) < (?, ?)
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """;
+
+    /** Читает строку результата в {@link FriendshipOfferRow}. */
     private static final RowMapper<FriendshipOfferRow> ROW_MAPPER =
             (resultSet, rowNum) -> new FriendshipOfferRow(
                     resultSet.getObject("id", UUID.class),
@@ -120,16 +151,16 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
                     resultSet.getTimestamp("updated_at").toInstant()
             );
 
-    /** Executes the native SQL queries. */
+    /** Выполняет нативные SQL-запросы. */
     private final JdbcTemplate jdbcTemplate;
 
-    /** Maps port requests/responses to rows and back. */
+    /** Преобразует запросы/ответы порта в строки и обратно. */
     private final FriendshipOfferPersistenceMapper mapper;
 
     /**
-     * Runs in a nested transaction (a savepoint inside the caller's one):
-     * a unique violation aborts the whole PostgreSQL transaction, so on a duplicate
-     * only the insert is rolled back and the caller can still read the existing offer.
+     * Выполняется во вложенной транзакции (savepoint внутри транзакции вызывающего):
+     * нарушение уникальности прерывает всю транзакцию PostgreSQL, поэтому при дубликате
+     * откатывается только вставка, и вызывающий ещё может прочитать существующую заявку.
      */
     @Override
     @Transactional(propagation = Propagation.NESTED)
@@ -199,26 +230,52 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
     }
 
     @Override
-    public FriendshipOfferPageResponse findPage(int limit) {
+    public FriendshipOfferPageResponse findPage(
+            UUID userId,
+            FriendshipOfferDirection direction,
+            FriendshipOfferStatus status,
+            int limit
+    ) {
+        Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(direction, "direction");
+        Objects.requireNonNull(status, "status");
         checkLimit(limit);
-        return findPage(limit, FIND_FIRST_PAGE, limit + 1);
+        String sql = switch (direction) {
+            case INCOMING -> FIND_INCOMING_FIRST_PAGE;
+            case OUTGOING -> FIND_OUTGOING_FIRST_PAGE;
+        };
+        return findPage(limit, sql, userId, mapper.toStatus(status), limit + 1);
     }
 
     @Override
-    public FriendshipOfferPageResponse findPageAfter(FriendshipOfferCursor after, int limit) {
+    public FriendshipOfferPageResponse findPageAfter(
+            UUID userId,
+            FriendshipOfferDirection direction,
+            FriendshipOfferStatus status,
+            FriendshipOfferCursor after,
+            int limit
+    ) {
+        Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(direction, "direction");
+        Objects.requireNonNull(status, "status");
         Objects.requireNonNull(after, "after");
         checkLimit(limit);
-        return findPage(limit, FIND_PAGE_AFTER, Timestamp.from(after.createdAt()), after.id(), limit + 1);
+        String sql = switch (direction) {
+            case INCOMING -> FIND_INCOMING_PAGE_AFTER;
+            case OUTGOING -> FIND_OUTGOING_PAGE_AFTER;
+        };
+        return findPage(limit, sql, userId, mapper.toStatus(status),
+                Timestamp.from(after.createdAt()), after.id(), limit + 1);
     }
 
     /**
-     * Reads up to {@code limit + 1} rows: the extra row is not returned,
-     * it only means that there is a next page.
+     * Читает до {@code limit + 1} строк: лишняя строка не возвращается,
+     * она лишь означает, что есть следующая страница.
      *
-     * @param limit maximum number of offers on the page
-     * @param sql   query of the page
-     * @param args  query parameters
-     * @return the page with the cursor of the next page, if there is one
+     * @param limit максимальное число заявок на странице
+     * @param sql   запрос страницы
+     * @param args  параметры запроса
+     * @return страница с курсором следующей, если она есть
      */
     private FriendshipOfferPageResponse findPage(int limit, String sql, Object... args) {
         List<FriendshipOfferRow> rows = jdbcTemplate.query(sql, ROW_MAPPER, args);
@@ -234,10 +291,10 @@ public class FriendshipOfferPersistenceAdapter implements FriendshipOfferReposit
     }
 
     /**
-     * Rejects a page size the repository does not serve, before the query.
+     * Отклоняет размер страницы, который хранилище не обслуживает, до запроса.
      *
-     * @param limit requested page size
-     * @throws IllegalArgumentException {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
+     * @param limit запрошенный размер страницы
+     * @throws IllegalArgumentException {@code limit} меньше 1 или больше {@link #MAX_LIMIT}
      */
     private static void checkLimit(int limit) {
         if (limit < 1 || limit > MAX_LIMIT) {

@@ -5,92 +5,113 @@ import ru.job4j.socialmediaapi.friendships.internal.application.port.model.Creat
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferDirection;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferPageResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
+import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public interface FriendshipOfferRepository {
 
-    /** Maximum page size of {@link #findPage} and {@link #findPageAfter}. */
+    /** Максимальный размер страницы {@link #findPage} и {@link #findPageAfter}. */
     int MAX_LIMIT = 100;
 
     /**
-     * Saves the offer. A pair of users has at most one offer in either direction,
-     * so a repeated or a counter offer is a duplicate. A duplicate does not abort the caller's
-     * transaction: only the failed insert is rolled back, so the caller may read the existing offer.
+     * Сохраняет заявку. У пары пользователей не больше одной заявки в любом направлении,
+     * поэтому повторная или встречная заявка — дубликат. Дубликат не прерывает транзакцию вызывающего:
+     * откатывается только неудачная вставка, и вызывающий может прочитать существующую заявку.
      *
-     * @param request offer to save
-     * @return the saved offer
-     * @throws FriendshipOfferAlreadyExistsException an offer for this pair of users already exists
-     *                                               (in the same or the opposite direction)
+     * @param request заявка для сохранения
+     * @return сохранённая заявка
+     * @throws FriendshipOfferAlreadyExistsException заявка этой пары пользователей уже есть
+     *                                               (в том же или обратном направлении)
      */
     CreateFriendshipOfferResponse createFriendshipOffer(
             CreateFriendshipOfferRequest request
     );
 
     /**
-     * Finds the offer of a pair of users in either direction and locks it until the end
-     * of the transaction.
+     * Находит заявку пары пользователей в любом направлении и блокирует её до конца транзакции.
      *
-     * @param userA one user of the pair
-     * @param userB the other user of the pair
-     * @return the offer from {@code userA} to {@code userB} or from {@code userB} to {@code userA};
-     *         empty if the pair has no offer
+     * @param userA один пользователь пары
+     * @param userB другой пользователь пары
+     * @return заявка от {@code userA} к {@code userB} или от {@code userB} к {@code userA};
+     *         пусто, если у пары нет заявки
      */
     Optional<FindFriendshipOfferResponse> findByPair(UUID userA, UUID userB);
 
     /**
-     * Stores the decision on the offer in one statement: the status changes only if the offer
-     * is still {@code PENDING} and {@code request.actorId()} is its recipient. Of concurrent
-     * decisions on the same offer exactly one succeeds, the others get an empty result.
+     * Сохраняет решение по заявке одним запросом: статус меняется, только если заявка
+     * всё ещё {@code PENDING} и {@code request.actorId()} — её получатель. Из одновременных
+     * решений по одной заявке успешно ровно одно, остальные получают пустой результат.
      *
-     * @param request offer, user who decides, new status and time of the decision
-     * @return the offer with the new status; empty if there is no such offer, the user is not
-     *         its recipient or the offer is no longer {@code PENDING} (these cases are not told apart:
-     *         to choose the error, read the offer with {@link #findByIdAndRecipient})
+     * @param request заявка, решающий пользователь, новый статус и время решения
+     * @return заявка с новым статусом; пусто, если заявки нет, пользователь не её получатель
+     *         или заявка уже не {@code PENDING} (случаи не различаются: чтобы выбрать ошибку,
+     *         прочитайте заявку через {@link #findByIdAndRecipient})
      */
     Optional<UpdateFriendshipOfferStatusResponse> updateStatusIfPending(UpdateFriendshipOfferStatusRequest request);
 
     /**
-     * Reads the offer to choose the error after {@link #updateStatusIfPending} returned empty;
-     * must not be used to decide whether to write.
+     * Читает заявку, чтобы выбрать ошибку, после того как {@link #updateStatusIfPending} вернул пусто;
+     * не использовать для решения, писать ли.
      *
-     * @param offerId     offer id
-     * @param recipientId expected recipient of the offer
-     * @return the offer; empty if there is no such offer or its recipient is not {@code recipientId}
+     * @param offerId     id заявки
+     * @param recipientId ожидаемый получатель заявки
+     * @return заявка; пусто, если заявки нет или её получатель не {@code recipientId}
      */
     Optional<FindFriendshipOfferResponse> findByIdAndRecipient(UUID offerId, UUID recipientId);
 
     /**
-     * Reads the offer in any status, without a lock.
+     * Читает заявку в любом статусе, без блокировки.
      *
-     * @param offerId offer id
-     * @return the offer; empty if there is no such offer
+     * @param offerId id заявки
+     * @return заявка; пусто, если заявки нет
      */
     Optional<FindFriendshipOfferResponse> findById(UUID offerId);
 
     /**
-     * First page of all offers in any status, newest first ({@code created_at DESC, id DESC}).
+     * Первая страница заявок {@code userId} в заданном направлении и статусе, сначала новые
+     * ({@code created_at DESC, id DESC}). Заявки других пользователей не читаются.
      *
-     * @param limit maximum number of offers on the page, from 1 to {@link #MAX_LIMIT}
-     * @return the page; its {@code next} is empty if there are no more offers
-     * @throws IllegalArgumentException {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
+     * @param userId    пользователь, чьи заявки читаются
+     * @param direction {@code INCOMING} — {@code userId} получатель, {@code OUTGOING} — отправитель
+     * @param status    статус заявок
+     * @param limit     максимальное число заявок на странице, от 1 до {@link #MAX_LIMIT}
+     * @return страница; её {@code next} пуст, если заявок больше нет
+     * @throws IllegalArgumentException {@code limit} меньше 1 или больше {@link #MAX_LIMIT}
+     * @throws NullPointerException     {@code userId}, {@code direction} или {@code status} — {@code null}
      */
-    FriendshipOfferPageResponse findPage(int limit);
+    FriendshipOfferPageResponse findPage(
+            UUID userId,
+            FriendshipOfferDirection direction,
+            FriendshipOfferStatus status,
+            int limit
+    );
 
     /**
-     * Page of the offers strictly after {@code after} in the order of {@link #findPage}.
-     * Offers created after the first page was read are newer than any cursor and do not appear
-     * on the next pages.
+     * Страница тех же заявок, что и {@link #findPage}, строго после {@code after} в том же порядке.
+     * Заявки, созданные после чтения первой страницы, новее любого курсора и на следующие
+     * страницы не попадают.
      *
-     * @param after position of the last shown offer, taken from {@link FriendshipOfferPageResponse#next()}
-     * @param limit maximum number of offers on the page, from 1 to {@link #MAX_LIMIT}
-     * @return the page; its {@code next} is empty if there are no more offers
-     * @throws IllegalArgumentException {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
-     * @throws NullPointerException     {@code after} is {@code null}
+     * @param userId    пользователь, чьи заявки читаются
+     * @param direction {@code INCOMING} — {@code userId} получатель, {@code OUTGOING} — отправитель
+     * @param status    статус заявок
+     * @param after     позиция последней показанной заявки из {@link FriendshipOfferPageResponse#next()}
+     * @param limit     максимальное число заявок на странице, от 1 до {@link #MAX_LIMIT}
+     * @return страница; её {@code next} пуст, если заявок больше нет
+     * @throws IllegalArgumentException {@code limit} меньше 1 или больше {@link #MAX_LIMIT}
+     * @throws NullPointerException     {@code userId}, {@code direction}, {@code status} или {@code after}
+     *                                  — {@code null}
      */
-    FriendshipOfferPageResponse findPageAfter(FriendshipOfferCursor after, int limit);
+    FriendshipOfferPageResponse findPageAfter(
+            UUID userId,
+            FriendshipOfferDirection direction,
+            FriendshipOfferStatus status,
+            FriendshipOfferCursor after,
+            int limit
+    );
 }

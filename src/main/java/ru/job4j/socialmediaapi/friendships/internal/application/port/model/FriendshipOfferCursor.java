@@ -4,11 +4,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Position of an offer in the order of all offers ({@code created_at DESC, id DESC}):
- * the next page starts strictly after it.
+ * Позиция заявки в порядке страницы заявок ({@code created_at DESC, id DESC}):
+ * следующая страница начинается строго после неё.
  *
- * @param createdAt time of creation of the offer
- * @param id        offer id, breaks ties of {@code createdAt}
+ * @param createdAt время создания заявки
+ * @param id        id заявки, различает заявки с одинаковым {@code createdAt}
  */
 public record FriendshipOfferCursor(
         Instant createdAt,

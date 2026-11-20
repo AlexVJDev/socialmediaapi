@@ -1,0 +1,6 @@
+type: string
+description: >-
+  Направление заявок относительно текущего пользователя: `INCOMING` — он получатель,
+  `OUTGOING` — он отправитель
+enum: [INCOMING, OUTGOING]
+example: INCOMING

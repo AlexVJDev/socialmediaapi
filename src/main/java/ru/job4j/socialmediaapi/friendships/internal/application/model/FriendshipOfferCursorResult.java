@@ -4,10 +4,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Cursor of the next page of all offers: the position of the last offer of the page.
+ * Курсор следующей страницы заявок: позиция последней заявки страницы.
  *
- * @param createdAt time of creation of the last offer of the page
- * @param id        id of the last offer of the page
+ * @param createdAt время создания последней заявки страницы
+ * @param id        id последней заявки страницы
  */
 public record FriendshipOfferCursorResult(
         Instant createdAt,

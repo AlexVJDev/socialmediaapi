@@ -1,0 +1,21 @@
+meta {
+  name: Заявки без X-User-Id
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendship-offer?direction=INCOMING
+  body: none
+  auth: none
+}
+
+tests {
+  test("статус 401", function() {
+    expect(res.status).to.equal(401);
+  });
+
+  test("code = UNAUTHORIZED", function() {
+    expect(res.body.code).to.equal("UNAUTHORIZED");
+  });
+}

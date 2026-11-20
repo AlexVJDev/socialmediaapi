@@ -1,0 +1,25 @@
+meta {
+  name: Вика предлагает дружбу Борису
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/create
+  body: json
+  auth: none
+}
+
+body:json {
+  {"fromUserId": "{{vikaId}}", "toUserId": "{{borisId}}"}
+}
+
+script:post-response {
+  bru.setVar("offerVika", res.body.id);
+}
+
+tests {
+  test("статус 201", function() {
+    expect(res.status).to.equal(201);
+  });
+}

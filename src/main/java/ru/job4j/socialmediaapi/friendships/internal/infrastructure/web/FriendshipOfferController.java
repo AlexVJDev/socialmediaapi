@@ -15,51 +15,55 @@ import ru.job4j.socialmediaapi.friendships.internal.application.usecase.RejectFr
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.mapper.FriendshipOfferWebMapper;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.AcceptFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.CreateFriendshipOfferWebRequest;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.FriendshipOfferDirectionWebRequest;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.FriendshipOfferStatusWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.RejectFriendshipOfferWebRequest;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendshipOfferWebResponse;
+import ru.job4j.socialmediaapi.shared.security.CurrentUserProvider;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 /**
- * Endpoints {@code /api/v1/friendship-offer} and {@code /api/v1/friendship-offer/*}.
- * Paths, HTTP methods, parameters and their validation come from {@link FriendshipOfferApi},
- * generated from the OpenAPI contract ({@code docs/api/paths/friendship-offer*.yaml});
- * the annotations are not repeated here. The methods return {@code ResponseEntity<?>} as the interface does:
- * the body type depends on the outcome (an offer or, from the exception handler, an error body).
+ * Эндпоинты {@code /api/v1/friendship-offer} и {@code /api/v1/friendship-offer/*}.
+ * Пути, HTTP-методы, параметры и их валидация берутся из {@link FriendshipOfferApi},
+ * сгенерированного по OpenAPI-контракту ({@code docs/api/paths/friendship-offer*.yaml});
+ * аннотации здесь не повторяются. Методы возвращают {@code ResponseEntity<?>}, как и интерфейс:
+ * тип тела зависит от исхода (заявка или, из обработчика исключений, тело ошибки).
  */
 @RestController
 @RequiredArgsConstructor
 public class FriendshipOfferController implements FriendshipOfferApi {
 
-    /** Use case that creates friendship offers. */
+    /** Сценарий создания заявки в друзья. */
     private final CreateFriendshipOffer createFriendshipOffer;
 
-    /** Use case that accepts friendship offers. */
+    /** Сценарий принятия заявки в друзья. */
     private final AcceptFriendshipOffer acceptFriendshipOffer;
 
-    /** Use case that rejects friendship offers. */
+    /** Сценарий отклонения заявки в друзья. */
     private final RejectFriendshipOffer rejectFriendshipOffer;
 
-    /** Use case that reads one offer. */
+    /** Сценарий чтения одной заявки. */
     private final GetFriendshipOffer getFriendshipOffer;
 
-    /** Use case that reads a page of all offers. */
+    /** Сценарий чтения страницы заявок текущего пользователя. */
     private final GetFriendshipOffers getFriendshipOffers;
 
-    /** Maps web DTOs to the scenario command and the result back. */
+    /** Текущий пользователь: читатель страницы заявок. */
+    private final CurrentUserProvider currentUser;
+
+    /** Преобразует web DTO в команду сценария и результат обратно. */
     private final FriendshipOfferWebMapper mapper;
 
     /**
-     * {@code 201} with the new offer. A repeated or a counter offer is answered by
-     * {@code FriendshipOfferExceptionHandler} by the status of the pair's offer:
+     * {@code 201} с новой заявкой. На повторную или встречную заявку отвечает
+     * {@code FriendshipOfferExceptionHandler} по статусу заявки пары:
      * {@code PENDING} → {@code 200} FRIENDSHIP_OFFER_ALREADY_PENDING,
-     * {@code ACCEPTED} / {@code REJECTED} → {@code 409} with the code of the status,
-     * the status could not be read → {@code 409} FRIENDSHIP_OFFER_ALREADY_EXISTS.
+     * {@code ACCEPTED} / {@code REJECTED} → {@code 409} с кодом статуса,
+     * статус прочитать не удалось → {@code 409} FRIENDSHIP_OFFER_ALREADY_EXISTS.
      *
-     * @param request sender and recipient of the offer
-     * @return the created offer
+     * @param request отправитель и получатель заявки
+     * @return созданная заявка
      */
     @Override
     public ResponseEntity<?> createFriendshipOffer(
@@ -70,12 +74,12 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     }
 
     /**
-     * {@code 200} with the accepted offer; the friendship and the back subscription are created
-     * in the same transaction. Errors ({@code 404} — no offer or not its recipient, {@code 409} —
-     * already decided) are answered by {@code FriendshipOfferExceptionHandler}.
+     * {@code 200} с принятой заявкой; дружба и обратная подписка создаются
+     * в той же транзакции. На ошибки ({@code 404} — заявки нет или пользователь не её получатель,
+     * {@code 409} — уже решена) отвечает {@code FriendshipOfferExceptionHandler}.
      *
-     * @param request offer and the user who accepts it
-     * @return the accepted offer
+     * @param request заявка и принимающий её пользователь
+     * @return принятая заявка
      */
     @Override
     public ResponseEntity<?> acceptFriendshipOffer(
@@ -86,12 +90,12 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     }
 
     /**
-     * {@code 200} with the rejected offer; no friendship is created, the sender stays subscribed.
-     * Errors ({@code 404} — no offer or not its recipient, {@code 409} — already decided)
-     * are answered by {@code FriendshipOfferExceptionHandler}.
+     * {@code 200} с отклонённой заявкой; дружба не создаётся, отправитель остаётся подписанным.
+     * На ошибки ({@code 404} — заявки нет или пользователь не её получатель, {@code 409} — уже решена)
+     * отвечает {@code FriendshipOfferExceptionHandler}.
      *
-     * @param request offer and the user who rejects it
-     * @return the rejected offer
+     * @param request заявка и отклоняющий её пользователь
+     * @return отклонённая заявка
      */
     @Override
     public ResponseEntity<?> rejectFriendshipOffer(
@@ -102,11 +106,11 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     }
 
     /**
-     * {@code 200} with the offer in any status; {@code 404} (no such offer) and {@code 400}
-     * (the id is not a UUID) are answered by {@code FriendshipOfferExceptionHandler}.
+     * {@code 200} с заявкой в любом статусе; на {@code 404} (заявки нет) и {@code 400}
+     * (id не UUID) отвечает {@code FriendshipOfferExceptionHandler}.
      *
-     * @param offerId offer id
-     * @return the offer
+     * @param offerId id заявки
+     * @return заявка
      */
     @Override
     public ResponseEntity<?> getFriendshipOffer(UUID offerId) {
@@ -114,43 +118,31 @@ public class FriendshipOfferController implements FriendshipOfferApi {
     }
 
     /**
-     * {@code 200} with a page of all offers, newest first. The next page is requested with
-     * {@code afterCreatedAt} and {@code afterId} from {@code next}; {@code next == null} — no more offers.
-     * Invalid parameters ({@code 400}) are answered by {@code FriendshipOfferExceptionHandler}.
+     * {@code 200} со страницей заявок текущего пользователя, сначала новые: входящих
+     * ({@code direction=INCOMING}) или исходящих ({@code OUTGOING}) в заданном статусе.
+     * Следующая страница запрашивается с {@code afterCreatedAt} и {@code afterId} из {@code next};
+     * {@code next == null} — заявок больше нет. На некорректные параметры ({@code 400}) отвечает
+     * {@code FriendshipOfferExceptionHandler}; нет {@code X-User-Id} или не UUID — {@code 401}
+     * ({@code GlobalExceptionHandler}).
      *
-     * @param limit          page size, from 1 to 100 (20 if not set)
-     * @param afterCreatedAt {@code next.createdAt} of the previous page
-     * @param afterId        {@code next.id} of the previous page
-     * @return the page of offers
+     * @param direction      {@code INCOMING} — текущий пользователь получатель, {@code OUTGOING} — отправитель
+     * @param status         статус заявок ({@code PENDING}, если не задан)
+     * @param limit          размер страницы, от 1 до 100 (20, если не задан)
+     * @param afterCreatedAt {@code next.createdAt} предыдущей страницы
+     * @param afterId        {@code next.id} предыдущей страницы
+     * @return страница заявок
      */
     @Override
     public ResponseEntity<?> getFriendshipOffers(
-            Integer limit, Instant afterCreatedAt, UUID afterId
+            FriendshipOfferDirectionWebRequest direction,
+            FriendshipOfferStatusWebRequest status,
+            Integer limit,
+            Instant afterCreatedAt,
+            UUID afterId
     ) {
-        FriendshipOfferPageResult result =
-                getFriendshipOffers.get(mapper.toGetPageCommand(limit, afterCreatedAt, afterId));
+        UUID userId = currentUser.currentUserId();
+        FriendshipOfferPageResult result = getFriendshipOffers.get(
+                mapper.toGetPageCommand(userId, direction, status, limit, afterCreatedAt, afterId));
         return ResponseEntity.ok(mapper.toResponse(result));
-    }
-
-    /**
-     * Not implemented yet.
-     *
-     * @param userId recipient of the offers
-     * @return {@code 501 Not Implemented}
-     */
-    @Override
-    public ResponseEntity<List<FriendshipOfferWebResponse>> getIncomingFriendshipOffers(UUID userId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
-
-    /**
-     * Not implemented yet.
-     *
-     * @param userId sender of the offers
-     * @return {@code 501 Not Implemented}
-     */
-    @Override
-    public ResponseEntity<List<FriendshipOfferWebResponse>> getOutgoingFriendshipOffers(UUID userId) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 }

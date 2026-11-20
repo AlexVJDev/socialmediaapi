@@ -1,19 +1,28 @@
 package ru.job4j.socialmediaapi.friendships.internal.application.model;
 
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferDirection;
+import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Command of the scenario «get a page of all friendship offers». Without a cursor
- * (both {@code afterCreatedAt} and {@code afterId} are {@code null}) the first page is read,
- * otherwise the offers strictly after the cursor; the cursor is taken from
- * {@link FriendshipOfferPageResult#next()} of the previous page.
+ * Команда сценария «получить страницу заявок в друзья текущего пользователя». Без курсора
+ * (оба поля {@code afterCreatedAt} и {@code afterId} — {@code null}) читается первая страница,
+ * иначе — заявки строго после курсора; курсор берётся из
+ * {@link FriendshipOfferPageResult#next()} предыдущей страницы.
  *
- * @param afterCreatedAt creation time of the last shown offer, {@code null} for the first page
- * @param afterId        id of the last shown offer, {@code null} for the first page
- * @param limit          maximum number of offers on the page
+ * @param userId         текущий пользователь, чьи заявки читаются
+ * @param direction      {@code INCOMING} — пользователь получатель, {@code OUTGOING} — отправитель
+ * @param status         статус заявок
+ * @param afterCreatedAt время создания последней показанной заявки, {@code null} для первой страницы
+ * @param afterId        id последней показанной заявки, {@code null} для первой страницы
+ * @param limit          максимальное число заявок на странице
  */
 public record GetFriendshipOffersCommand(
+        UUID userId,
+        FriendshipOfferDirection direction,
+        FriendshipOfferStatus status,
         Instant afterCreatedAt,
         UUID afterId,
         int limit

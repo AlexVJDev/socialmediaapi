@@ -1,0 +1,26 @@
+meta {
+  name: Принятые входящие Бориса
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendship-offer?direction=INCOMING&status=ACCEPTED
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("заявка Вики", function() {
+    expect(res.body.offers.map(i => i.id)).to.eql([bru.getVar("offerVika")]);
+    expect(res.body.next).to.equal(null);
+  });
+}

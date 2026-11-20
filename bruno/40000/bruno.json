@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "40000 Заявки текущего пользователя и друзья",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

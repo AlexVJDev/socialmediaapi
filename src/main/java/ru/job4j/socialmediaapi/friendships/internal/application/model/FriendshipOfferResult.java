@@ -6,15 +6,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Friendship offer as read by the scenarios «get a friendship offer» and
- * «get a page of all friendship offers».
+ * Заявка в друзья, как её читают сценарии «получить заявку в друзья» и
+ * «получить страницу заявок в друзья текущего пользователя».
  *
- * @param id         offer id
- * @param fromUserId sender of the offer
- * @param toUserId   recipient of the offer
- * @param status     status
- * @param createdAt  time of creation
- * @param updatedAt  time of the last change (of the decision, for a decided offer)
+ * @param id         id заявки
+ * @param fromUserId отправитель заявки
+ * @param toUserId   получатель заявки
+ * @param status     статус
+ * @param createdAt  время создания
+ * @param updatedAt  время последнего изменения (для решённой заявки — время решения)
  */
 public record FriendshipOfferResult(
         UUID id,

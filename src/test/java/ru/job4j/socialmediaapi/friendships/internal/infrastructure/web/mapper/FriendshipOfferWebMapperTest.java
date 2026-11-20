@@ -13,7 +13,10 @@ import ru.job4j.socialmediaapi.friendships.internal.application.model.Friendship
 import ru.job4j.socialmediaapi.friendships.internal.application.model.GetFriendshipOfferCommand;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.GetFriendshipOffersCommand;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.RejectFriendshipOfferCommand;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferDirection;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.CreateFriendshipOfferWebRequest;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.FriendshipOfferDirectionWebRequest;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.FriendshipOfferStatusWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.AcceptFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.request.RejectFriendshipOfferWebRequest;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.AcceptFriendshipOfferWebResponse;
@@ -36,13 +39,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("Web-маппер заявок в друзья: преобразование между web-DTO и входным портом")
 class FriendshipOfferWebMapperTest {
 
-    /** Fixed creation time of the offer. */
+    /** Фиксированное время создания заявки. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-12T10:15:00Z");
 
-    /** Fixed decision time of the offer. */
+    /** Фиксированное время решения по заявке. */
     private static final Instant DECIDED_AT = Instant.parse("2026-10-12T10:20:00Z");
 
-    /** Mapper under test, created without Spring. */
+    /** Проверяемый маппер, создан без Spring. */
     private final FriendshipOfferWebMapper mapper =
             Mappers.getMapper(FriendshipOfferWebMapper.class);
 
@@ -139,10 +142,13 @@ class FriendshipOfferWebMapperTest {
     @DisplayName("toGetCommand / toGetPageCommand: параметры пути и запроса переносятся в команды")
     void whenToGetCommandsThenCopyParameters() {
         var id = UUID.randomUUID();
+        var userId = UUID.randomUUID();
 
         assertThat(mapper.toGetCommand(id)).isEqualTo(new GetFriendshipOfferCommand(id));
-        assertThat(mapper.toGetPageCommand(5, CREATED_AT, id))
-                .isEqualTo(new GetFriendshipOffersCommand(CREATED_AT, id, 5));
+        assertThat(mapper.toGetPageCommand(userId, FriendshipOfferDirectionWebRequest.OUTGOING,
+                FriendshipOfferStatusWebRequest.REJECTED, 5, CREATED_AT, id))
+                .isEqualTo(new GetFriendshipOffersCommand(userId, FriendshipOfferDirection.OUTGOING,
+                        FriendshipOfferStatus.REJECTED, CREATED_AT, id, 5));
     }
 
     @Test

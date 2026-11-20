@@ -1,0 +1,21 @@
+meta {
+  name: Борис принимает заявку Вики
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/friendship-offer/accept
+  body: json
+  auth: none
+}
+
+body:json {
+  {"offerId": "{{offerVika}}", "actorId": "{{borisId}}"}
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}

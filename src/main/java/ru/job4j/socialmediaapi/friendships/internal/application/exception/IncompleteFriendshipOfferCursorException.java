@@ -1,8 +1,8 @@
 package ru.job4j.socialmediaapi.friendships.internal.application.exception;
 
 /**
- * Only one part of the cursor of a page of all offers is set: {@code afterCreatedAt}
- * and {@code afterId} are set together or not at all.
+ * Задана только одна часть курсора страницы заявок: {@code afterCreatedAt}
+ * и {@code afterId} задаются вместе или не задаются вовсе.
  */
 public class IncompleteFriendshipOfferCursorException extends RuntimeException {
 

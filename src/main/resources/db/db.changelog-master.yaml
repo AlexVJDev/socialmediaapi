@@ -29,6 +29,9 @@ databaseChangeLog:
   - include:
       file: changes/010-friendship-offer-created-index.sql
       relativeToChangelogFile: true
+  - include:
+      file: changes/011-friendships-page-indexes.sql
+      relativeToChangelogFile: true
   # Swagger UI examples, local only: context dev (LIQUIBASE_CONTEXTS=dev), recreated on every start.
   - include:
       file: dev/swagger-examples.sql

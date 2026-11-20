@@ -3,10 +3,10 @@ package ru.job4j.socialmediaapi.friendships.internal.application.model;
 import java.util.List;
 
 /**
- * Result of the scenario «get a page of all friendship offers».
+ * Результат сценария «получить страницу заявок в друзья текущего пользователя».
  *
- * @param offers offers of the page, newest first
- * @param next   cursor of the next page; {@code null} if there are no more offers
+ * @param offers заявки страницы, сначала новые
+ * @param next   курсор следующей страницы; {@code null}, если заявок больше нет
  */
 public record FriendshipOfferPageResult(
         List<FriendshipOfferResult> offers,

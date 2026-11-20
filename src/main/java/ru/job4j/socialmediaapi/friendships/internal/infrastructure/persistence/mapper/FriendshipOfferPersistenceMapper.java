@@ -13,8 +13,8 @@ import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOffer
 import static org.mapstruct.MappingConstants.ComponentModel.SPRING;
 
 /**
- * {@code status} is stored as a string: MapStruct maps the enum
- * with {@code name()} and back with {@code valueOf()}.
+ * {@code status} хранится строкой: MapStruct преобразует enum
+ * через {@code name()} и обратно через {@code valueOf()}.
  */
 @Mapper(componentModel = SPRING, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface FriendshipOfferPersistenceMapper {
@@ -28,14 +28,14 @@ public interface FriendshipOfferPersistenceMapper {
     UpdateFriendshipOfferStatusResponse toUpdateResponse(FriendshipOfferRow row);
 
     /**
-     * @param row offer of a page
-     * @return its position in the order of all offers: {@code created_at} and {@code id}
+     * @param row заявка страницы
+     * @return её позиция в порядке страницы заявок: {@code created_at} и {@code id}
      */
     FriendshipOfferCursor toCursor(FriendshipOfferRow row);
 
     /**
-     * @param status status of the offer
-     * @return the status as stored in the {@code status} column
+     * @param status статус заявки
+     * @return статус в том виде, как он хранится в колонке {@code status}
      */
     default String toStatus(FriendshipOfferStatus status) {
         return status.name();

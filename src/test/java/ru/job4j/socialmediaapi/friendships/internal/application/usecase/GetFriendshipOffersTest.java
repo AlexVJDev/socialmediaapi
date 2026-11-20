@@ -15,6 +15,7 @@ import ru.job4j.socialmediaapi.friendships.internal.application.model.GetFriends
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendshipOfferResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferDirection;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferPageResponse;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 
@@ -29,21 +30,24 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Сценарий чтения страницы всех заявок: первая страница без курсора, следующие — после курсора")
+@DisplayName("Страница заявок пользователя: фильтр — в хранилище, первая без курсора, следующие — по курсору")
 class GetFriendshipOffersTest {
 
-    /** Fixed creation time of the offer. */
+    /** Фиксированное время создания заявки. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-12T10:15:00Z");
 
-    /** Empty page returned by the mocked repository. */
+    /** Пустая страница, которую возвращает мок хранилища. */
     private static final FriendshipOfferPageResponse EMPTY =
             new FriendshipOfferPageResponse(List.of(), Optional.empty());
 
-    /** Mocked offer repository. */
+    /** Текущий пользователь, чьи заявки читаются. */
+    private static final UUID USER_ID = UUID.randomUUID();
+
+    /** Мок хранилища заявок. */
     @Mock
     private FriendshipOfferRepository repository;
 
-    /** Use case under test. */
+    /** Проверяемый сценарий. */
     private GetFriendshipOffers useCase;
 
     @BeforeEach
@@ -52,17 +56,19 @@ class GetFriendshipOffersTest {
     }
 
     @Test
-    @DisplayName("Без курсора читается первая страница; заявки и next переносятся в результат")
+    @DisplayName("Без курсора — первая страница входящих в статусе фильтра; заявки и next переносятся в результат")
     void whenNoCursorThenFirstPage() {
         var offer = new FindFriendshipOfferResponse(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 FriendshipOfferStatus.PENDING, CREATED_AT, CREATED_AT
         );
-        when(repository.findPage(1)).thenReturn(new FriendshipOfferPageResponse(
+        when(repository.findPage(USER_ID, FriendshipOfferDirection.INCOMING, FriendshipOfferStatus.PENDING, 1))
+                .thenReturn(new FriendshipOfferPageResponse(
                 List.of(offer), Optional.of(new FriendshipOfferCursor(CREATED_AT, offer.id()))
         ));
 
-        var result = useCase.get(new GetFriendshipOffersCommand(null, null, 1));
+        var result = useCase.get(new GetFriendshipOffersCommand(
+                USER_ID, FriendshipOfferDirection.INCOMING, FriendshipOfferStatus.PENDING, null, null, 1));
 
         assertThat(result.offers()).containsExactly(new FriendshipOfferResult(
                 offer.id(), offer.fromUserId(), offer.toUserId(),
@@ -72,12 +78,14 @@ class GetFriendshipOffersTest {
     }
 
     @Test
-    @DisplayName("С курсором читаются заявки после него; пустой next становится null")
+    @DisplayName("С курсором читаются исходящие после него в статусе фильтра; пустой next становится null")
     void whenCursorThenPageAfter() {
         var afterId = UUID.randomUUID();
-        when(repository.findPageAfter(new FriendshipOfferCursor(CREATED_AT, afterId), 20)).thenReturn(EMPTY);
+        when(repository.findPageAfter(USER_ID, FriendshipOfferDirection.OUTGOING, FriendshipOfferStatus.ACCEPTED,
+                new FriendshipOfferCursor(CREATED_AT, afterId), 20)).thenReturn(EMPTY);
 
-        var result = useCase.get(new GetFriendshipOffersCommand(CREATED_AT, afterId, 20));
+        var result = useCase.get(new GetFriendshipOffersCommand(
+                USER_ID, FriendshipOfferDirection.OUTGOING, FriendshipOfferStatus.ACCEPTED, CREATED_AT, afterId, 20));
 
         assertThat(result.offers()).isEmpty();
         assertThat(result.next()).isNull();
@@ -86,9 +94,12 @@ class GetFriendshipOffersTest {
     @Test
     @DisplayName("Задана только одна часть курсора: IncompleteFriendshipOfferCursorException, хранилище не читается")
     void whenCursorIncompleteThenException() {
-        assertThatThrownBy(() -> useCase.get(new GetFriendshipOffersCommand(CREATED_AT, null, 20)))
+        assertThatThrownBy(() -> useCase.get(new GetFriendshipOffersCommand(
+                USER_ID, FriendshipOfferDirection.INCOMING, FriendshipOfferStatus.PENDING, CREATED_AT, null, 20)))
                 .isInstanceOf(IncompleteFriendshipOfferCursorException.class);
-        assertThatThrownBy(() -> useCase.get(new GetFriendshipOffersCommand(null, UUID.randomUUID(), 20)))
+        assertThatThrownBy(() -> useCase.get(new GetFriendshipOffersCommand(
+                USER_ID, FriendshipOfferDirection.INCOMING, FriendshipOfferStatus.PENDING,
+                null, UUID.randomUUID(), 20)))
                 .isInstanceOf(IncompleteFriendshipOfferCursorException.class);
         verifyNoInteractions(repository);
     }

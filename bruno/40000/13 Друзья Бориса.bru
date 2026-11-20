@@ -1,0 +1,22 @@
+meta {
+  name: Друзья Бориса
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendships?userId={{borisId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("друг — Вика", function() {
+    expect(res.body.friends.map(i => i.userId)).to.eql([bru.getVar("vikaId")]);
+    expect(res.body.next).to.equal(null);
+  });
+}

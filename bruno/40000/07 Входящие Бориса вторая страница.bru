@@ -1,0 +1,26 @@
+meta {
+  name: Входящие Бориса вторая страница
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendship-offer?direction=INCOMING&limit=1&afterCreatedAt={{nextCreatedAt}}&afterId={{nextId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("вторая страница — Алиса, конец списка", function() {
+    expect(res.body.offers.map(i => i.id)).to.eql([bru.getVar("offerAlice")]);
+    expect(res.body.next).to.equal(null);
+  });
+}

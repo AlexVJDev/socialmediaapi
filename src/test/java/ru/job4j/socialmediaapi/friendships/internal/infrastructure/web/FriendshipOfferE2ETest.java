@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +27,6 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.RejectFriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -35,40 +34,47 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * E2E tests of the friendship offer API ({@code docs/api/modules/friendships.yaml}): real HTTP requests
- * to the running application with PostgreSQL in Testcontainers. One nested group per operation:
- * successful requests, validation errors and forbidden state transitions
- * ({@code PENDING → ACCEPTED | REJECTED}, a decided offer cannot be decided again).
- * Every test uses new random users, so the tests do not depend on each other or on their order.
+ * E2E-тесты API заявок в друзья ({@code docs/api/modules/friendships.yaml}): настоящие HTTP-запросы
+ * к запущенному приложению с PostgreSQL в Testcontainers. Одна вложенная группа на операцию:
+ * успешные запросы, ошибки валидации и запрещённые переходы статусов
+ * ({@code PENDING → ACCEPTED | REJECTED}, решённую заявку нельзя решить повторно).
+ * Каждый тест использует новых случайных пользователей, поэтому тесты не зависят друг от друга и от порядка.
  */
 @E2ETest
 @DisplayName("E2E: API заявок в друзья /api/v1/friendship-offer")
 class FriendshipOfferE2ETest {
 
-    /** Base URL of the friendship offer endpoints. */
+    /** Базовый URL эндпоинтов заявок в друзья. */
     private static final String BASE = "/api/v1/friendship-offer";
 
-    /** Expected body of {@code 400} for an invalid body or parameters (contract example). */
+    /** Ожидаемое тело {@code 400} для некорректного тела или параметров (пример из контракта). */
     private static final ApiErrorResponse INVALID_REQUEST =
             new ApiErrorResponse(400, "Некорректное тело или параметры запроса", "VALIDATION_ERROR");
 
-    /** Expected body of {@code 200} for a repeated or counter offer while the pair's offer is pending. */
+    /** Заголовок текущего пользователя. */
+    private static final String USER_HEADER = "X-User-Id";
+
+    /** Ожидаемое тело {@code 401}: нет текущего пользователя (пример контракта {@code responses/unauthorized.yaml}). */
+    private static final ApiErrorResponse UNAUTHORIZED =
+            new ApiErrorResponse(401, "Пользователь не определён", "UNAUTHORIZED");
+
+    /** Ожидаемое тело {@code 200} для повторной или встречной заявки, пока заявка пары ждёт решения. */
     private static final ApiErrorResponse ALREADY_PENDING =
             new ApiErrorResponse(200, "Предложение дружбы уже отправлено", "FRIENDSHIP_OFFER_ALREADY_PENDING");
 
-    /** Expected body of {@code 404}: no offer, or the actor is not its recipient. */
+    /** Ожидаемое тело {@code 404}: заявки нет или действующий пользователь не её получатель. */
     private static final ApiErrorResponse NOT_FOUND =
             new ApiErrorResponse(404, "Предложение дружбы не найдено", "FRIENDSHIP_OFFER_NOT_FOUND");
 
-    /** Expected body of {@code 409} for an accepted offer. */
+    /** Ожидаемое тело {@code 409} для принятой заявки. */
     private static final ApiErrorResponse ALREADY_ACCEPTED =
             new ApiErrorResponse(409, "Предложение дружбы уже принято", "FRIENDSHIP_OFFER_ALREADY_ACCEPTED");
 
-    /** Expected body of {@code 409} for a rejected offer. */
+    /** Ожидаемое тело {@code 409} для отклонённой заявки. */
     private static final ApiErrorResponse ALREADY_REJECTED =
             new ApiErrorResponse(409, "Предложение дружбы уже отклонено", "FRIENDSHIP_OFFER_ALREADY_REJECTED");
 
-    /** HTTP client bound to the random port of the running application. */
+    /** HTTP-клиент, привязанный к случайному порту запущенного приложения. */
     @Autowired
     private TestRestTemplate restTemplate;
 
@@ -151,7 +157,7 @@ class FriendshipOfferE2ETest {
         }
 
         /**
-         * @return situation and request body of the invalid create requests of the contract
+         * @return ситуация и тело запроса для некорректных запросов create из контракта
          */
         static Stream<Arguments> invalidBodies() {
             var from = UUID.randomUUID();
@@ -368,111 +374,92 @@ class FriendshipOfferE2ETest {
     }
 
     @Nested
-    @DisplayName("GET (страница всех заявок)")
+    @DisplayName("GET (страница заявок текущего пользователя)")
     class GetPage {
 
-        /** Order of the pages: {@code createdAt DESC, id DESC}; PostgreSQL compares UUIDs as text. */
-        private static final Comparator<FriendshipOfferWebResponse> NEWEST_FIRST = Comparator
-                .comparing(FriendshipOfferWebResponse::getCreatedAt)
-                .thenComparing(offer -> offer.getId().toString())
-                .reversed();
-
-        /**
-         * Other tests can create offers at the same time (the build may run tests in parallel
-         * in one context), so foreign offers may stand between the offers of this test.
-         * The test walks the pages by the cursor down to its oldest offer and checks the order
-         * of its own offers, the order of the whole output and the cursor of every page.
-         */
         @Test
-        @DisplayName("Страницы: новые первыми, next — последняя заявка страницы, по next — дальше без повторов")
-        void whenPagedThenNewestFirstAndNextLeadsOn() {
-            var first = pending(createOffer(UUID.randomUUID(), UUID.randomUUID()));
-            var second = pending(createOffer(UUID.randomUUID(), UUID.randomUUID()));
-            var third = pending(createOffer(UUID.randomUUID(), UUID.randomUUID()));
+        @DisplayName("INCOMING: новые первыми, next — последняя заявка, по next — дальше; исходящие не попадают")
+        void whenIncomingPagedThenNewestFirstAndNextLeadsOn() {
+            var user = UUID.randomUUID();
+            var first = pending(createOffer(UUID.randomUUID(), user));
+            var second = pending(createOffer(UUID.randomUUID(), user));
+            var third = pending(createOffer(UUID.randomUUID(), user));
+            createOffer(user, UUID.randomUUID());
 
-            var page = getPage(BASE + "?limit=2");
-            var seen = new ArrayList<>(page.getOffers());
-            while (!seen.contains(first)) {
-                var last = page.getOffers().getLast();
-                assertThat(page.getNext())
-                        .as("next страницы, после которой ещё есть заявки теста")
-                        .isEqualTo(new FriendshipOfferCursorWebResponse(last.getCreatedAt(), last.getId()));
-                page = getPage(BASE + "?limit=2&afterCreatedAt={createdAt}&afterId={id}",
-                        page.getNext().getCreatedAt(), page.getNext().getId());
-                seen.addAll(page.getOffers());
-            }
+            var page = getPage(user, "?direction=INCOMING&limit=2");
+            assertThat(page.getOffers()).containsExactly(third, second);
+            assertThat(page.getNext())
+                    .isEqualTo(new FriendshipOfferCursorWebResponse(second.getCreatedAt(), second.getId()));
 
-            assertThat(seen)
-                    .doesNotHaveDuplicates()
-                    .isSortedAccordingTo(NEWEST_FIRST)
-                    .containsSubsequence(third, second, first);
+            var last = getPage(user, "?direction=INCOMING&limit=2&afterCreatedAt={createdAt}&afterId={id}",
+                    page.getNext().getCreatedAt(), page.getNext().getId());
+            assertThat(last).isEqualTo(new FriendshipOfferPageWebResponse(List.of(first), null));
         }
 
         @Test
-        @DisplayName("Без limit: 20 заявок (значение по умолчанию) и курсор следующей страницы")
-        void whenNoLimitThenDefaultLimit() {
-            for (int i = 0; i < 21; i++) {
-                createOffer(UUID.randomUUID(), UUID.randomUUID());
-            }
+        @DisplayName("OUTGOING: исходящие пользователя; status=ACCEPTED — только принятые")
+        void whenOutgoingThenOffersOfSenderInStatus() {
+            var user = UUID.randomUUID();
+            var recipient = UUID.randomUUID();
+            var accepted = createOffer(user, recipient);
+            assertThat(accept(accepted.getId(), recipient).getStatusCode()).isEqualTo(HttpStatus.OK);
+            var waiting = pending(createOffer(user, UUID.randomUUID()));
 
-            var page = restTemplate.getForEntity(BASE, FriendshipOfferPageWebResponse.class);
-
-            assertThat(page.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assert page.getBody() != null;
-            assertThat(page.getBody().getOffers()).hasSize(20);
-            assertThat(page.getBody().getNext()).isNotNull();
+            assertThat(getPage(user, "?direction=OUTGOING"))
+                    .isEqualTo(new FriendshipOfferPageWebResponse(List.of(waiting), null));
+            assertThat(getPage(user, "?direction=OUTGOING&status=ACCEPTED").getOffers())
+                    .singleElement()
+                    .satisfies(offer -> {
+                        assertThat(offer.getId()).isEqualTo(accepted.getId());
+                        assertThat(offer.getStatus()).isEqualTo(FriendshipOfferWebResponse.StatusEnum.ACCEPTED);
+                    });
         }
 
         @Test
-        @DisplayName("После самой старой заявки: 200, пустая страница и next = null")
-        void whenNothingAfterCursorThenEmptyPage() {
-            var page = restTemplate.getForEntity(BASE + "?afterCreatedAt={createdAt}&afterId={id}",
-                    FriendshipOfferPageWebResponse.class, "1970-01-01T00:00:00Z", UUID.randomUUID());
-
-            assertThat(page.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(page.getBody()).isEqualTo(new FriendshipOfferPageWebResponse(List.of(), null));
+        @DisplayName("Нет заявок: 200, пустая страница и next = null")
+        void whenNoOffersThenEmptyPage() {
+            assertThat(getPage(UUID.randomUUID(), "?direction=INCOMING"))
+                    .isEqualTo(new FriendshipOfferPageWebResponse(List.of(), null));
         }
 
         @ParameterizedTest(name = "{0}")
         @ValueSource(strings = {
-                "limit=0",
-                "limit=101",
-                "limit=abc",
-                "afterCreatedAt=yesterday&afterId=00000000-0000-0000-0000-000000000001",
-                "afterCreatedAt=2026-10-12T10:15:00Z&afterId=42",
-                "afterCreatedAt=2026-10-12T10:15:00Z",
-                "afterId=00000000-0000-0000-0000-000000000001"
+                "",
+                "?direction=FOO",
+                "?direction=INCOMING&status=FOO",
+                "?direction=INCOMING&limit=0",
+                "?direction=INCOMING&limit=101",
+                "?direction=INCOMING&afterCreatedAt=2026-10-12T10:15:00Z"
         })
-        @DisplayName("Некорректные параметры: 400 VALIDATION_ERROR")
+        @DisplayName("Нет direction или некорректные параметры: 400 VALIDATION_ERROR")
         void whenInvalidParamsThenBadRequest(String query) {
-            expectError(restTemplate.getForEntity(BASE + "?" + query, ApiErrorResponse.class),
+            expectError(get(UUID.randomUUID().toString(), query, ApiErrorResponse.class),
                     HttpStatus.BAD_REQUEST, INVALID_REQUEST);
         }
 
-        private FriendshipOfferPageWebResponse getPage(String url, Object... uriVariables) {
-            var response = restTemplate.getForEntity(url, FriendshipOfferPageWebResponse.class, uriVariables);
+        @Test
+        @DisplayName("Без X-User-Id: 401 UNAUTHORIZED")
+        void whenNoCurrentUserThenUnauthorized() {
+            expectError(restTemplate.getForEntity(BASE + "?direction=INCOMING", ApiErrorResponse.class),
+                    HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
+        }
+
+        private FriendshipOfferPageWebResponse getPage(UUID user, String query, Object... uriVariables) {
+            var response = get(user.toString(), query, FriendshipOfferPageWebResponse.class, uriVariables);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assert response.getBody() != null;
-            assertThat(response.getBody().getOffers()).hasSizeLessThanOrEqualTo(2);
             return response.getBody();
         }
-    }
 
-    @Nested
-    @DisplayName("GET /incoming, /outgoing")
-    class IncomingOutgoing {
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = {"/incoming", "/incoming?userId=1", "/outgoing", "/outgoing?userId=1"})
-        @DisplayName("userId нет или не UUID: 400 VALIDATION_ERROR")
-        void whenUserIdMissingOrNotUuidThenBadRequest(String path) {
-            expectError(restTemplate.getForEntity(BASE + path, ApiErrorResponse.class),
-                    HttpStatus.BAD_REQUEST, INVALID_REQUEST);
+        private <T> ResponseEntity<T> get(String user, String query, Class<T> type, Object... uriVariables) {
+            var headers = new HttpHeaders();
+            headers.set(USER_HEADER, user);
+            return restTemplate.exchange(BASE + query, HttpMethod.GET, new HttpEntity<>(headers), type, uriVariables);
         }
     }
 
     /**
-     * @return situation and request body of the invalid accept / reject requests of the contract
+     * @return ситуация и тело запроса для некорректных запросов accept / reject из контракта
      */
     static Stream<Arguments> invalidDecisionBodies() {
         var offerId = UUID.randomUUID();

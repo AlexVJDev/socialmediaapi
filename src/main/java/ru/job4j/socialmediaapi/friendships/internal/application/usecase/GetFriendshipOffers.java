@@ -11,32 +11,34 @@ import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipO
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferCursor;
 
 /**
- * Reading a page of all friendship offers in any status, newest first
- * ({@code created_at DESC, id DESC}). Pages are read by a cursor, like the feed:
- * no {@code OFFSET}, every page costs the same whatever its depth. The reader is not checked
- * until authentication (Keycloak) is added.
+ * Чтение страницы заявок в друзья текущего пользователя: входящих (пользователь получатель)
+ * или исходящих (пользователь отправитель) в одном статусе, сначала новые ({@code created_at DESC, id DESC}).
+ * Страницы читаются по курсору, как лента: без {@code OFFSET}, каждая страница стоит одинаково на любой глубине.
+ * Заявки других пользователей не читаются.
  */
 @Service
 @RequiredArgsConstructor
 public class GetFriendshipOffers {
 
-    /** Page size when the client does not set it. */
+    /** Размер страницы, если клиент его не задал. */
     public static final int DEFAULT_LIMIT = 20;
 
-    /** Maximum page size. */
+    /** Максимальный размер страницы. */
     public static final int MAX_LIMIT = FriendshipOfferRepository.MAX_LIMIT;
 
-    /** Stores friendship offers. */
+    /** Хранилище заявок в друзья. */
     private final FriendshipOfferRepository friendshipOfferRepository;
 
-    /** Maps the port page to the result. */
+    /** Преобразует страницу порта в результат. */
     private final FriendshipOfferApplicationMapper mapper;
 
     /**
-     * @param command cursor of the previous page (none for the first page) and page size
-     * @return the page; its {@code next} is {@code null} if there are no more offers
-     * @throws IncompleteFriendshipOfferCursorException only one of {@code afterCreatedAt}, {@code afterId} is set
-     * @throws IllegalArgumentException                 {@code limit} is less than 1 or greater than {@link #MAX_LIMIT}
+     * @param command пользователь, направление, статус, курсор предыдущей страницы (для первой — нет)
+     *                и размер страницы
+     * @return страница; её {@code next} — {@code null}, если заявок больше нет
+     * @throws IncompleteFriendshipOfferCursorException задана только одна часть курсора
+     *                                                  ({@code afterCreatedAt} или {@code afterId})
+     * @throws IllegalArgumentException                 {@code limit} меньше 1 или больше {@link #MAX_LIMIT}
      */
     @Transactional(readOnly = true)
     public FriendshipOfferPageResult get(GetFriendshipOffersCommand command) {
@@ -44,9 +46,11 @@ public class GetFriendshipOffers {
             throw new IncompleteFriendshipOfferCursorException();
         }
         if (command.afterId() == null) {
-            return mapper.toResult(friendshipOfferRepository.findPage(command.limit()));
+            return mapper.toResult(friendshipOfferRepository.findPage(
+                    command.userId(), command.direction(), command.status(), command.limit()));
         }
         FriendshipOfferCursor after = new FriendshipOfferCursor(command.afterCreatedAt(), command.afterId());
-        return mapper.toResult(friendshipOfferRepository.findPageAfter(after, command.limit()));
+        return mapper.toResult(friendshipOfferRepository.findPageAfter(
+                command.userId(), command.direction(), command.status(), after, command.limit()));
     }
 }

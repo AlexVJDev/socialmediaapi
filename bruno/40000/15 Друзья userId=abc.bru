@@ -1,0 +1,21 @@
+meta {
+  name: Друзья userId=abc
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendships?userId=abc
+  body: none
+  auth: none
+}
+
+tests {
+  test("статус 400", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("code = VALIDATION_ERROR", function() {
+    expect(res.body.code).to.equal("VALIDATION_ERROR");
+  });
+}

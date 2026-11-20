@@ -1,0 +1,12 @@
+type: object
+nullable: true
+description: Курсор следующей страницы — позиция последней заявки; `null`, если заявок больше нет
+required: [createdAt, id]
+properties:
+  createdAt:
+    type: string
+    format: date-time
+    example: '2026-09-22T10:15:00.123456Z'
+  id:
+    type: string
+    format: uuid

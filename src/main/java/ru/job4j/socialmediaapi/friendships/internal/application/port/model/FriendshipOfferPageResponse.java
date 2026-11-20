@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Page of all offers, newest first.
+ * Страница заявок пользователя, сначала новые.
  *
- * @param offers offers of the page
- * @param next   position of the last offer of the page; empty if there are no more offers
+ * @param offers заявки страницы
+ * @param next   позиция последней заявки страницы; пусто, если заявок больше нет
  */
 public record FriendshipOfferPageResponse(
         List<FindFriendshipOfferResponse> offers,

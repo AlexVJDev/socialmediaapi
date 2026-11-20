@@ -17,6 +17,7 @@ import ru.job4j.socialmediaapi.shared.web.CommonErrorCode;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.error.FriendshipOfferErrorCode;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.exception.IncompleteFriendCursorException;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.IncompleteFriendshipOfferCursorException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyPendingException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
@@ -24,29 +25,31 @@ import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipO
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipRequestNotFoundException;
 
 /**
- * Errors of the friendship offer endpoints → HTTP responses of the API contract.
- * Applies only to {@link FriendshipOfferController}; it is consulted before the common
- * {@code shared.exception.GlobalExceptionHandler}, which answers unexpected errors with {@code 500}.
+ * Ошибки эндпоинтов модуля (заявки и друзья) → HTTP-ответы API-контракта.
+ * Действует только для {@link FriendshipOfferController} и {@link FriendshipController}; срабатывает
+ * раньше общего {@code shared.exception.GlobalExceptionHandler}, который отвечает на неожиданные ошибки {@code 500}.
  */
-@RestControllerAdvice(assignableTypes = FriendshipOfferController.class)
+@RestControllerAdvice(assignableTypes = {FriendshipOfferController.class, FriendshipController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class FriendshipOfferExceptionHandler {
 
-    /** Logs the duplicate whose status could not be read. */
+    /** Логирует дубликат, статус которого не удалось прочитать. */
     private static final Logger LOG = LoggerFactory.getLogger(FriendshipOfferExceptionHandler.class);
 
     /**
-     * An invalid request of /api/v1/friendship-offer[/*]: one common VALIDATION_ERROR code for all of them.
+     * Некорректный запрос к /api/v1/friendship-offer[/*] и /api/v1/friendships: один общий код VALIDATION_ERROR
+     * для всех случаев.
      * <ul>
-     *     <li>body of create, accept, reject: unreadable, invalid or an offer to oneself;</li>
-     *     <li>path and query parameters: missing ({@code userId}) or of a wrong type (an id that is not a UUID,
-     *     {@code limit} or {@code afterCreatedAt} that cannot be converted);</li>
-     *     <li>query parameters of the page of offers: {@code limit} outside 1..100
-     *     ({@link ConstraintViolationException} of the {@code @Validated} interface),
-     *     only one part of the page cursor.</li>
+     *     <li>тело create, accept, reject: не читается, невалидно или заявка самому себе;</li>
+     *     <li>path- и query-параметры: отсутствуют ({@code direction}, {@code userId}) или неверного типа
+     *     (id не UUID, {@code direction} или {@code status} не из списка, {@code limit} или {@code afterCreatedAt}
+     *     не преобразуются);</li>
+     *     <li>query-параметры страниц заявок и друзей: {@code limit} вне 1..100
+     *     ({@link ConstraintViolationException} от {@code @Validated}-интерфейса),
+     *     задана только одна часть курсора страницы.</li>
      * </ul>
      *
-     * @return {@code 400} with the VALIDATION_ERROR error body
+     * @return {@code 400} с телом ошибки VALIDATION_ERROR
      */
     @ExceptionHandler({
             MethodArgumentNotValidException.class,
@@ -55,17 +58,18 @@ public class FriendshipOfferExceptionHandler {
             MissingServletRequestParameterException.class,
             MethodArgumentTypeMismatchException.class,
             ConstraintViolationException.class,
-            IncompleteFriendshipOfferCursorException.class
+            IncompleteFriendshipOfferCursorException.class,
+            IncompleteFriendCursorException.class
     })
     public ResponseEntity<ApiErrorResponse> handleInvalidRequest() {
         return CommonErrorCode.VALIDATION_ERROR.response();
     }
 
     /**
-     * A repeated or a counter offer while the offer of the pair still waits for a decision:
-     * nothing has changed.
+     * Повторная или встречная заявка, пока заявка пары ждёт решения:
+     * ничего не изменилось.
      *
-     * @return {@code 200} with the FRIENDSHIP_OFFER_ALREADY_PENDING body
+     * @return {@code 200} с телом FRIENDSHIP_OFFER_ALREADY_PENDING
      */
     @ExceptionHandler(FriendshipOfferAlreadyPendingException.class)
     public ResponseEntity<ApiErrorResponse> handleAlreadyPending() {
@@ -73,10 +77,10 @@ public class FriendshipOfferExceptionHandler {
     }
 
     /**
-     * Accept/reject of an offer that does not exist or whose recipient is not the actor
-     * (the offer of someone else is not disclosed); reading an offer that does not exist.
+     * Принятие/отклонение заявки, которой нет или получатель которой не тот, кто действует
+     * (чужая заявка не раскрывается); чтение несуществующей заявки.
      *
-     * @return {@code 404} with the FRIENDSHIP_OFFER_NOT_FOUND error body
+     * @return {@code 404} с телом ошибки FRIENDSHIP_OFFER_NOT_FOUND
      */
     @ExceptionHandler(FriendshipRequestNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound() {
@@ -94,13 +98,13 @@ public class FriendshipOfferExceptionHandler {
     }
 
     /**
-     * The service rethrows the duplicate only when the existing offer could not be read
-     * after the unique key violation (see {@code CreateFriendshipOffer}): the offer
-     * is there, but its status is unknown, so the client gets a conflict: an offer of the pair
-     * already exists. The case is logged because it should not happen.
+     * Сервис пробрасывает дубликат, только если существующую заявку не удалось прочитать
+     * после нарушения уникального ключа (см. {@code CreateFriendshipOffer}): заявка есть,
+     * но её статус неизвестен, поэтому клиент получает конфликт: заявка пары уже существует.
+     * Случай логируется, потому что его не должно быть.
      *
-     * @param exception duplicate reported by the repository
-     * @return {@code 409} with the FRIENDSHIP_OFFER_ALREADY_EXISTS error body
+     * @param exception дубликат, о котором сообщило хранилище
+     * @return {@code 409} с телом ошибки FRIENDSHIP_OFFER_ALREADY_EXISTS
      */
     @ExceptionHandler(FriendshipOfferAlreadyExistsException.class)
     public ResponseEntity<ApiErrorResponse> handleAlreadyExists(FriendshipOfferAlreadyExistsException exception) {

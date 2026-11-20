@@ -1,0 +1,5 @@
+type: string
+description: Статус заявки — фильтр списка заявок; по умолчанию `PENDING`
+enum: [PENDING, ACCEPTED, REJECTED]
+default: PENDING
+example: PENDING

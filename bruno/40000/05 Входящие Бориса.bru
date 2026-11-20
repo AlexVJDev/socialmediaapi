@@ -1,0 +1,26 @@
+meta {
+  name: Входящие Бориса
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/friendship-offer?direction=INCOMING
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-Id: {{borisId}}
+}
+
+tests {
+  test("статус 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("только PENDING, новые первыми: Дима, Алиса", function() {
+    expect(res.body.offers.map(i => i.id)).to.eql([bru.getVar("offerDima"), bru.getVar("offerAlice")]);
+    expect(res.body.next).to.equal(null);
+  });
+}

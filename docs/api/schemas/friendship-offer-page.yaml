@@ -1,0 +1,10 @@
+type: object
+description: Страница заявок от новых к старым (`createdAt DESC, id DESC`); может быть пустой
+required: [offers, next]
+properties:
+  offers:
+    type: array
+    items:
+      $ref: './friendship-offer.yaml'
+  next:
+    $ref: './friendship-offer-cursor.yaml'
