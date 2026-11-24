@@ -19,49 +19,47 @@ import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipO
 import java.time.Clock;
 
 /**
- * Creating an offer friendship, see «1. Создание заявки»
- * in {@code docs/process/friendship_transitions.puml}.
+ * Создание заявки в друзья, см. «1. Создание заявки» в {@code docs/process/friendship_transitions.puml}.
  *
- * <p>The offer is inserted right away, without a preliminary lookup: a pair of users has
- * at most one offer in either direction, guarded by the unique index of the table, so a repeat
- * or a counter offer (sequential or concurrent) fails with {@link FriendshipOfferAlreadyExistsException}.
- * The repository rolls back only that insert (a savepoint), so the service can read
- * the existing offer and throw the error of its status: {@link FriendshipOfferAlreadyPendingException},
- * {@link FriendshipOfferAlreadyAcceptedException} or {@link FriendshipOfferAlreadyRejectedException};
- * the transaction is then rolled back. The sender's subscription is inserted with
- * {@code ON CONFLICT DO NOTHING}, so a subscription created concurrently
- * (e.g. by accepting the opposite offer) is not an error.
+ * <p>Заявка вставляется сразу, без предварительного поиска: у пары пользователей не больше одной заявки
+ * в любом направлении (уникальный индекс таблицы), поэтому повторная или встречная заявка (последовательная
+ * или одновременная) завершается {@link FriendshipOfferAlreadyExistsException}. Хранилище пропускает такую
+ * вставку без ошибки БД, транзакция остаётся рабочей, и сервис читает существующую заявку и бросает ошибку
+ * её статуса: {@link FriendshipOfferAlreadyPendingException}, {@link FriendshipOfferAlreadyAcceptedException}
+ * или {@link FriendshipOfferAlreadyRejectedException}; затем транзакция откатывается. Подписка отправителя
+ * вставляется с {@code ON CONFLICT DO NOTHING}, поэтому подписка, созданная одновременно (например, принятием
+ * встречной заявки), не ошибка.
  *
- * <p>The rules of a new offer (ids are set, no offer to oneself, {@code PENDING})
- * are checked by {@link FriendshipOffer#create} before the database is queried.
+ * <p>Правила новой заявки (id заданы, не самому себе, {@code PENDING}) проверяет {@link FriendshipOffer#create}
+ * до обращения к БД.
  */
 @Service
 @RequiredArgsConstructor
 public class CreateFriendshipOffer {
 
-    /** Stores friendship offers. */
+    /** Хранилище заявок в друзья. */
     private final FriendshipOfferRepository friendshipOfferRepository;
 
-    /** Subscribes the sender to the recipient (API of the subscriptions module). */
+    /** Подписывает отправителя на получателя (api модуля subscriptions). */
     private final Subscriptions subscriptions;
 
-    /** Maps the domain offer to the port request and the port response to the result. */
+    /** Преобразует доменную заявку в запрос порта, а ответ порта — в результат сценария. */
     private final FriendshipOfferApplicationMapper mapper;
 
-    /** Source of the creation time of offers and subscriptions. */
+    /** Источник времени создания заявок и подписок. */
     private final Clock clock;
 
     /**
-     * Creates a {@code PENDING} offer friendship and subscribes the sender
-     * to the recipient, if the sender is not subscribed yet.
+     * Создаёт заявку в друзья в статусе {@code PENDING} и подписывает отправителя на получателя,
+     * если он ещё не подписан.
      *
-     * @param command sender and recipient of the offer
-     * @return the created offer
-     * @throws FriendshipOfferToSelfException          the user offers friendship to themselves
-     * @throws FriendshipOfferAlreadyPendingException  the offer of this pair (either direction) waits for a decision
-     * @throws FriendshipOfferAlreadyAcceptedException the offer of this pair (either direction) is already accepted
-     * @throws FriendshipOfferAlreadyRejectedException the offer of this pair (either direction) is already rejected
-     * @throws FriendshipOfferAlreadyExistsException   the offer of this pair exists, but could not be read
+     * @param command отправитель и получатель заявки
+     * @return созданная заявка
+     * @throws FriendshipOfferToSelfException          пользователь предлагает дружбу самому себе
+     * @throws FriendshipOfferAlreadyPendingException  заявка этой пары (в любом направлении) ждёт решения
+     * @throws FriendshipOfferAlreadyAcceptedException заявка этой пары (в любом направлении) уже принята
+     * @throws FriendshipOfferAlreadyRejectedException заявка этой пары (в любом направлении) уже отклонена
+     * @throws FriendshipOfferAlreadyExistsException   заявка этой пары есть, но прочитать её не удалось
      */
     @Transactional
     public CreateFriendshipOfferResult create(CreateFriendshipOfferCommand command) {
@@ -77,13 +75,13 @@ public class CreateFriendshipOffer {
     }
 
     /**
-     * Reads the offer of the pair that blocked the insert (it may be the counter offer)
-     * and picks the error of its status; the error carries the real direction of that offer;
-     * if the offer cannot be read, the original duplicate error is returned.
+     * Читает заявку пары, из-за которой вставка не прошла (это может быть встречная заявка), и выбирает
+     * ошибку её статуса; ошибка содержит настоящее направление этой заявки. Если заявку прочитать не удалось,
+     * возвращается исходная ошибка дубликата.
      *
-     * @param offer offer that could not be inserted
-     * @param cause unique key violation reported by the repository
-     * @return the error to throw
+     * @param offer заявка, которую не удалось вставить
+     * @param cause сообщение хранилища о том, что заявка пары уже есть
+     * @return ошибка, которую нужно бросить
      */
     private RuntimeException alreadyExistsError(
             FriendshipOffer offer, FriendshipOfferAlreadyExistsException cause

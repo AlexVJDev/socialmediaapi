@@ -36,7 +36,3 @@ databaseChangeLog:
   - include:
       file: dev/sql-examples-swagger.sql
       relativeToChangelogFile: true
-  - include:
-      file: dev/sql-examples-explain.sql
-      relativeToChangelogFile: true
-
