@@ -15,4 +15,4 @@ CREATE TABLE friendships
     CONSTRAINT chk_friendships_status CHECK (status IN ('ACTIVE', 'DELETED'))
 );
 
---rollback DROP TABLE IF EXISTS friendships;
+--rollback DROP TABLE friendships;

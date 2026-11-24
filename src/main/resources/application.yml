@@ -10,7 +10,7 @@ spring:
   liquibase:
     change-log: classpath:db/db.changelog-master.yaml
     default-schema: public
-    # dev - also the Swagger UI examples db/dev/swagger-examples.sql; never empty: empty runs every context
+    # dev - also the Swagger UI examples db/dev/sql-examples-swagger.sql; never empty: empty runs every context
     contexts: ${LIQUIBASE_CONTEXTS:default}
   # Static /openapi/** (the contract for Swagger UI): Cache-Control no-cache - the browser revalidates every file
   # (304 if unchanged), otherwise it keeps an old contract by heuristic caching and Swagger UI sends old requests.

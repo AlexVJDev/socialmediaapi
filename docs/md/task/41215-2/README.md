@@ -113,7 +113,7 @@ ORDER BY p.created_at DESC, p.id DESC;
 | `infrastructure.persistence.adapter.FeedPersistenceAdapter` | две SQL-константы (п. 2.5), `limit + 1`, сборка `FeedPageResponse` |
 | `infrastructure.persistence.mapper.FeedPersistenceMapper` | `PostRow` → `FeedCursor` (`toCursor`) в дополнение к `toResponse` |
 | `src/main/resources/db/changes/008-create-posts-indexes.sql` | частичный индекс `idx_posts_published_author_created` вместо `idx_posts_author_created` |
-| `src/main/resources/db/changes/0091-sql-examples.sql` (не в master changelog) | тестовые данные всех таблиц: 2 млн постов, 5 фиксированных UUID; rollback — `TRUNCATE` |
+| `../../../../src/main/resources/db/dev/sql-examples-explain.sql` (не в master changelog) | тестовые данные всех таблиц: 2 млн постов, 5 фиксированных UUID; rollback — `TRUNCATE` |
 
 Модульные правила не меняются: `posts` по-прежнему читает таблицу `subscriptions` в SQL (задокументированное исключение в `docs/architecture.md`), Java-зависимостей между модулями нет.
 
@@ -151,7 +151,7 @@ ORDER BY p.created_at DESC, p.id DESC;
 
 **Число пользователей почти не влияет на время одного запроса.** Поиск в B-tree индексе логарифмический: при 2 млн и при 500 млн постов он отличается на один-два уровня дерева. Время запроса определяют подписки читателя и размер страницы — 200 × 21 ≈ 4 000 записей индекса. Миллионы пользователей увеличивают **число** запросов в секунду; это решается репликами для чтения и кешем первой страницы (п. 4.2), а не другим запросом.
 
-Замер на данных `0091-sql-examples.sql` (PostgreSQL 17, 2 млн постов, прогретый кеш, страница 21 строка):
+Замер на данных `sql-examples-explain.sql` (PostgreSQL 17, 2 млн постов, прогретый кеш, страница 21 строка):
 
 | Вариант | 202 подписки (Алиса) | 1 003 подписки (Дина) |
 | --- | --- | --- |
@@ -206,7 +206,7 @@ ORDER BY p.created_at DESC, p.id DESC;
 
 **Запрос** — тот же `LATERAL` из п. 2.5 с курсором в обратную сторону: `(p.created_at, p.id) > (?, ?)`, где курсор — верхний пост показанной страницы. Для каждого автора индекс спускается к его самому свежему посту; если тот старше курсора, автор пропускается — около 3 страниц индекса на подписку. Стоимость — `подписки × 3` страницы индекса, не зависит ни от числа постов, ни от числа подписчиков автора; обычно запрос возвращает ноль строк.
 
-Замер на данных `0091-sql-examples.sql` (PostgreSQL 17, 2 млн постов):
+Замер на данных `sql-examples-explain.sql` (PostgreSQL 17, 2 млн постов):
 
 | Запрос | 202 подписки (Алиса) | 1 003 подписки (Дина) |
 | --- | --- | --- |
@@ -247,7 +247,7 @@ ORDER BY p.created_at DESC, p.id DESC;
 ### Отличия от плана
 
 - **Частичный индекс — в `008`, а не в новом changeset `010`.** Миграции `007`–`009` созданы заново (эталоны `*-b.sql` сверены и удалены); `008` сразу создаёт `idx_posts_published_author_created`. На уже наполненной локальной базе `docker compose` changeset `008` с прежним содержимым применён, поэтому Liquibase упадёт на checksum — локальную схему нужно сбросить (`docker compose down -v` или `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`). Тестов (Testcontainers, чистая база) это не касается.
-- **Добавлен `0091-sql-examples.sql`** — тестовые данные для всех таблиц и `EXPLAIN` (в master changelog не подключается).
+- **Добавлен `sql-examples-explain.sql`** — тестовые данные для всех таблиц и `EXPLAIN` (в master changelog не подключается).
 - **`shema.md` не изменился:** новые классы легли в уже существующие пакеты `posts`.
 - Тестов ленты 21 (план — «перенос + новые сценарии»): добавлены проверки удаления самого поста курсора и отписки между страницами.
 

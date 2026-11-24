@@ -11,4 +11,4 @@ CREATE TABLE subscriptions
     CONSTRAINT uq_subscriptions_users UNIQUE (follower_id, followed_id)
 );
 
---rollback DROP TABLE IF EXISTS subscriptions;
+--rollback DROP TABLE subscriptions;

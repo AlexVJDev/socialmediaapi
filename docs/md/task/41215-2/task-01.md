@@ -38,7 +38,7 @@
 
 В файлах должен быть SQL позволяющий создавать (генерировать случайные...) 2 млн. постов (для запуска EXPLAIN) и их удаления
    
-**Файл `0091-sql-examples.sql`**:
+**Файл `sql-examples-explain.sql`**:
    ```sql
    --liquibase formatted sql
 

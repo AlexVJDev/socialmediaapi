@@ -130,7 +130,7 @@ bruno/40000/*.bru                                              (новые)
   - `description`: заявки, где текущий пользователь (X-User-Id) получатель (`INCOMING`) или отправитель (`OUTGOING`); порядок
     `createdAt DESC, id DESC`; курсор; убрать фразу «доступно без проверки пользователя»;
   - параметры: `direction` (`required: true`, `$ref` схемы), `status` (`$ref`, `default: PENDING`), `limit`/`afterCreatedAt`/`afterId` — как сейчас;
-  - `200` → `$ref: '../schemas/friendship-offer-page.yaml'`, примеры `incoming` (две заявки B из `swagger-examples.sql`), `empty`;
+  - `200` → `$ref: '../schemas/friendship-offer-page.yaml'`, примеры `incoming` (две заявки B из `sql-examples-swagger.sql`), `empty`;
   - `400` — добавить «`direction` нет или не из списка, `status` не из списка»; `401` → `$ref: '../responses/unauthorized.yaml'`.
 - Удалить `paths/friendships-incoming-get.yaml`, `paths/friendships-outgoing-get.yaml` и их пути в `openapi.yaml`, `modules/friendships.yaml`.
 - `modules/friendships.yaml` — `components.securitySchemes.userIdHeader`, как в `modules/posts.yaml`.

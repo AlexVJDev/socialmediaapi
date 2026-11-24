@@ -123,7 +123,7 @@ bruno/40000/*.bru                                              (новые)
   - параметр `userId` удалить;
   - параметры: `status` (`$ref` на схему статуса, `default: PENDING`), `limit`, `afterCreatedAt`, `afterId` — копия из `friendship-offers-get.yaml`
     (без `example` у `afterCreatedAt`, см. 41226 Р-12);
-  - `200` → `$ref: '../schemas/friendship-offer-page.yaml'`, примеры `found` (две заявки B из `swagger-examples.sql`, `next: null`) и `empty` (`{offers: [], next: null}`);
+  - `200` → `$ref: '../schemas/friendship-offer-page.yaml'`, примеры `found` (две заявки B из `sql-examples-swagger.sql`, `next: null`) и `empty` (`{offers: [], next: null}`);
   - `400` — описание: `status` не из списка, `limit` вне 1..100, `afterCreatedAt`/`afterId` некорректны или задан только один;
   - `401` → `$ref: '../responses/unauthorized.yaml'`.
 - `paths/friendships-outgoing-get.yaml` — так же, «отправитель — текущий пользователь», примеры — заявки A.

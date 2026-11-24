@@ -2,7 +2,7 @@
 
 -- Тестовые данные для всех таблиц: ручные проверки и EXPLAIN ленты (задача 41215-2).
 -- В db.changelog-master.yaml НЕ подключается: выполняется вручную на локальной базе, НЕ на рабочей.
---   docker compose exec -T postgres psql -U <DB_USERNAME> -d <DB> < src/main/resources/db/changes/0091-sql-examples.sql
+--   docker compose exec -T postgres psql -U <DB_USERNAME> -d <DB> < src/main/resources/db/changes/sql-examples-explain.sql
 -- Запускать на пустых таблицах (после rollback ниже): повторный запуск упадёт на фиксированных UUID.
 -- Время — около 30–90 секунд, почти всё уходит на posts.
 --

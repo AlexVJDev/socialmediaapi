@@ -100,7 +100,7 @@ LIQUIBASE_CONTEXTS=dev ./mvnw spring-boot:run
 
 Данные пользователей-примеров (`0b6f3c9e…` A, `5e2a7d40…` B, `7d1f0a52…` C, `a3c8e5f1…` D, `22222222…` P)
 пересоздаются при каждом запуске — перезапуск отменяет accept/reject/delete, сделанные через Try it out.
-Описание данных — в начале `src/main/resources/db/dev/swagger-examples.sql`. Заголовок `X-User-Id` (Authorize →
+Описание данных — в начале `../../../../src/main/resources/db/dev/sql-examples-swagger.sql`. Заголовок `X-User-Id` (Authorize →
 `userIdHeader`): для операций с постом-примером — P, для ленты и подписок — A.
 `incoming`/`outgoing` пока отвечают 501, `GET /api/v1/friendships` — 404 (контроллер не реализован).
 

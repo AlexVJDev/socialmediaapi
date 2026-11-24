@@ -10,8 +10,7 @@ CREATE TABLE friendship_offer
     created_at      TIMESTAMPTZ     NOT NULL,
     updated_at      TIMESTAMPTZ     NOT NULL,
     CONSTRAINT chk_friendship_offer_different_users CHECK (from_user_id <> to_user_id),
-    CONSTRAINT chk_friendship_offer_status CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED')),
-    CONSTRAINT uq_friendship_offer_users UNIQUE (from_user_id, to_user_id)
+    CONSTRAINT chk_friendship_offer_status CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED'))
 );
 
---rollback DROP TABLE IF EXISTS friendship_offer;
+--rollback DROP TABLE friendship_offer;
