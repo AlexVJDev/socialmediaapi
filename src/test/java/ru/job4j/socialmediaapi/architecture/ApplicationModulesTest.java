@@ -20,16 +20,16 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Architecture rules of the modular monolith, described in {@code docs/architecture.md}.
- * Spring Modulith checks module boundaries, ArchUnit checks layers inside every module.
+ * Архитектурные правила модульного монолита из {@code docs/architecture.md}.
+ * Spring Modulith проверяет границы модулей, ArchUnit — слои внутри каждого модуля.
  */
 @DisplayName("Архитектура: модули Spring Modulith и слои внутри модулей")
 class ApplicationModulesTest {
 
-    /** Base package of the application: business modules are its direct subpackages. */
+    /** Базовый пакет приложения: бизнес-модули — его прямые подпакеты. */
     private static final String BASE_PACKAGE = SocialMediaApiApplication.class.getPackageName();
 
-    /** Production classes of the application, without tests. */
+    /** Классы основного кода приложения, без тестов. */
     private static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(BASE_PACKAGE);
@@ -62,15 +62,16 @@ class ApplicationModulesTest {
     }
 
     @Test
-    @DisplayName("Модели хранения *Row лежат в infrastructure.persistence.row")
-    void persistenceRowsBelongToPersistence() {
-        var rule = classes().that().haveSimpleNameEndingWith("Row")
+    @DisplayName("JPA-сущности *Entity и репозитории *JpaRepository лежат в infrastructure.persistence.jpa")
+    void persistenceModelsBelongToJpaPackage() {
+        var rule = classes().that().haveSimpleNameEndingWith("Entity")
+                .or().haveSimpleNameEndingWith("JpaRepository")
                 .and().resideOutsideOfPackage(BASE_PACKAGE + ".shared..")
-                .should().resideInAPackage(BASE_PACKAGE + ".*.internal.infrastructure.persistence.row")
+                .should().resideInAPackage(BASE_PACKAGE + ".*.internal.infrastructure.persistence.jpa")
                 .as("""
                     Правило размещения моделей хранения:
-                      Классы *Row (записи, повторяющие строку таблицы) должны находиться
-                      в infrastructure.persistence.row.
+                      JPA-сущности *Entity (строка таблицы) и Spring Data репозитории *JpaRepository
+                      должны находиться в infrastructure.persistence.jpa.
                       В api, domain и application модели хранения запрещены.""");
 
         assertNoViolations(rule);

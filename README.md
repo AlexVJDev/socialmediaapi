@@ -295,7 +295,7 @@ FROM generate_series(1, 15) n;
 SQL
 ```
 For a large data set (2 million posts, reader `55555555-5555-5555-5555-555555555555`)
-use `src/main/resources/db/changes/0091-sql-examples.sql` instead (see the
+use `src/main/resources/db/dev/sql-examples-explain.sql` instead (see the
 comments at the top of that file).
 
 Then, with the application running (`./mvnw spring-boot:run`):

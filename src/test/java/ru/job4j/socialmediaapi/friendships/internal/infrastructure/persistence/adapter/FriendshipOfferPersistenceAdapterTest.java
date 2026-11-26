@@ -7,13 +7,11 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
@@ -38,17 +36,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
-@Testcontainers
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 @DisplayName("Persistence-адаптер заявок в друзья: таблица friendship_offer")
 class FriendshipOfferPersistenceAdapterTest {
-
-    /** Одноразовый PostgreSQL, запускается и останавливается расширением {@code @Testcontainers}. */
-    @SuppressWarnings("unused")
-    @Container
-    @ServiceConnection
-    private static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer("postgres:17");
 
     /** Время создания заявок в тестах страниц; у каждого теста свои пользователи, поэтому время может повторяться. */
     private static final Instant BASE_TIME = Instant.parse("2026-10-01T10:00:00Z");
@@ -116,7 +107,7 @@ class FriendshipOfferPersistenceAdapterTest {
         assertThatThrownBy(() -> repository.createFriendshipOffer(request(
                 UUID.randomUUID(), fromUserId, toUserId
         ))).isInstanceOf(FriendshipOfferAlreadyExistsException.class)
-                .hasCauseInstanceOf(DataIntegrityViolationException.class);
+                .hasNoCause();
         assertThat(repository.findByPair(fromUserId, toUserId))
                 .map(FindFriendshipOfferResponse::id)
                 .contains(existingId);
@@ -134,7 +125,7 @@ class FriendshipOfferPersistenceAdapterTest {
         assertThatThrownBy(() -> repository.createFriendshipOffer(request(
                 UUID.randomUUID(), toUserId, fromUserId
         ))).isInstanceOf(FriendshipOfferAlreadyExistsException.class)
-                .hasCauseInstanceOf(DataIntegrityViolationException.class);
+                .hasNoCause();
         assertThat(jdbcTemplate.queryForObject("""
                 SELECT count(*) FROM friendship_offer
                 WHERE (from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)

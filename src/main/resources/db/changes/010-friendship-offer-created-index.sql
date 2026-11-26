@@ -5,4 +5,4 @@
 -- (created_at, id) < (?, ?) читаются по индексу без сортировки таблицы.
 CREATE INDEX idx_friendship_offer_created ON friendship_offer (created_at DESC, id DESC);
 
---rollback DROP INDEX IF EXISTS idx_friendship_offer_created;
+--rollback DROP INDEX idx_friendship_offer_created;

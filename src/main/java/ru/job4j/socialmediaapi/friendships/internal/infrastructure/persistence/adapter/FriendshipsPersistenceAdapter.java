@@ -1,146 +1,61 @@
 package ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.adapter;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Repository;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.row.FriendRow;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.row.FriendshipsRow;
-import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.mapper.FriendshipPersistenceMapper;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipsRepository;
+import org.springframework.stereotype.Component;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipAlreadyExistsException;
+import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipsRepository;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipResponse;
-import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FindFriendResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendCursor;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendPageResponse;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.jpa.FriendView;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.jpa.FriendshipJpaRepository;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.mapper.FriendshipPersistenceMapper;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * JDBC-реализация порта {@link FriendshipsRepository}: нативный SQL по таблице
- * {@code friendships}.
+ * JPA-реализация порта {@link FriendshipsRepository} по таблице {@code friendships}:
+ * запросы выполняет {@link FriendshipJpaRepository}, результаты преобразуются в модели порта.
  */
-@Repository
+@Component
 @RequiredArgsConstructor
 public class FriendshipsPersistenceAdapter implements FriendshipsRepository {
 
-    /** Вставляет дружбу и возвращает сохранённую строку. */
-    private static final String CREATE = """
-            INSERT INTO friendships (
-                id, first_user_id, second_user_id,
-                friendship_offer_id, status, created_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-            RETURNING id, first_user_id, second_user_id,
-                      friendship_offer_id, status, created_at
-            """;
+    /** Запросы Spring Data JPA к {@code friendships}. */
+    private final FriendshipJpaRepository jpaRepository;
 
-    /**
-     * Первая страница активных друзей пользователя. Пользователь может быть любой стороной дружбы, поэтому
-     * страница — слияние двух веток, каждая читается по своему индексу ({@code idx_friendships_first_user_page},
-     * {@code idx_friendships_second_user_page}) и обрезается до размера страницы до слияния.
-     * Параметры: пользователь, число строк, пользователь, число строк, число строк.
-     */
-    private static final String FIND_FRIENDS_FIRST_PAGE = """
-            (SELECT id, second_user_id AS friend_id, created_at
-             FROM friendships
-             WHERE first_user_id = ? AND status = 'ACTIVE'
-             ORDER BY created_at DESC, id DESC
-             LIMIT ?)
-            UNION ALL
-            (SELECT id, first_user_id AS friend_id, created_at
-             FROM friendships
-             WHERE second_user_id = ? AND status = 'ACTIVE'
-             ORDER BY created_at DESC, id DESC
-             LIMIT ?)
-            ORDER BY created_at DESC, id DESC
-            LIMIT ?
-            """;
-
-    /**
-     * Страница активных друзей пользователя после курсора. Параметры: пользователь, {@code created_at} курсора,
-     * {@code id} курсора, число строк — для каждой ветки, затем число строк общей страницы.
-     */
-    private static final String FIND_FRIENDS_PAGE_AFTER = """
-            (SELECT id, second_user_id AS friend_id, created_at
-             FROM friendships
-             WHERE first_user_id = ? AND status = 'ACTIVE'
-               AND (created_at, id) < (?, ?)
-             ORDER BY created_at DESC, id DESC
-             LIMIT ?)
-            UNION ALL
-            (SELECT id, first_user_id AS friend_id, created_at
-             FROM friendships
-             WHERE second_user_id = ? AND status = 'ACTIVE'
-               AND (created_at, id) < (?, ?)
-             ORDER BY created_at DESC, id DESC
-             LIMIT ?)
-            ORDER BY created_at DESC, id DESC
-            LIMIT ?
-            """;
-
-    /** Читает строку страницы друзей в {@link FriendRow}. */
-    private static final RowMapper<FriendRow> FRIEND_ROW_MAPPER =
-            (resultSet, rowNum) -> new FriendRow(
-                    resultSet.getObject("id", UUID.class),
-                    resultSet.getObject("friend_id", UUID.class),
-                    resultSet.getTimestamp("created_at").toInstant()
-            );
-
-    /** Читает строку результата в {@link FriendshipsRow}. */
-    private static final RowMapper<FriendshipsRow> ROW_MAPPER =
-            (resultSet, rowNum) -> new FriendshipsRow(
-                    resultSet.getObject("id", UUID.class),
-                    resultSet.getObject("first_user_id", UUID.class),
-                    resultSet.getObject("second_user_id", UUID.class),
-                    resultSet.getObject("friendship_offer_id", UUID.class),
-                    resultSet.getString("status"),
-                    resultSet.getTimestamp("created_at").toInstant()
-            );
-
-    /** Выполняет нативные SQL-запросы. */
-    private final JdbcTemplate jdbcTemplate;
-
-    /** Преобразует запросы/ответы порта в строки и обратно. */
+    /** Преобразует сущности и строки страниц в модели порта. */
     private final FriendshipPersistenceMapper mapper;
 
+    /**
+     * Вставка пропускает дубликат пары ({@code ON CONFLICT DO NOTHING}) без ошибки PostgreSQL;
+     * пропуск переводится в {@link FriendshipAlreadyExistsException}.
+     */
     @Override
-    public CreateFriendshipResponse createFriendship(
-            CreateFriendshipRequest request
-    ) {
-        FriendshipsRow row = mapper.toRow(request);
-        try {
-            FriendshipsRow saved = jdbcTemplate.queryForObject(
-                    CREATE,
-                    ROW_MAPPER,
-                    row.id(),
-                    row.firstUserId(),
-                    row.secondUserId(),
-                    row.friendshipOfferId(),
-                    row.status(),
-                    Timestamp.from(row.createdAt())
-            );
-            return mapper.toResponse(saved);
-        } catch (DataIntegrityViolationException e) {
-            if ("uq_friendships_users".equals(PostgresErrors.constraint(e))) {
-                throw new FriendshipAlreadyExistsException(request.firstUserId(), request.secondUserId(), e);
-            }
-            throw e;
+    public CreateFriendshipResponse createFriendship(CreateFriendshipRequest request) {
+        int inserted = jpaRepository.create(
+                request.id(),
+                request.firstUserId(),
+                request.secondUserId(),
+                request.friendshipOfferId(),
+                request.status().name(),
+                request.createdAt()
+        );
+        if (inserted == 0) {
+            throw new FriendshipAlreadyExistsException(request.firstUserId(), request.secondUserId(), null);
         }
+        return mapper.toResponse(jpaRepository.findById(request.id()).orElseThrow());
     }
 
     @Override
     public FriendPageResponse findFriendsPage(UUID userId, int limit) {
         Objects.requireNonNull(userId, "userId");
         checkLimit(limit);
-        int fetch = limit + 1;
-        return findFriendsPage(limit, FIND_FRIENDS_FIRST_PAGE, userId, fetch, userId, fetch, fetch);
+        return toPage(jpaRepository.findFriendsFirstPage(userId, limit + 1), limit);
     }
 
     @Override
@@ -148,32 +63,28 @@ public class FriendshipsPersistenceAdapter implements FriendshipsRepository {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(after, "after");
         checkLimit(limit);
-        int fetch = limit + 1;
-        Timestamp createdAt = Timestamp.from(after.createdAt());
-        return findFriendsPage(limit, FIND_FRIENDS_PAGE_AFTER,
-                userId, createdAt, after.id(), fetch,
-                userId, createdAt, after.id(), fetch,
-                fetch);
+        return toPage(
+                jpaRepository.findFriendsPageAfter(userId, after.createdAt(), after.id(), limit + 1),
+                limit
+        );
     }
 
     /**
-     * Читает до {@code limit + 1} строк: лишняя строка не возвращается,
+     * Собирает страницу из до {@code limit + 1} прочитанных строк: лишняя строка не возвращается,
      * она лишь означает, что есть следующая страница.
      *
+     * @param rows  прочитанные строки
      * @param limit максимальное число друзей на странице
-     * @param sql   запрос страницы
-     * @param args  параметры запроса
      * @return страница с курсором следующей, если она есть
      */
-    private FriendPageResponse findFriendsPage(int limit, String sql, Object... args) {
-        List<FriendRow> rows = jdbcTemplate.query(sql, FRIEND_ROW_MAPPER, args);
+    private FriendPageResponse toPage(List<FriendView> rows, int limit) {
         boolean hasNext = rows.size() > limit;
-        List<FriendRow> pageRows = hasNext ? rows.subList(0, limit) : rows;
+        List<FriendView> pageRows = hasNext ? rows.subList(0, limit) : rows;
         Optional<FriendCursor> next = hasNext
-                ? Optional.of(new FriendCursor(pageRows.getLast().createdAt(), pageRows.getLast().id()))
+                ? Optional.of(mapper.toCursor(pageRows.getLast()))
                 : Optional.empty();
         return new FriendPageResponse(
-                pageRows.stream().map(row -> new FindFriendResponse(row.id(), row.friendId())).toList(),
+                pageRows.stream().map(mapper::toFindResponse).toList(),
                 next
         );
     }

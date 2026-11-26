@@ -13,4 +13,4 @@ CREATE TABLE posts
     CONSTRAINT chk_posts_status CHECK (status IN ('PUBLISHED', 'DELETED'))
 );
 
---rollback DROP TABLE IF EXISTS posts;
+--rollback DROP TABLE posts;

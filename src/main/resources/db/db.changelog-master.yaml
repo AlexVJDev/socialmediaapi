@@ -34,5 +34,5 @@ databaseChangeLog:
       relativeToChangelogFile: true
   # Swagger UI examples, local only: context dev (LIQUIBASE_CONTEXTS=dev), recreated on every start.
   - include:
-      file: dev/swagger-examples.sql
+      file: dev/sql-examples-swagger.sql
       relativeToChangelogFile: true

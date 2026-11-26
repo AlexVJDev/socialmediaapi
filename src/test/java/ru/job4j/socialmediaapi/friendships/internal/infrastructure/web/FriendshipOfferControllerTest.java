@@ -16,7 +16,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import ru.job4j.socialmediaapi.TestcontainersConfiguration;
+import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.friendships.internal.infrastructure.persistence.jpa.FriendshipOfferJpaRepository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -34,22 +37,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("POST /api/v1/friendship-offer/{create,accept,reject}: ответы и ошибки по friendship_transitions.puml")
 class FriendshipOfferControllerTest {
 
-    /** Base URL of the friendship offer endpoints. */
+    /** Базовый URL операций с заявками в друзья. */
     private static final String BASE = "/api/v1/friendship-offer";
 
     /** Заголовок с текущим пользователем: отправитель, принимающий или отклоняющий заявку. */
     private static final String USER_HEADER = "X-User-Id";
 
-    /** URL of the create offer endpoint. */
+    /** URL создания заявки. */
     private static final String CREATE = BASE + "/create";
 
-    /** MockMvc to call the API without a running server. */
+    /** MockMvc: вызовы API без запущенного сервера. */
     @Autowired
     private MockMvc mockMvc;
 
-    /** Direct access to the database to prepare and check data. */
+    /** Прямой доступ к БД для подготовки и проверки данных. */
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    /** Чтение заявок через Spring Data JPA: результат HTTP-запроса проверяется по сохранённой строке. */
+    @Autowired
+    private FriendshipOfferJpaRepository offers;
 
     @ParameterizedTest(name = "{0}")
     @CsvSource(delimiter = '|', value = {
@@ -93,16 +100,20 @@ class FriendshipOfferControllerTest {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
 
-        create(fromUserId, body(toUserId))
+        var json = create(fromUserId, body(toUserId))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.fromUserId").value(fromUserId.toString()))
                 .andExpect(jsonPath("$.toUserId").value(toUserId.toString()))
                 .andExpect(jsonPath("$.status").value("PENDING"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty())
-                .andExpect(jsonPath("$.updatedAt").doesNotExist());
+                .andExpect(jsonPath("$.updatedAt").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
 
-        assertThat(offerStatus(fromUserId, toUserId)).isEqualTo("PENDING");
+        var stored = offers.findById(UUID.fromString(JsonPath.read(json, "$.id"))).orElseThrow();
+        assertThat(stored.getFromUserId()).isEqualTo(fromUserId);
+        assertThat(stored.getToUserId()).isEqualTo(toUserId);
+        assertThat(stored.getStatus()).isEqualTo(FriendshipOfferStatus.PENDING);
+        assertThat(OffsetDateTime.parse(JsonPath.read(json, "$.createdAt")).toInstant())
+                .isEqualTo(stored.getCreatedAt());
         assertThat(subscriptions(fromUserId, toUserId)).isOne();
     }
 
@@ -111,12 +122,13 @@ class FriendshipOfferControllerTest {
     void whenRepeatPendingOfferThenOkWithPendingCode() throws Exception {
         var fromUserId = UUID.randomUUID();
         var toUserId = UUID.randomUUID();
-        create(fromUserId, body(toUserId)).andExpect(status().isCreated());
+        var offerId = createOffer(fromUserId, toUserId);
+        var created = offers.findById(offerId).orElseThrow();
 
         expectError(create(fromUserId, body(toUserId)), 200, "FRIENDSHIP_OFFER_ALREADY_PENDING");
 
         assertThat(offersFrom(fromUserId)).isOne();
-        assertThat(offerStatus(fromUserId, toUserId)).isEqualTo("PENDING");
+        assertThat(offers.findById(offerId).orElseThrow()).usingRecursiveComparison().isEqualTo(created);
         assertThat(subscriptions(fromUserId, toUserId)).isOne();
     }
 

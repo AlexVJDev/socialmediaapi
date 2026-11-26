@@ -5,12 +5,18 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5435/social_media}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:password}
+  # Schema is created only by Liquibase; Hibernate only checks the entity mapping against it.
+  # open-in-view off: no Hibernate session is held for the whole HTTP request.
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
   modulith:
     detection-strategy: explicitly-annotated
   liquibase:
     change-log: classpath:db/db.changelog-master.yaml
     default-schema: public
-    # dev - also the Swagger UI examples db/dev/swagger-examples.sql; never empty: empty runs every context
+    # dev - also the Swagger UI examples db/dev/sql-examples-swagger.sql; never empty: empty runs every context
     contexts: ${LIQUIBASE_CONTEXTS:default}
   # Static /openapi/** (the contract for Swagger UI): Cache-Control no-cache - the browser revalidates every file
   # (304 if unchanged), otherwise it keeps an old contract by heuristic caching and Swagger UI sends old requests.
@@ -19,6 +25,11 @@ spring:
       cache:
         cachecontrol:
           no-cache: true
+
+# SQL of every Hibernate query in the log: SQL_LOG_LEVEL=debug on the local stand (off by default).
+logging:
+  level:
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:info}
 
 # Swagger UI shows the static contract docs/api/openapi.yaml (published as /openapi/** by the build).
 # springdoc.api-docs stays enabled: Swagger UI reads its config from /v3/api-docs/swagger-config;
