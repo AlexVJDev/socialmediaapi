@@ -4,9 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.AcceptFriendshipOfferCommand;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.CreateFriendshipOfferCommand;
 import ru.job4j.socialmediaapi.friendships.internal.application.model.FriendshipOfferDecisionResult;
@@ -14,6 +12,7 @@ import ru.job4j.socialmediaapi.friendships.internal.application.model.RejectFrie
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyAcceptedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.exception.FriendshipOfferAlreadyRejectedException;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +28,8 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Сценарии принятия и отклонения заявки: одновременные решения по одной заявке")
-class DecideFriendshipOfferConcurrencyTest {
+class DecideFriendshipOfferConcurrencyTest extends PostgreSqlIntegrationTest {
 
     /** Creates the offer to decide. */
     @Autowired

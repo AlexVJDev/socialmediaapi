@@ -4,10 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
@@ -15,6 +13,7 @@ import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostRes
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.PostResponse;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.UpdatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -24,9 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Persistence-адаптер публикаций: создание, чтение, изменение и логическое удаление в таблице posts")
-class PostPersistenceAdapterTest {
+class PostPersistenceAdapterTest extends PostgreSqlIntegrationTest {
 
     /** Fixed creation time of posts. */
     private static final Instant CREATED_AT = Instant.parse("2026-10-15T10:15:00Z");

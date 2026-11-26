@@ -15,6 +15,7 @@ import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.CreateFriendshipOfferWebResponse;
 import ru.job4j.socialmediaapi.friendships.internal.infrastructure.web.response.FriendPageWebResponse;
 import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @E2ETest
 @DisplayName("E2E: список друзей GET /api/v1/friendships")
-class FriendshipE2ETest {
+class FriendshipE2ETest extends PostgreSqlIntegrationTest {
 
     /** URL страницы друзей. */
     private static final String FRIENDS = "/api/v1/friendships";

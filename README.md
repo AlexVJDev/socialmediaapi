@@ -83,117 +83,98 @@ dump it with `pg_dump` from the old version first and restore it afterwards.
 
 ## Why tests run on PostgreSQL, not H2
 
-Tests start a real PostgreSQL in Docker via Testcontainers
-(`TestcontainersConfiguration`, `FriendshipOfferRepositoryJdbcTest`) instead of
-using an in-memory H2 database. The goal of the tests is to check the code
-against the same database it runs on in production, and H2 would only imitate
-it:
+Integration tests start a real PostgreSQL 17 in Docker via Testcontainers
+(`PostgreSqlIntegrationTest`) instead of using an in-memory H2 database. The
+goal of the tests is to check the code against the same database it runs on in
+production, and H2 would only imitate it:
 
-- **The same migrations.** Liquibase applies the very same SQL changesets from
+- **The same migrations.** Liquibase applies the very same changesets from
   `src/main/resources/db/changes` in tests and in the application. With H2 we
   would either need a separate H2-compatible schema or would have to give up
   PostgreSQL-specific syntax, and the tests would no longer verify the real
   schema.
-- **PostgreSQL-specific SQL.** The repositories use plain JDBC with native SQL,
-  for example `INSERT ... RETURNING` in `FriendshipOfferRepositoryJdbc`. H2
-  does not support `RETURNING` even in `MODE=PostgreSQL`, so such a query
-  would fail in tests or would have to be rewritten only for them.
+- **PostgreSQL-specific SQL.** Some JPA repositories use native queries, for
+  example `INSERT ... ON CONFLICT DO NOTHING` for friendships and subscriptions
+  and row-value cursors `(created_at, id) < (?, ?)` for pages and the feed.
+  H2 does not support all of this, so such queries would fail in tests or would
+  have to be rewritten only for them.
 - **Types and constraints.** The schema relies on `UUID`, `TIMESTAMPTZ`,
-  `CHECK` and `UNIQUE` constraints (`status` values, no self-offers, one offer
-  per pair of users, canonical user order in `friendships`). The business rules
-  of the friendship process are enforced by these constraints, so the tests
-  must check how PostgreSQL itself compares values, stores time zones and
-  reports violations — H2 compatibility mode does this differently or only
-  partially.
+  `CHECK` and `UNIQUE` constraints (offer `status` values, no self-offers, one
+  offer per pair of users, canonical user order in `friendships`). The business
+  rules are enforced by these constraints, so the tests must check how
+  PostgreSQL itself compares values, stores time zones and reports violations.
 - **No false positives.** A test that passes on H2 but fails on PostgreSQL
   gives false confidence; a green build should mean the code works with the
   real database.
 
+A developer's local database is not used either: it may keep traces of earlier
+migrations (the Liquibase table `databasechangelog` already exists) and hide a
+configuration error. Testcontainers starts a fresh database for every test run.
+
 The price is that **Docker must be running** for `./mvnw test`. You do not need
-to start the database from `docker compose` for tests: Testcontainers starts a
-fresh, isolated PostgreSQL container for the test run and removes it afterwards,
-so tests do not depend on, or change, the data in your local database.
+to start the database from `docker compose` for tests: the tests start their own
+PostgreSQL container and remove it afterwards, so they do not depend on, or
+change, the data in your local database. On the first run Docker downloads the
+`postgres:17` image.
 
-## Test annotations
+## How tests get the database
 
-In short: `@SpringBootTest` starts the application, `@Testcontainers` and
-`@Container` start a Docker container with the database, and
-`@ServiceConnection` connects the application to it.
+Every test that needs the database extends
+`src/test/java/ru/job4j/socialmediaapi/support/PostgreSqlIntegrationTest.java`:
 
-- **`@SpringBootTest`** (Spring Boot) starts the full application context
-  before the tests, almost as `./mvnw spring-boot:run` does: all beans, the
-  datasource, Liquibase migrations and `JdbcTemplate`. Real beans can then be
-  injected into the test with `@Autowired`. Spring caches the context, so test
-  classes with the same configuration reuse it instead of starting a new one.
-- **`@Testcontainers`** (JUnit 5 extension from `testcontainers-junit-jupiter`)
-  finds the fields marked with `@Container` in the test class and manages their
-  lifecycle: starts the containers before the tests and stops them afterwards.
-  Without such fields it does nothing.
-- **`@Container`** marks a field whose container the `@Testcontainers`
-  extension manages. A `static` field gets one container for all tests of the
-  class; an instance field gets a new container for every test, which is more
-  isolated but much slower.
-- **`@ServiceConnection`** (`spring-boot-testcontainers`) lets Spring Boot read
-  the container's real connection details (Docker assigns a random port) and
-  build `JdbcConnectionDetails` from them. These override `spring.datasource.*`
+```java
+public abstract class PostgreSqlIntegrationTest {
+    private static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer("postgres:17").withDatabaseName("social_media");
+
+    static {
+        POSTGRES.start();
+    }
+
+    @DynamicPropertySource
+    static void configureDataSource(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+    }
+}
+```
+
+- **One container per JVM (singleton).** The `static` field is initialized and
+  the container is started once, when the class is first loaded. It is not
+  stopped when a Spring context closes; Testcontainers (Ryuk) removes it after
+  the test JVM exits. A new `./mvnw test` run gets a new, empty database.
+- **`@DynamicPropertySource`** passes the container's real connection details
+  (Docker assigns a random port) to Spring. They override `spring.datasource.*`
   from `application.yml`, so tests use the container instead of
-  `localhost:5432`. It replaces a hand-written `@DynamicPropertySource` method.
+  `localhost:5435`. The method is inherited, so the subclass does not repeat it.
+- **Liquibase runs once.** The first Spring context applies the migrations;
+  other contexts find the changesets already recorded in `databasechangelog`.
+- **The data is shared.** The database is not cleaned between tests, so each
+  test creates its own records with fresh `UUID.randomUUID()` ids.
 
-The project uses two ways to wire the container:
+The test slice is chosen by the subclass:
 
-1. **Container managed by JUnit** — `FriendshipOfferRepositoryJdbcTest`:
-   ```java
-   @Testcontainers
-   @SpringBootTest
-   class FriendshipOfferRepositoryJdbcTest {
+| Annotation | What starts | Example |
+|---|---|---|
+| `@SpringBootTest` (+ `@AutoConfigureMockMvc`) | The full application context; `MockMvc` calls Spring MVC without an HTTP server | `PingControllerIntegrationTest`, `SocialMediaApiApplicationTests` |
+| `@E2ETest` | The full application on a random port, called over real HTTP by `TestRestTemplate` | `FriendshipE2ETest` |
+| `@DataJpaTest` + `@AutoConfigureTestDatabase(replace = NONE)` | JPA and Liquibase only; `NONE` keeps the container instead of an embedded database | `PostJpaRepositoryTest` |
+| `@WebMvcTest(PingController.class)` | The web layer only, without the database and Docker; does not extend the base class | `PingControllerTest` |
 
-       @Container
-       @ServiceConnection
-       static PostgreSQLContainer postgres =
-               new PostgreSQLContainer("postgres:17");
-   }
-   ```
-   JUnit starts the `static` container, `@SpringBootTest` creates the context,
-   `@ServiceConnection` points the datasource at the container, Liquibase
-   creates the schema in the empty database, and the container is stopped
-   after the class's tests.
-2. **Container as a Spring bean** — `SocialMediaApiApplicationTests`:
-   ```java
-   @SpringBootTest
-   @Import(TestcontainersConfiguration.class)
-   class SocialMediaApiApplicationTests {
-   }
-   ```
-   `TestcontainersConfiguration` declares the container as a bean with
-   `@ServiceConnection`. Spring starts and stops it together with the context,
-   so `@Testcontainers` and `@Container` are not needed, and one container can
-   be shared by several test classes.
-
-Because the two classes are configured differently, one test run starts two
-Spring contexts and two containers. This is not an error, but it makes the
-tests slower; with `@Import(TestcontainersConfiguration.class)` in both classes
-there would be one context and one container.
-
-## Test run result example:
-
-UPDATE SUMMARY
-Run:                          6
-Previously run:               0
-Filtered out:                 0
--------------------------------
-Total change sets:            6
-Update summary generated
-Update command completed successfully.
-Liquibase: Update has been successful. Rows affected: 0
-Successfully released change log lock
-Command execution complete
-
+`@E2ETest` is an annotation and cannot carry `@DynamicPropertySource`, so an
+`@E2ETest` class must also extend `PostgreSqlIntegrationTest`.
 
 ## Application
 
-Run the tests on Linux or macOS (Docker must be running):
+Run the tests on Linux or macOS (**Docker must be running**):
 ```shell
 ./mvnw test
+```
+
+On Windows:
+```shell
+./mvnw.cmd test
 ```
 
 If the shell reports `./mvnw: Permission denied`, the wrapper is not
@@ -201,6 +182,11 @@ executable (it is stored in git with mode `100644`); run it through `sh`
 instead:
 ```shell
 sh ./mvnw test
+```
+
+Run a single test class:
+```shell
+./mvnw test -Dtest=PingControllerIntegrationTest
 ```
 
 ### Code style (Checkstyle)
@@ -222,33 +208,7 @@ Build an HTML report without failing the build, then open
 ./mvnw checkstyle:checkstyle
 ```
 
-### Test results
-
-Last verified on 2026-10-08 (macOS, Docker 29.7.2, Maven 3.9.16 via the
-wrapper, JDK 21, PostgreSQL `postgres:17` started by Testcontainers).
-
-`FriendshipOfferRepositoryJdbcTest` was run twice in a row; each run is a
-separate Maven invocation with its own fresh PostgreSQL container:
-```shell
-sh ./mvnw test -Dtest=FriendshipOfferRepositoryJdbcTest
-sh ./mvnw test -Dtest=FriendshipOfferRepositoryJdbcTest
-```
-
-Run 1:
-```text
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.05 s -- in ru.job4j.socialmediaapi.repository.FriendshipOfferRepositoryJdbcTest
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
-
-Run 2:
-```text
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 12.44 s -- in ru.job4j.socialmediaapi.repository.FriendshipOfferRepositoryJdbcTest
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
-
-Both runs passed with the same result: 4 tests, no failures or errors.
+### Start the application
 
 Start the application on Linux or macOS:
 ```shell

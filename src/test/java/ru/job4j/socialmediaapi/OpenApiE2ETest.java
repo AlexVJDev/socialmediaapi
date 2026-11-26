@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.HttpStatus;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @E2ETest
 @DisplayName("E2E: контракт OpenAPI и Swagger UI")
-class OpenApiE2ETest {
+class OpenApiE2ETest extends PostgreSqlIntegrationTest {
 
     /** HTTP-клиент, привязанный к случайному порту запущенного приложения. */
     @Autowired

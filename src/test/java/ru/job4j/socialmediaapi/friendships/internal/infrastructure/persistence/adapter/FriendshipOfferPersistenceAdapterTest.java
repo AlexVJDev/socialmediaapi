@@ -7,11 +7,9 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
 import ru.job4j.socialmediaapi.friendships.internal.application.exception.FriendshipOfferAlreadyExistsException;
@@ -23,6 +21,7 @@ import ru.job4j.socialmediaapi.friendships.internal.application.port.model.Frien
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.FriendshipOfferPageResponse;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.UpdateFriendshipOfferStatusResponse;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -37,9 +36,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Persistence-адаптер заявок в друзья: таблица friendship_offer")
-class FriendshipOfferPersistenceAdapterTest {
+class FriendshipOfferPersistenceAdapterTest extends PostgreSqlIntegrationTest {
 
     /** Время создания заявок в тестах страниц; у каждого теста свои пользователи, поэтому время может повторяться. */
     private static final Instant BASE_TIME = Instant.parse("2026-10-01T10:00:00Z");

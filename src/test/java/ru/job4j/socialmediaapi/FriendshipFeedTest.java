@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
@@ -14,6 +13,7 @@ import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Instant;
 import java.util.List;
@@ -32,9 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Дружба и лента: после принятия заявки оба друга видят посты друг друга")
-class FriendshipFeedTest {
+class FriendshipFeedTest extends PostgreSqlIntegrationTest {
 
     /** Base URL of the friendship offer endpoints. */
     private static final String OFFERS = "/api/v1/friendship-offer";

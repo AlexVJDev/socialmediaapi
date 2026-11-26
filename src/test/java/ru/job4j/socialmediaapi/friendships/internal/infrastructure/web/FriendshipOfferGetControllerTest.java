@@ -10,12 +10,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -42,9 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
 @DisplayName("GET /api/v1/friendship-offer[/{offerId}]: заявка по id и страницы заявок текущего пользователя")
-class FriendshipOfferGetControllerTest {
+class FriendshipOfferGetControllerTest extends PostgreSqlIntegrationTest {
 
     /** Базовый URL эндпоинтов заявок в друзья. */
     private static final String BASE = "/api/v1/friendship-offer";

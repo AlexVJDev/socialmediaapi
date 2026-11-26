@@ -7,8 +7,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.liquibase.autoconfigure.LiquibaseAutoConfiguration;
-import org.springframework.context.annotation.Import;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,9 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ImportAutoConfiguration(LiquibaseAutoConfiguration.class)
-@Import(TestcontainersConfiguration.class)
 @DisplayName("JPA-репозиторий подписок: таблица subscriptions")
-class SubscriptionJpaRepositoryTest {
+class SubscriptionJpaRepositoryTest extends PostgreSqlIntegrationTest {
 
     /** Проверяемый репозиторий. */
     @Autowired

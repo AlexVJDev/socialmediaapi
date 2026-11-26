@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.job4j.socialmediaapi.shared.security.HeaderCurrentUserProvider;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.util.UUID;
 
@@ -29,9 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Подписка, пост и лента через REST: пост автора виден подписчику до отписки")
-class PostFeedScenarioTest {
+class PostFeedScenarioTest extends PostgreSqlIntegrationTest {
 
     /** Заголовок текущего пользователя. */
     private static final String USER = HeaderCurrentUserProvider.HEADER;

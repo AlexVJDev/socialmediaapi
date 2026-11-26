@@ -4,14 +4,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.SubscriptionRepository;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.CreateSubscriptionRequest;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.port.model.SubscriptionResponse;
 import ru.job4j.socialmediaapi.subscriptions.internal.application.exception.SubscriptionAlreadyExistsException;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -20,9 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Persistence-адаптер подписок: сохранение в таблицу subscriptions")
-class SubscriptionPersistenceAdapterTest {
+class SubscriptionPersistenceAdapterTest extends PostgreSqlIntegrationTest {
 
     /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");

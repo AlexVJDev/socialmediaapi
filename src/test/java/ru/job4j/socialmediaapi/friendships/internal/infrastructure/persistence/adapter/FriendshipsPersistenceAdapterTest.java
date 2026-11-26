@@ -4,9 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipsRepository;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.FriendshipOfferRepository;
 import ru.job4j.socialmediaapi.friendships.internal.domain.model.FriendshipOfferStatus;
@@ -15,6 +13,7 @@ import ru.job4j.socialmediaapi.friendships.internal.application.exception.Friend
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipOfferRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipRequest;
 import ru.job4j.socialmediaapi.friendships.internal.application.port.model.CreateFriendshipResponse;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -23,9 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Persistence-адаптер дружбы: сохранение в таблицу friendships")
-class FriendshipsPersistenceAdapterTest {
+class FriendshipsPersistenceAdapterTest extends PostgreSqlIntegrationTest {
 
     /** Fixed time used for created rows. */
     private static final Instant NOW = Instant.parse("2026-10-06T10:15:00Z");

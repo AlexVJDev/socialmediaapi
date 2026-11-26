@@ -4,8 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.FeedRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
@@ -15,6 +13,7 @@ import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPageRes
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.FeedPostResponse;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -30,9 +29,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * user ids: the container is shared and holds the data of other tests.
  */
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 @DisplayName("Лента: опубликованные посты авторов из подписок читателя, от новых к старым, страницы по курсору")
-class FeedPersistenceAdapterTest {
+class FeedPersistenceAdapterTest extends PostgreSqlIntegrationTest {
 
     /** Base time of posts; later posts are created minutes after it. */
     private static final Instant BASE_TIME = Instant.parse("2026-10-15T10:00:00Z");

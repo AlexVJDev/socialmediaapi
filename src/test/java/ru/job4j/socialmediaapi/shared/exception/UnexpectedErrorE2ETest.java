@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.job4j.socialmediaapi.E2ETest;
 import ru.job4j.socialmediaapi.friendships.internal.application.usecase.GetFriendshipOffer;
 import ru.job4j.socialmediaapi.shared.web.ApiErrorResponse;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.util.UUID;
 
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
  */
 @E2ETest
 @DisplayName("E2E: непредвиденная ошибка — 500 INTERNAL_ERROR")
-class UnexpectedErrorE2ETest {
+class UnexpectedErrorE2ETest extends PostgreSqlIntegrationTest {
 
     /** HTTP client bound to the random port of the running application. */
     @Autowired

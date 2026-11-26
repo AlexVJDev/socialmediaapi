@@ -8,18 +8,17 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import ru.job4j.socialmediaapi.TestcontainersConfiguration;
 import ru.job4j.socialmediaapi.posts.internal.application.port.PostRepository;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.CreatePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.application.port.model.DeletePostRequest;
 import ru.job4j.socialmediaapi.posts.internal.domain.model.PostStatus;
 import ru.job4j.socialmediaapi.shared.security.HeaderCurrentUserProvider;
 import ru.job4j.socialmediaapi.subscriptions.api.Subscriptions;
+import ru.job4j.socialmediaapi.support.PostgreSqlIntegrationTest;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -40,9 +39,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
 @DisplayName("API постов и ленты: создание, изменение, удаление, чтение постов и ленты")
-class PostControllerTest {
+class PostControllerTest extends PostgreSqlIntegrationTest {
 
     /** Base time of posts; later posts are created minutes after it. */
     private static final Instant BASE_TIME = Instant.parse("2026-10-15T10:00:00Z");
